@@ -94,3 +94,4 @@ To protect both service providers and customers against stalking and physical pr
 | **NID Private Storage** | ✅ PASS | Admin signed URLs with 15-minute expiration; no public bucket exposure. |
 | **Build & Type Checking** | ✅ PASS | 30/30 routes compiled with 0 TypeScript and 0 bundler errors. |
 | **PWA & Offline Worker** | ✅ PASS | Service worker with caching strategy registered at `/sw.js`. |
+

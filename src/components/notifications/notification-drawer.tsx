@@ -390,3 +390,4 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
     </div>
   )
 }
+
