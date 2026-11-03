@@ -1,0 +1,86 @@
+{
+  "app_name": "mistri",
+  "app_tagline": "আপনার এলাকার দক্ষ মিস্ত্রী, এখন হাতের মুঠোয়",
+  "locations": {
+    "select_district": "জেলা নির্বাচন করুন",
+    "select_upazila": "উপজেলা নির্বাচন করুন",
+    "current_location": "বর্তমান অবস্থান",
+    "change_location": "অবস্থান পরিবর্তন",
+    "search_in_district": "সমগ্র জেলায় খুঁজুন",
+    "gps_detecting": "জিপিএস অবস্থান চিহ্নিত করা হচ্ছে...",
+    "gps_permission_denied": "জিপিএস অনুমতি পাওয়া যায়নি। অনুগ্রহ করে তালিকা থেকে জেলা ও উপজেলা নির্বাচন করুন।"
+  },
+  "nav": {
+    "home": "হোম",
+    "search": "খুঁজুন",
+    "bookings": "বুকিং",
+    "favorites": "পছন্দ",
+    "profile": "প্রোফাইল",
+    "dashboard": "ড্যাশবোর্ড",
+    "admin": "অ্যাডমিন"
+  },
+  "auth": {
+    "login": "লগইন করুন",
+    "register": "রেজিস্ট্রেশন করুন",
+    "phone_number": "মোবাইল নম্বর",
+    "phone_placeholder": "০১XXXXXXXXX",
+    "password": "পাসওয়ার্ড",
+    "otp_title": "ওটিপি যাচাইকরণ",
+    "otp_instruction": "আপনার মোবাইল নম্বরে পাঠানো ৪-সংখ্যার ওটিপি কোডটি লিখুন",
+    "verify_otp": "কোড যাচাই করুন",
+    "resend_otp": "পুনরায় কোড পাঠান",
+    "select_account_type": "অ্যাকাউন্টের ধরন বেছে নিন",
+    "customer_account": "আমি সেবা নিতে চাই (গ্রাহক)",
+    "mistri_account": "আমি কাজ করতে চাই (মিস্ত্রী)",
+    "logout": "লগআউট"
+  },
+  "search": {
+    "search_placeholder": "মিস্ত্রী বা কাজের নাম খুঁজুন (যেমন: ফ্যান মেরামত, টাইলস)...",
+    "filters": "ফিল্টার",
+    "sort_by": "বাছাই করুন",
+    "nearest": "সবচেয়ে কাছে",
+    "highest_rated": "সেরা রেটিং",
+    "most_experienced": "সবচেয়ে অভিজ্ঞ",
+    "most_jobs": "সর্বোচ্চ কাজ সম্পন্ন",
+    "price_low_high": "কম খরচ থেকে বেশি",
+    "available_today": "আজকে উপলব্ধ",
+    "verified_only": "অ্যাডমিন ভেরিফাইড",
+    "no_mistri_found": "কোনো মিস্ত্রী পাওয়া যায়নি",
+    "distance_away": "কিলোমিটার দূরে"
+  },
+  "booking": {
+    "book_now": "বুক করুন",
+    "work_description": "কাজের বিস্তারিত বিবরণ",
+    "work_description_placeholder": "সমস্যাটি সংক্ষেপে বর্ণনা করুন (যেমন: ফ্যানে শব্দ হচ্ছে, সুইচ কাজ করছে না)...",
+    "job_address": "কাজের সঠিক ঠিকানা",
+    "preferred_date": "কাজের কাঙ্ক্ষিত তারিখ",
+    "preferred_time": "কাজের সময়",
+    "estimated_budget": "সম্ভাব্য বাজেট (টাকা)",
+    "upload_photos": "সমস্যার ছবি তুলুন বা আপলোড করুন",
+    "status": {
+      "pending": "অনুরোধ পাঠানো হয়েছে",
+      "accepted": "মিস্ত্রী গ্রহণ করেছেন",
+      "rejected": "প্রত্যাখ্যাত",
+      "scheduled": "সময় নির্ধারিত",
+      "in_progress": "কাজ চলছে",
+      "completed": "কাজ সম্পন্ন হয়েছে",
+      "cancelled": "বাতিল করা হয়েছে",
+      "disputed": "অভিযোগাধীন"
+    }
+  },
+  "common": {
+    "experience": "অভিজ্ঞতা",
+    "years": "বছর",
+    "completed_jobs": "টি কাজ সম্পন্ন",
+    "reviews": "টি রিভিউ",
+    "rating": "রেটিং",
+    "bdt": "৳",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল",
+    "confirm": "নিশ্চিত করুন",
+    "view_details": "বিস্তারিত দেখুন",
+    "compare": "তুলনা করুন",
+    "call": "কল করুন"
+  }
+}
+

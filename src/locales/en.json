@@ -1,0 +1,86 @@
+{
+  "app_name": "mistri",
+  "app_tagline": "Your Local Trusted Professional, At Your Fingertips",
+  "locations": {
+    "select_district": "Select District",
+    "select_upazila": "Select Upazila",
+    "current_location": "Current Location",
+    "change_location": "Change Location",
+    "search_in_district": "Search in District",
+    "gps_detecting": "Detecting GPS location...",
+    "gps_permission_denied": "GPS permission denied. Please pick your district and upazila manually."
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "bookings": "Bookings",
+    "favorites": "Favorites",
+    "profile": "Profile",
+    "dashboard": "Dashboard",
+    "admin": "Admin"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "phone_number": "Mobile Number",
+    "phone_placeholder": "01XXXXXXXXX",
+    "password": "Password",
+    "otp_title": "OTP Verification",
+    "otp_instruction": "Enter the 4-digit verification code sent to your phone",
+    "verify_otp": "Verify Code",
+    "resend_otp": "Resend Code",
+    "select_account_type": "Select Account Type",
+    "customer_account": "I need service (Customer)",
+    "mistri_account": "I want to work (Mistri)",
+    "logout": "Logout"
+  },
+  "search": {
+    "search_placeholder": "Search mistri or service (e.g., fan repair, tiles)...",
+    "filters": "Filters",
+    "sort_by": "Sort By",
+    "nearest": "Nearest First",
+    "highest_rated": "Highest Rated",
+    "most_experienced": "Most Experienced",
+    "most_jobs": "Most Completed Jobs",
+    "price_low_high": "Price: Low to High",
+    "available_today": "Available Today",
+    "verified_only": "Admin Verified",
+    "no_mistri_found": "No Mistri Found",
+    "distance_away": "km away"
+  },
+  "booking": {
+    "book_now": "Book Now",
+    "work_description": "Work Description",
+    "work_description_placeholder": "Briefly describe your problem...",
+    "job_address": "Exact Job Address",
+    "preferred_date": "Preferred Date",
+    "preferred_time": "Preferred Time",
+    "estimated_budget": "Estimated Budget (BDT)",
+    "upload_photos": "Upload Problem Photos",
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "disputed": "Disputed"
+    }
+  },
+  "common": {
+    "experience": "Experience",
+    "years": "Years",
+    "completed_jobs": "Completed Jobs",
+    "reviews": "Reviews",
+    "rating": "Rating",
+    "bdt": "৳",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "view_details": "View Details",
+    "compare": "Compare",
+    "call": "Call"
+  }
+}
+
