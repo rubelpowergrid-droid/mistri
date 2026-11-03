@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>MISTRI – প্ল্যাটফর্ম পরিচালনা ও ডাটাবেজ ম্যানেজমেন্ট নির্দেশিকা</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'Inter', sans-serif;
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Tiro Bangla', 'Inter', -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: #0f172a;
+      background-color: #ffffff;
+      padding: 0;
+    }
+
+    .cover {
+      page-break-after: always;
+      padding: 40px 20px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 90vh;
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #2563eb;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 16pt;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      width: fit-content;
+    }
+
+    .cover-title {
+      font-size: 26pt;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-top: 40px;
+      margin-bottom: 15px;
+    }
+
+    .cover-subtitle {
+      font-size: 14pt;
+      color: #3b82f6;
+      font-weight: 700;
+      margin-bottom: 25px;
+    }
+
+    .cover-desc {
+      font-size: 11pt;
+      color: #475569;
+      max-width: 650px;
+      line-height: 1.7;
+    }
+
+    .meta-box {
+      margin-top: 50px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid #cbd5e1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      font-size: 10pt;
+    }
+
+    .meta-item strong {
+      color: #1e293b;
+      display: block;
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    .page {
+      page-break-after: always;
+      padding-top: 10px;
+    }
+
+    h1 {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #1e3a8a;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 6px;
+      margin-top: 25px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #1e40af;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 22px;
+      margin-bottom: 12px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 9.5pt;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 9pt;
+      line-height: 1.5;
+      margin: 12px 0 16px 0;
+      overflow-x: auto;
+      border: 1px solid #334155;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 18px 0;
+      font-size: 10pt;
+    }
+
+    table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+    }
+
+    table td {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .alert {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 12px 16px;
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0;
+      font-size: 10pt;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border-left-color: #059669;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left-color: #d97706;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      font-weight: bold;
+    }
+
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover">
+    <div>
+      <div class="brand-badge">
+        <span>🔧 mistri.</span>
+      </div>
+      <div class="cover-title">
+        প্ল্যাটফর্ম পরিচালনা ও ডাটাবেজ ম্যানেজমেন্ট নির্দেশিকা
+      </div>
+      <div class="cover-subtitle">
+        অন-ডিমান্ড হোম অ্যান্ড প্রফেশনাল সার্ভিস মার্কেটপ্লেস
+      </div>
+      <div class="cover-desc">
+        এই নথিটি MISTRI প্ল্যাটফর্মের সামগ্রিক সিস্টেম আর্কিটেকচার, Supabase ও PostgreSQL ডাটাবেজ প্রশাসন, পোস্টজিআইএস (PostGIS) লোকেশন ইঞ্জিন, অ্যাডমিন ড্যাশবোর্ড পরিচালনা, নেটিভ ফ্লাটার মোবাইল অ্যাপ ব্যবস্থাপনা এবং ক্লাউড ডিপ্লয়মেন্ট সংক্রান্ত একটি পূর্ণাঙ্গ বাংলা সহায়িকা।
+      </div>
+    </div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <strong>প্রাথমিক অপারেশনাল অঞ্চল</strong>
+        ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুর, বাংলাদেশ
+      </div>
+      <div class="meta-item">
+        <strong>প্রযুক্তি স্ট্যাক</strong>
+        Next.js 15+, React 19, TypeScript, Supabase, Flutter 3.41
+      </div>
+      <div class="meta-item">
+        <strong>টাইপোগ্রাফি</strong>
+        সার্বজনীন "Tiro Bangla" (Google Fonts)
+      </div>
+      <div class="meta-item">
+        <strong>নথি সংস্করণ ও তারিখ</strong>
+        ভার্সন ১.০ (নভেম্বর ২০২৬)
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAPTER 1 -->
+  <div class="page">
+    <h1>১. প্ল্যাটফর্ম ওভারভিউ ও সিস্টেম আর্কিটেকচার</h1>
+    <p>
+      <strong>MISTRI</strong> একটি আধুনিক, অবস্থানভিত্তিক (Location-based) এবং অন-ডিমান্ড প্রফেশনাল সার্ভিসেস মার্কেটপ্লেস। বাংলাদেশের উত্তরাঞ্চলের জেলা ঠাকুরগাঁও, পঞ্চগড় এবং দিনাজপুর থেকে এর প্রাথমিক কার্যক্রম শুরু হচ্ছে। প্ল্যাটফর্মটির উদ্দেশ্য হলো স্থানীয় গৃহস্থালি ও বাণিজ্যিক গ্রাহকদের সাথে বিশ্বস্ত ও অভিজ্ঞ কারিগরদের (ইলেকট্রিশিয়ান, প্লাম্বার, রাজমিস্ত্রী, কাঠমিস্ত্রী ইত্যাদি) সরাসরি যুক্ত করা।
+    </p>
+
+    <h2>১.১ মূল প্রযুক্তি উপাদানসমূহ:</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>উপাদান</th>
+          <th>ব্যবহৃত প্রযুক্তি</th>
+          <th>উদ্দেশ্য ও ভূমিকা</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ওয়েব ফ্রন্টএন্ড</strong></td>
+          <td>Next.js 15 (App Router), React 19, Tailwind CSS v4</td>
+          <td>দ্রুতগতির সার্ভার-রেন্ডার ও হাইব্রিড ওয়েব অ্যাপ্লিকেশন এবং PWA।</td>
+        </tr>
+        <tr>
+          <td><strong>ডাটাবেজ ও ক্লাউড ব্যাকএন্ড</strong></td>
+          <td>Supabase (PostgreSQL 15+, PostGIS)</td>
+          <td>রিলেশনাল ডেটাবেজ, জিপিএস জিওগ্রাফিক কোয়ারি এবং রিয়েলটাইম ইভেন্ট।</td>
+        </tr>
+        <tr>
+          <td><strong>মোবাইল অ্যাপ</strong></td>
+          <td>Flutter 3.41, Dart 3.11 (Android & iOS)</td>
+          <td>গ্রাহক ও মিস্ত্রীদের জন্য আলাদা রেসপনসিভ হাই-পারফরম্যান্স নেটিভ অ্যাপ।</td>
+        </tr>
+        <tr>
+          <td><strong>মানচিত্র ও জিপিএস</strong></td>
+          <td>OpenStreetMap, FlutterMap, Geolocator</td>
+          <td>সরাসরি লাইভ রুট ট্র্যাকিং ও আনুমানিক পৌঁছানোর সময় (ETA) নির্ণয়।</td>
+        </tr>
+        <tr>
+          <td><strong>টাইপোগ্রাফি</strong></td>
+          <td>Tiro Bangla (গুগল ফন্ট)</td>
+          <td>সকল বাংলা টেক্সট, বোতাম, ফর্ম এবং নোটিফিকেশনে মানসম্মত ফন্ট।</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-success">
+      <strong>গোপনীয়তার দুই স্তর বিশিষ্ট অবস্থান মডেল (Two-Tier Privacy):</strong><br>
+      পাবলিক সার্চে কোনো মিস্ত্রীর বাসার সুনির্দিষ্ট জিপিএস কোঅর্ডিনেট কখনো উন্মুক্ত করা হয় না। শুধুমাত্র বুকিং চলাকালীন সময়ে এবং মিস্ত্রী যাত্রা শুরু করলে লাইভ ট্র্যাক গ্রাহককে সাময়িকভাবে দেখানো হয়। কাজ সম্পন্ন হওয়া মাত্রই স্বয়ংক্রিয়ভাবে ট্র্যাকিং ডেটা সার্ভার থেকে মুছে ফেলা হয়।
+    </div>
+  </div>
+
+  <!-- CHAPTER 2 -->
+  <div class="page">
+    <h1>২. Supabase ডাটাবেজ সেটআপ ও মাইগ্রেশন গাইড</h1>
+    <p>
+      MISTRI-এর ডাটাবেজ হিসেবে ক্লাউড-নেটিভ <strong>Supabase</strong> ব্যবহৃত হচ্ছে। ডাটাবেজে ১৬টি রিলেশনাল টেবিল, এনাম টাইপ, আরএলএস পলিসি এবং অটোমেটেড ট্রিগার রয়েছে।
+    </p>
+
+    <h2>২.১ Supabase প্রজেক্ট তৈরি ও কনফিগারেশন:</h2>
+    <ol>
+      <li><strong>supabase.com</strong>-এ গিয়ে বিনামূল্যে একটি অ্যাকাউন্ট খুলে <code>New Project</code> তৈরি করুন।</li>
+      <li>প্রজেক্ট নাম দিন <code>mistri-platform</code> এবং একটি নিরাপদ ডাটাবেজ পাসওয়ার্ড সেট করুন।</li>
+      <li>ডাটাবেজ রিজিয়ন হিসেবে সিঙ্গাপুর (Singapore - ap-southeast-1) নির্বাচন করুন।</li>
+    </ol>
+
+    <h2>২.২ এসকিউএল স্ক্রিপ্ট রান করার ক্রম (SQL Execution):</h2>
+    <p>
+      প্রজেক্টের <code>supabase/migrations/</code> ফোল্ডারের ফাইলগুলো Supabase-এর বাম পাশের <strong>SQL Editor</strong>-এ গিয়ে ক্রমানুসারে পেস্ট করে "Run" করুন:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ক্রম</th>
+          <th>ফাইলের নাম</th>
+          <th>কার্যক্রম</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>১</td>
+          <td><code>20261103000001_initial_schema.sql</code></td>
+          <td>ইউজার টেবিল, প্রোফাইল, বুকিং, রিভিউ, নোটিফিকেশন টেবিল তৈরি।</td>
+        </tr>
+        <tr>
+          <td>২</td>
+          <td><code>20261103000002_postgis_and_spatial_indexes.sql</code></td>
+          <td>PostGIS এক্সটেনশন ও জিওগ্রাফিক ডিস্ট্যান্স সার্চ ফাংশন সক্রিয়করণ।</td>
+        </tr>
+        <tr>
+          <td>৩</td>
+          <td><code>20261103000003_rls_security_policies.sql</code></td>
+          <td>১৬টি টেবিলের Row Level Security (RLS) অ্যাক্সেস কন্ট্রোল পলিসি।</td>
+        </tr>
+        <tr>
+          <td>৪</td>
+          <td><code>20261103000004_triggers_and_functions.sql</code></td>
+          <td>স্বয়ংক্রিয় রেটিং ক্যালকুলেশন ও ট্র্যাকিং অটো-টার্মিনেশন ট্রিগার।</td>
+        </tr>
+        <tr>
+          <td>৫</td>
+          <td><code>seed.sql</code></td>
+          <td>ঠাকুরগাঁও, পঞ্চগড়, দিনাজপুরের উপজেলাসমূহ ও ১২টি ক্যাটাগরি ডাটা।</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-warning">
+      <strong>সতর্কতা:</strong> মাইগ্রেশন ফাইলগুলো সবসময় ক্রমানুসারে চালাবেন (১ থেকে ৫ পর্যন্ত)। কোনো ফাইল বাদ দিলে ফরেন কী (Foreign Key) ও ফাংশনের ডিপেনডেন্সি ত্রুটি দেখা দিতে পারে।
+    </div>
+  </div>
+
+  <!-- CHAPTER 3 -->
+  <div class="page">
+    <h1>৩. ফাইল স্টোরেজ ও NID ভেরিফিকেশন নিরাপত্তা</h1>
+    <p>
+      মিস্ত্রীদের জাতীয় পরিচয়পত্র (NID) অতি সংবেদনশীল ডেটা। এটি যাতে সাধারণ মানুষ বা অননুমোদিত কেউ দেখতে না পারে, সে জন্য Supabase Storage-এ প্রাইভেট বাকেট তৈরি করতে হবে।
+    </p>
+
+    <h2>৩.১ স্টোরেজ বাকেট তালিকা (Storage Buckets):</h2>
+    <p>Supabase ড্যাশবোর্ডের বাম পাশের <strong>Storage</strong> মেনুতে গিয়ে নিচের বাকেটগুলো তৈরি করুন:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>বাকেট নাম (Bucket Name)</th>
+          <th>পাবলিক নাকি প্রাইভেট?</th>
+          <th>অনুমোদিত ফাইল</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>nid-documents</code></td>
+          <td><span class="badge badge-amber">Private (পাবলিক নয়)</span></td>
+          <td>মিস্ত্রীদের NID ফ্রন্ট, ব্যাক ও লাইভ সেলফি ছবি।</td>
+        </tr>
+        <tr>
+          <td><code>portfolios</code></td>
+          <td><span class="badge badge-green">Public (পাবলিক)</span></td>
+          <td>মিস্ত্রীদের পূর্ববর্তী কাজের নমুনা ছবি।</td>
+        </tr>
+        <tr>
+          <td><code>avatars</code></td>
+          <td><span class="badge badge-green">Public (পাবলিক)</span></td>
+          <td>ব্যবহারকারী ও কারিগরদের প্রোফাইল ছবি।</td>
+        </tr>
+        <tr>
+          <td><code>booking-photos</code></td>
+          <td><span class="badge badge-amber">Private (পাবলিক নয়)</span></td>
+          <td>কাজের সমস্যার প্রমাণ ছবি।</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>৩.২ ১৫-মিনিটের এক্সপায়ারিং সিকিউর URL:</h2>
+    <p>
+      অ্যাডমিন যখন কোনো মিস্ত্রীর NID যাচাই করেন, তখন ব্যাকএন্ড থেকে একটি সাময়িক প্রে-সাইনড ইউআরএল (Presigned URL) তৈরি হয় যার মেয়াদ থাকে মাত্র <strong>১৫ মিনিট (৯০০ সেকেন্ড)</strong>। মেয়াদ শেষ হলে লিংকটি অকেজো হয়ে যায়, ফলে মিস্ত্রীর পরিচয়পত্র শতভাগ নিরাপদ থাকে।
+    </p>
+  </div>
+
+  <!-- CHAPTER 4 -->
+  <div class="page">
+    <h1>৪. এনভায়রনমেন্ট কনফিগারেশন (.env.local)</h1>
+    <p>
+      প্রজেক্টের রুট ডিরেক্টরিতে <code>.env.local</code> ফাইলটিতে প্রয়োজনীয় কি এবং ক্রেডেনশিয়াল সংরক্ষণ করতে হবে।
+    </p>
+
+    <pre><code># ১. Supabase কানেকশন (Project Settings -> API থেকে নিবেন)
+NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi... (Anon Public Key)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi... (Secret Service Key)
+
+# ২. প্ল্যাটফর্ম সাইট URL
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# ৩. SMS OTP প্রভাইডার (sslwireless | greenweb | mock)
+SMS_PROVIDER=mock
+SMS_API_KEY=your-sms-api-key
+SMS_SENDER_ID=MISTRI
+
+# ৪. ডিফল্ট ভৌগোলিক স্থানাঙ্ক (ঠাকুরগাঁও সদর)
+NEXT_PUBLIC_DEFAULT_DISTRICT=ঠাকুরগাঁও
+NEXT_PUBLIC_DEFAULT_LATITUDE=26.0333
+NEXT_PUBLIC_DEFAULT_LONGITUDE=88.4667</code></pre>
+
+    <div class="alert">
+      <strong>প্রোডাকশন টিপ:</strong> লাইভ প্ল্যাটফর্মে পাঠানোর সময় <code>SMS_PROVIDER</code> হিসেবে বাংলাদেশের অনুমোদিত বাল্ক এসএমএস গেটওয়ে (যেমন: SSL Wireless বা Greenweb) এর API ক্রেডেনশিয়াল যুক্ত করতে হবে।
+    </div>
+  </div>
+
+  <!-- CHAPTER 5 -->
+  <div class="page">
+    <h1>৫. ওয়েব ও অ্যাডমিন ড্যাশবোর্ড পরিচালনা</h1>
+
+    <h2>৫.১ ওয়েব সার্ভার চালু করার কমান্ড:</h2>
+    <pre><code># প্যাকেজ ইন্সটলেশন
+npm install
+
+# ডেভেলপমেন্ট সার্ভার (লোকাল টেস্ট)
+npm run dev
+# ব্রাউজারে খুলুন: http://localhost:3000
+
+# প্রোডাকশন বিল্ড ভেরিফিকেশন
+npm run build
+npm start</code></pre>
+
+    <h2>৫.২ অ্যাডমিন ড্যাশবোর্ডের মূল ফিচার ও রুটসমূহ:</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>রুট / ইউআরএল</th>
+          <th>বিবরণ ও পরিচালনা পদ্ধতি</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/admin/dashboard</code></td>
+          <td><strong>সার্বিক পরিসংখ্যান:</strong> দৈনিক বুকিং, আয়, সক্রিয় মিস্ত্রী ও ভেরিফিকেশন আবেদন ওভারভিউ।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/verification</code></td>
+          <td><strong>NID ভেরিফিকেশন কিউ:</strong> অপেক্ষমান মিস্ত্রীদের আবেদন তালিকা ও ভেরিফিকেশন হিস্ট্রি।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/verification/[id]</code></td>
+          <td><strong>ডকুমেন্ট ইন্সপেক্টর:</strong> NID ও সেলফি বড় করে পরীক্ষা করে Approve / Reject বাটন চাপুন।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/reviews</code></td>
+          <td><strong>রিভিউ মডারেশন ডেস্ক:</strong> গ্রাহকের ৪-ক্রাইটেরিয়া রিভিউ পর্যালোচনা ও অপ্রাসঙ্গিক মন্তব্য মুছে ফেলা।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/categories</code></td>
+          <td><strong>ক্যাটাগরি ম্যানেজার:</strong> নতুন কাজের ক্যাটাগরি তৈরি, এডিট অথবা নিষ্ক্রিয় করা।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/locations</code></td>
+          <td><strong>এরিয়া ম্যানেজার:</strong> নতুন জেলা, উপজেলা বা ইউনিয়ন কভারেজ জোন যুক্ত করা।</td>
+        </tr>
+        <tr>
+          <td><code>/admin/mistris</code></td>
+          <td><strong>মিস্ত্রী ডিরেক্টরি:</strong> তালিকা অনুসন্ধান, প্রোফাইল সাসপেন্ড বা পুনরায় সক্রিয়করণ।</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CHAPTER 6 -->
+  <div class="page">
+    <h1>৬. ফ্লাটার নেটিভ মোবাইল অ্যাপ পরিচালনা (Flutter)</h1>
+    <p>
+      MISTRI-এর মোবাইল ক্লায়েন্টটি <code>mobile/</code> ডিরেক্টরিতে সুসংগঠিত। এটি একই সাথে Android এবং iOS ডিভাইসে সরাসরি কাজ করে।
+    </p>
+
+    <h2>৬.১ মোবাইল প্রোজেক্ট স্ট্রাকচার:</h2>
+    <pre><code>mobile/
+  ├── lib/
+  │    ├── core/ (থিম, Tiro Bangla ফন্ট, ফরমেটার)
+  │    ├── models/ (মিস্ত্রী, বুকিং, ক্যাটাগরি)
+  │    ├── screens/
+  │    │    ├── customer/ (হোম, অনুসন্ধান, বুকিং, লাইভ ট্র্যাকিং)
+  │    │    └── mistri/ (কাজের অগ্রগতি, জিপিএস ব্রডকাস্ট)
+  │    └── main.dart (অ্যাপ লঞ্চার)
+  └── pubspec.yaml (প্যাকেজ কনফিগারেশন)</code></pre>
+
+    <h2>৬.২ অ্যাপ টেস্ট ও বিল্ড কমান্ড:</h2>
+    <pre><code># ১. মোবাইল ডিরেক্টরিতে প্রবেশ
+cd mobile
+
+# ২. ডিপেনডেন্সি চেক
+flutter pub get
+
+# ৩. অ্যানালাইজার টেস্ট (০ ত্রুটি যাচাই)
+flutter analyze
+flutter test
+
+# ৪. ইমুলেটর বা সংযুক্ত ফোনে সরাসরি চালানো
+flutter run
+
+# ৫. রিলিজ অ্যান্ড্রয়েড APK তৈরি করা (Play Store বা শেয়ারের জন্য)
+flutter build apk --release</code></pre>
+
+    <p>
+      রিলিজ বিল্ড শেষ হলে ইনস্টলেশন ফাইলটি পাবেন এখানে:<br>
+      <code>mobile/build/app/outputs/flutter-apk/app-release.apk</code>
+    </p>
+  </div>
+
+  <!-- CHAPTER 7 -->
+  <div class="page">
+    <h1>৭. ব্যাকআপ ও রিকভারি পলিসি</h1>
+    
+    <h2>৭.১ অটোমেটিক ব্যাকআপ:</h2>
+    <p>
+      Supabase ক্লাউড ডেটাবেজে প্রতিদিন স্বয়ংক্রিয়ভাবে ব্যাকআপ নেওয়া হয় (Point-in-Time Recovery)। আপনি ড্যাশবোর্ডের <strong>Project Settings $\to$ Database $\to$ Backups</strong> অপশন থেকে যেকোনো পূর্ববর্তী পয়েন্টে ডাটাবেজ রিস্টোর করতে পারবেন।
+    </p>
+
+    <h2>৭.২ ম্যানুয়াল ডাটাবেজ ডাম্প (Manual Dump):</h2>
+    <pre><code># টার্মিনাল থেকে সম্পূর্ণ ডেটাবেজের ব্যাকআপ ডাউনলোড
+supabase db dump -f mistri_backup_$(date +%Y%m%d).sql</code></pre>
+
+    <h2>৭.৩ চেকলিস্ট ও জরুরি যোগাযোগ:</h2>
+    <ul>
+      <li>প্রতি সপ্তাহে অন্তত একবার NID বাকেট সাইজ এবং ডাটাবেজ স্পেস পর্যালোচনা করুন।</li>
+      <li>অননুমোদিত কাস্টমার রিফান্ড বা পেমেন্ট সমস্যার জন্য <code>complaints</code> টেবিল নিয়মিত পর্যবেক্ষণ করুন।</li>
+      <li>মিস্ত্রী অনবোর্ডিংয়ের পর অবশ্যই এনআইডি কার্ডের নাম ও ছবির সাথে আবেদনকারীর ছবির মিল নিশ্চিত হয়ে অনুমোদন করুন।</li>
+    </ul>
+
+    <div style="margin-top: 40px; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 20px; font-size: 10pt; color: #64748b;">
+      MISTRI Platform • ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুর • সর্বস্বত্ব সংরক্ষিত ২০২৬
+    </div>
+  </div>
+
+</body>
+</html>

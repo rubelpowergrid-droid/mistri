@@ -36,3 +36,4 @@ class AppFormatters {
     return isBn ? '${toBanglaNumber(formatted)} কিমি' : '${formatted}km';
   }
 }
+
