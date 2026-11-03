@@ -254,6 +254,38 @@ export interface Database {
           moderation_flagged: boolean
           created_at: string
         }
+        Insert: {
+          id?: string
+          booking_id: string
+          customer_id: string
+          mistri_id: string
+          rating_work_quality: number
+          rating_behaviour: number
+          rating_punctuality: number
+          rating_pricing: number
+          rating_overall: number
+          comment: string
+          photos?: string[] | null
+          is_visible?: boolean
+          moderation_flagged?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          customer_id?: string
+          mistri_id?: string
+          rating_work_quality?: number
+          rating_behaviour?: number
+          rating_punctuality?: number
+          rating_pricing?: number
+          rating_overall?: number
+          comment?: string
+          photos?: string[] | null
+          is_visible?: boolean
+          moderation_flagged?: boolean
+          created_at?: string
+        }
       }
       favorites: {
         Row: {
@@ -261,6 +293,18 @@ export interface Database {
           customer_id: string
           mistri_id: string
           created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          mistri_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          mistri_id?: string
+          created_at?: string
         }
       }
       notifications: {
@@ -274,6 +318,26 @@ export interface Database {
           is_read: boolean
           created_at: string
         }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          body: string
+          type?: NotificationType
+          reference_id?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          body?: string
+          type?: NotificationType
+          reference_id?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
       }
       device_tokens: {
         Row: {
@@ -282,6 +346,20 @@ export interface Database {
           token: string
           platform: string
           updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          token: string
+          platform?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          token?: string
+          platform?: string
+          updated_at?: string
         }
       }
       complaints: {
@@ -320,6 +398,18 @@ export interface Database {
           created_at: string
         }
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

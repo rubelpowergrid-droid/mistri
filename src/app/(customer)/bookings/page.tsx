@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatBDT, toBanglaNumber } from '@/lib/utils'
+import { ReviewModal } from '@/components/reviews/review-modal'
 
 interface BookingRecord {
   id: string
@@ -40,6 +41,7 @@ function BookingsListContent() {
 
   const [activeTab, setActiveTab] = useState<string>('all')
   const [successBanner, setSuccessBanner] = useState(searchParams.get('success') === 'true')
+  const [reviewBooking, setReviewBooking] = useState<BookingRecord | null>(null)
 
   const [bookings, setBookings] = useState<BookingRecord[]>([
     {
@@ -76,7 +78,7 @@ function BookingsListContent() {
       status: 'completed',
       agreedPrice: 500,
       estimatedBudget: 500,
-      hasReviewed: true,
+      hasReviewed: false,
     },
     {
       id: 'b-3',
@@ -102,6 +104,14 @@ function BookingsListContent() {
     if (confirm(isBn ? 'আপনি কি নিশ্চিত যে বুকিং অনুরোধ বাতিল করতে চান?' : 'Are you sure you want to cancel this booking request?')) {
       setBookings(prev =>
         prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' } : b)
+      )
+    }
+  }
+
+  const handleReviewSuccess = () => {
+    if (reviewBooking) {
+      setBookings(prev =>
+        prev.map(b => b.id === reviewBooking.id ? { ...b, hasReviewed: true } : b)
       )
     }
   }
@@ -294,15 +304,17 @@ function BookingsListContent() {
                       </Link>
 
                       {!b.hasReviewed ? (
-                        <Link href={`/mistri/${b.mistriId}#reviews`}>
-                          <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs">
-                            <Star className="h-3.5 w-3.5 mr-1 fill-slate-950" />
-                            <span>{isBn ? 'রেটিং ও রিভিউ দিন' : 'Rate & Review'}</span>
-                          </Button>
-                        </Link>
+                        <Button
+                          size="sm"
+                          onClick={() => setReviewBooking(b)}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs"
+                        >
+                          <Star className="h-3.5 w-3.5 mr-1 fill-slate-950" />
+                          <span>{isBn ? 'রেটিং ও রিভিউ দিন' : 'Rate & Review'}</span>
+                        </Button>
                       ) : (
                         <Badge variant="success" className="text-xs">
-                          {isBn ? 'রিভিউ দেওয়া হয়েছে' : 'Reviewed'}
+                          {isBn ? 'রিভিউ সম্পন্ন হয়েছে' : 'Reviewed'}
                         </Badge>
                       )}
                     </>
@@ -330,6 +342,19 @@ function BookingsListContent() {
           </div>
         )}
       </div>
+
+      {/* Review Modal Dialog */}
+      {reviewBooking && (
+        <ReviewModal
+          isOpen={!!reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          bookingId={reviewBooking.id}
+          mistriId={reviewBooking.mistriId}
+          mistriName={reviewBooking.mistriName}
+          category={reviewBooking.category}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
     </div>
   )
 }
