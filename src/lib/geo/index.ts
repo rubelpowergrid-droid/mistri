@@ -71,3 +71,4 @@ export function generateGoogleMapsDirectionUrl(
 ): string {
   return `https://www.google.com/maps/dir/?api=1&origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&travelmode=driving`
 }
+
