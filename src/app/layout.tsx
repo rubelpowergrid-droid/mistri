@@ -4,6 +4,7 @@ import './globals.css'
 import { I18nProvider } from '@/locales'
 import { Header } from '@/components/navigation/header'
 import { CustomerBottomNav } from '@/components/navigation/customer-bottom-nav'
+import { PwaRegistrar } from '@/components/pwa-registrar'
 
 const tiroBangla = Tiro_Bangla({
   weight: '400',
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="bn" className={tiroBangla.variable}>
       <body className={`${tiroBangla.className} min-h-screen bg-slate-50 text-slate-900 antialiased pb-20 sm:pb-0`}>
         <I18nProvider>
+          <PwaRegistrar />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
