@@ -143,7 +143,7 @@ class _MistriJobExecutionScreenState extends State<MistriJobExecutionScreen> {
                         ),
                         Switch(
                           value: _isGpsActive,
-                          activeColor: AppTheme.emerald600,
+                          activeThumbColor: AppTheme.emerald600,
                           onChanged: (val) {
                             setState(() => _isGpsActive = val);
                           },

@@ -142,7 +142,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
-                          label: Text(rate == 0.0 ? 'সকল' : '★ ${rate}+'),
+                          label: Text(rate == 0.0 ? 'সকল' : '★ $rate+'),
                           selected: isSelected,
                           selectedColor: AppTheme.primaryBlue.withOpacity(0.15),
                           onSelected: (_) {
@@ -160,7 +160,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('কেবলমাত্র অ্যাডমিন ভেরিফাইড মিস্ত্রী', style: TextStyle(fontSize: 13)),
                     value: _verifiedOnly,
-                    activeColor: AppTheme.primaryBlue,
+                    activeThumbColor: AppTheme.primaryBlue,
                     onChanged: (val) {
                       setModalState(() => _verifiedOnly = val);
                       setState(() {});
@@ -170,7 +170,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('আজকে সেবা দিতে প্রস্তুত', style: TextStyle(fontSize: 13)),
                     value: _availableOnly,
-                    activeColor: AppTheme.primaryBlue,
+                    activeThumbColor: AppTheme.primaryBlue,
                     onChanged: (val) {
                       setModalState(() => _availableOnly = val);
                       setState(() {});

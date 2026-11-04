@@ -2,7 +2,21 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
+
+const OsmMapView = dynamic(
+  () => import('@/components/maps/osm-map-view').then((mod) => mod.OsmMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 w-full rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
+        <div className="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <span>ওপেনস্ট্রিটম্যাপ লোড হচ্ছে...</span>
+      </div>
+    ),
+  }
+)
 import { 
   Search, Filter, MapPin, Star, ShieldCheck, 
   Calendar, Wrench, ArrowUpDown, SlidersHorizontal, 
@@ -20,6 +34,7 @@ interface MistriResult {
   id: string
   name_bn: string
   name_en: string
+  avatar_url?: string
   professional_title: string
   category_slug: string
   category_name_bn: string
@@ -505,56 +520,43 @@ function SearchPageContent() {
                 </span>
               </div>
 
-              {/* Interactive Map Visual Simulator */}
-              <div className="relative h-72 sm:h-96 w-full rounded-2xl bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center p-4">
-                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+              {/* Real OpenStreetMap Live Layer */}
+              <div className="space-y-2">
+                <OsmMapView
+                  center={
+                    selectedDistrict === 'Panchagarh'
+                      ? [26.3333, 88.5500]
+                      : selectedDistrict === 'Dinajpur'
+                      ? [25.6279, 88.6332]
+                      : [26.0333, 88.4667]
+                  }
+                  zoom={13}
+                  customerLocation={{
+                    latitude: 26.0333,
+                    longitude: 88.4667,
+                    address: isBn ? 'আপনার বর্তমান অবস্থান (ঠাকুরগাঁও সদর)' : 'Your Location (Thakurgaon Sadar)',
+                  }}
+                  radiusKm={maxDistance}
+                  showRadius={true}
+                  mistris={results.map((r) => ({
+                    id: r.id,
+                    name_bn: r.name_bn,
+                    category_name_bn: r.category_name_bn,
+                    distance_km: r.distance_km,
+                    rating_avg: r.average_rating,
+                    hourly_rate: r.base_charge,
+                    avatar_url: r.avatar_url,
+                  }))}
+                  height="460px"
+                />
 
-                {/* Customer Location Center Marker */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                  <div className="h-4 w-4 rounded-full bg-blue-500 ring-4 ring-blue-500/30 animate-ping"></div>
-                  <Badge variant="primary" className="mt-1 text-[10px] bg-blue-600 text-white border-0 shadow-md">
-                    {isBn ? '📍 আপনার অবস্থান' : '📍 You'}
-                  </Badge>
-                </div>
-
-                {/* Nearby Mistri Map Pins */}
-                {results.map((m, idx) => {
-                  const offsets = [
-                    { top: '30%', left: '40%' },
-                    { top: '65%', left: '35%' },
-                    { top: '25%', left: '70%' },
-                    { top: '70%', left: '75%' },
-                    { top: '45%', left: '85%' },
-                    { top: '75%', left: '55%' },
-                  ]
-                  const pos = offsets[idx % offsets.length]
-                  return (
-                    <div
-                      key={m.id}
-                      style={{ top: pos.top, left: pos.left }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400 text-slate-950 shadow-lg font-bold text-xs ring-2 ring-white transition-transform group-hover:scale-125">
-                        <Wrench className="h-4 w-4" />
-                      </div>
-                      
-                      {/* Hover / Click Popup */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center w-48 bg-white text-slate-900 p-2.5 rounded-xl shadow-2xl border border-slate-200 z-30">
-                        <span className="font-bold text-xs truncate max-w-full">{m.name_bn}</span>
-                        <span className="text-[10px] text-blue-600 font-semibold">{m.category_name_bn}</span>
-                        <span className="text-[10px] text-slate-500">{formatDistance(m.distance_km, isBn)} দূরে</span>
-                        <Link href={`/mistri/${m.id}`} className="mt-1.5 w-full">
-                          <Button size="sm" className="w-full text-[10px] py-1">
-                            {isBn ? 'প্রোফাইল দেখুন' : 'View Profile'}
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-xs px-3 py-1.5 rounded-xl text-[11px] text-slate-300">
-                  {isBn ? 'ম্যাপের পিনে ক্লিক করে মিস্ত্রীর বিবরণ দেখুন' : 'Hover pins to inspect details'}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-400 gap-1 px-1 pt-1">
+                  <span className="flex items-center gap-1 text-slate-300 font-medium">
+                    <span>💡 ম্যাপের যেকোনো মিস্ত্রী পিনে (🔧) ক্লিক করে বিস্তারিত বিবরণ দেখুন।</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    OpenStreetMap Live Tiles © ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুর
+                  </span>
                 </div>
               </div>
             </Card>
