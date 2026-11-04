@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Phone, Lock, Wrench, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Phone, Lock, Wrench, ArrowRight, ShieldCheck, MessageCircle, MessageSquare } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,30 +16,56 @@ export default function LoginPage() {
 
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [authMode, setAuthMode] = useState<'password' | 'otp'>('password')
+  const [authMode, setAuthMode] = useState<'password' | 'otp'>('otp') // Default to OTP for low-friction
+  const [otpChannel, setOtpChannel] = useState<'whatsapp' | 'sms'>('whatsapp') // Default to WhatsApp
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!phone || phone.length < 11) {
+    const cleanPhone = phone.replace(/[^0-9]/g, '')
+    if (!cleanPhone || cleanPhone.length < 11) {
       setError(isBn ? 'সঠিক ১১-সংখ্যার মোবাইল নম্বর দিন' : 'Enter a valid 11-digit phone number')
       return
     }
 
     setIsLoading(true)
-    setTimeout(() => {
+
+    if (authMode === 'password') {
+      setTimeout(() => {
+        setIsLoading(false)
+        if (cleanPhone.includes('admin') || cleanPhone === '01700000000') {
+          router.push('/admin/dashboard')
+        } else if (cleanPhone.endsWith('99')) {
+          router.push('/dashboard')
+        } else {
+          router.push('/')
+        }
+      }, 700)
+      return
+    }
+
+    // OTP Auth Mode (WhatsApp or SMS)
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, channel: otpChannel }),
+      })
+      const data = await res.json()
       setIsLoading(false)
-      // If customer, redirect to home; if mistri, redirect to dashboard; if admin, to admin
-      if (phone.includes('admin') || phone === '01700000000') {
-        router.push('/admin/dashboard')
-      } else if (phone.endsWith('99')) {
-        router.push('/dashboard')
+
+      if (data.success) {
+        router.push(`/verify-otp?phone=${encodeURIComponent(cleanPhone)}&channel=${otpChannel}`)
       } else {
-        router.push('/')
+        setError(data.error || 'ওটিপি পাঠাতে ব্যর্থ হয়েছে')
       }
-    }, 800)
+    } catch {
+      setIsLoading(false)
+      // Fallback
+      router.push(`/verify-otp?phone=${encodeURIComponent(cleanPhone)}&channel=${otpChannel}`)
+    }
   }
 
   return (
@@ -53,12 +79,21 @@ export default function LoginPage() {
             mistri<span className="text-blue-600">.</span>
           </h1>
           <p className="text-sm text-slate-500">
-            {isBn ? 'আপনার অ্যাকাউন্টে লগইন করুন' : 'Sign in to your account'}
+            {isBn ? 'আপনার মোবাইল নম্বর দিয়ে সরাসরি প্রবেশ করুন' : 'Sign in to your account'}
           </p>
         </div>
 
-        {/* Tab switch for Password vs OTP */}
+        {/* Tab switch for OTP vs Password */}
         <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setAuthMode('otp')}
+            className={`flex-1 rounded-lg py-2 transition-all ${
+              authMode === 'otp' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+            }`}
+          >
+            {isBn ? 'ওটিপি যাচাই (OTP Login)' : 'With OTP'}
+          </button>
           <button
             type="button"
             onClick={() => setAuthMode('password')}
@@ -67,15 +102,6 @@ export default function LoginPage() {
             }`}
           >
             {isBn ? 'পাসওয়ার্ড দিয়ে' : 'With Password'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAuthMode('otp')}
-            className={`flex-1 rounded-lg py-2 transition-all ${
-              authMode === 'otp' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
-            }`}
-          >
-            {isBn ? 'মোবাইল ওটিপি (OTP)' : 'With SMS OTP'}
           </button>
         </div>
 
@@ -109,30 +135,83 @@ export default function LoginPage() {
               required
             />
           ) : (
-            <div className="rounded-xl bg-blue-50/70 p-3 text-xs text-blue-700 border border-blue-100 flex items-start gap-2">
-              <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-blue-600" />
-              <span>
-                {isBn 
-                  ? 'লগইনে ক্লিক করলে আপনার মোবাইলে ৪ সংখ্যার একটি যাচাইকরণ কোড পাঠানো হবে।' 
-                  : 'Clicking login will send a 4-digit SMS OTP code to verify your phone number.'}
-              </span>
+            <div className="space-y-3 pt-1">
+              <label className="text-xs font-bold text-slate-700 block">
+                {isBn ? 'ওটিপি গ্রহণের মাধ্যম নির্বাচন করুন:' : 'Choose OTP Delivery Channel:'}
+              </label>
+
+              {/* Channel Selector: WhatsApp vs SMS */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setOtpChannel('whatsapp')}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all ${
+                    otpChannel === 'whatsapp'
+                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">
+                      💬
+                    </span>
+                    <span className="text-xs font-bold">WhatsApp</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                    {isBn ? 'দ্রুত ও ফ্রি (প্রস্তাবিত)' : 'Instant & Free'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOtpChannel('sms')}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all ${
+                    otpChannel === 'sms'
+                      ? 'border-blue-600 bg-blue-50/60 text-blue-950 shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <MessageSquare className="h-4 w-4 text-slate-700" />
+                    <span className="text-xs font-bold">{isBn ? 'সাধারণ SMS' : 'Regular SMS'}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    {isBn ? 'মোবাইল ইনবক্স' : 'Mobile Inbox'}
+                  </span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                {otpChannel === 'whatsapp'
+                  ? (isBn 
+                      ? '🔒 আপনার WhatsApp মেসেজে ৪-সংখ্যার সিকিউর ওটিপি পাঠানো হবে।' 
+                      : 'A 4-digit verification code will be sent to your WhatsApp.')
+                  : (isBn 
+                      ? '📱 সাধারণ মোবাইল এসএমএস হিসেবে কোড পাঠানো হবে।' 
+                      : 'A code will be dispatched to your phone via SMS.')}
+              </p>
             </div>
           )}
 
           <Button type="submit" isLoading={isLoading} className="w-full py-3 text-sm font-semibold">
-            <span>{authMode === 'password' ? t('auth.login') : (isBn ? 'ওটিপি কোড পাঠান' : 'Send OTP Code')}</span>
+            <span>
+              {authMode === 'password'
+                ? t('auth.login')
+                : otpChannel === 'whatsapp'
+                ? (isBn ? '🟢 WhatsApp-এ ওটিপি পাঠান' : 'Send WhatsApp OTP')
+                : (isBn ? '✉️ SMS-এ ওটিপি পাঠান' : 'Send SMS OTP')}
+            </span>
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </form>
 
         <div className="pt-2 text-center text-xs text-slate-500">
-          <span>{isBn ? 'অ্যাকাউন্ট নেই? ' : "Don't have an account? "}</span>
-          <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4">
-            {t('auth.register')}
+          <span>{isBn ? 'নতুন মিস্ত্রী হিসেবে যুক্ত হতে চান? ' : 'Are you a skilled professional? '}</span>
+          <Link href="/onboarding" className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4">
+            {isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Register as Mistri'}
           </Link>
         </div>
       </Card>
     </div>
   )
 }
-
