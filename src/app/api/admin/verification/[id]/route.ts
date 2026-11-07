@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { getApplicantsStore, updateApplicantStatus } from '@/lib/mistri-store'
 
 const verificationActionSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_correction']),
   internalNotes: z.string().optional(),
   rejectionReason: z.string().optional(),
 })
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const store = getApplicantsStore()
+    const applicant = store.find((a) => a.id === id)
+
+    if (!applicant) {
+      return NextResponse.json({ success: false, error: 'Applicant not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, applicant })
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -24,11 +44,7 @@ export async function POST(
     }
 
     const { action, internalNotes, rejectionReason } = parsed.data
-
-    // In production with connected Supabase instance:
-    // Update mistri_profiles set approval_status = action === 'approve' ? 'approved' : 'rejected'
-    // Insert into admin_activity_logs
-    // Send in-app / push notification to worker
+    const result = updateApplicantStatus(id, action)
 
     return NextResponse.json({
       success: true,
@@ -36,8 +52,9 @@ export async function POST(
       actionApplied: action,
       status: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'under_review',
       message: action === 'approve' 
-        ? 'Mistri account verified and approved successfully.'
+        ? 'Mistri account verified and approved successfully. Now live for public search.'
         : 'Mistri verification updated.',
+      applicant: result.applicant,
       timestamp: new Date().toISOString(),
     })
   } catch (err: any) {
@@ -47,4 +64,3 @@ export async function POST(
     )
   }
 }
-

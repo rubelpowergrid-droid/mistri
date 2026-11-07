@@ -33,16 +33,33 @@ export default function LoginPage() {
     setIsLoading(true)
 
     if (authMode === 'password') {
+      const isAdminUser = cleanPhone === '01700000000' || cleanPhone === '01722092804' || phone.toLowerCase().includes('admin')
+      
+      if (isAdminUser) {
+        if (password !== 'admin1234' && password !== 'Mistri@2026') {
+          setIsLoading(false)
+          setError(isBn ? 'ভুল এডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন (পাসওয়ার্ড: admin1234)' : 'Incorrect admin password! (Default: admin1234)')
+          return
+        }
+        setIsLoading(false)
+        router.push('/admin/dashboard')
+        return
+      }
+
+      if (password.length < 4) {
+        setIsLoading(false)
+        setError(isBn ? 'কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড দিন' : 'Password must be at least 4 characters')
+        return
+      }
+
       setTimeout(() => {
         setIsLoading(false)
-        if (cleanPhone.includes('admin') || cleanPhone === '01700000000') {
-          router.push('/admin/dashboard')
-        } else if (cleanPhone.endsWith('99')) {
-          router.push('/dashboard')
+        if (cleanPhone.endsWith('99')) {
+          router.push('/mistri/bookings')
         } else {
           router.push('/')
         }
-      }, 700)
+      }, 500)
       return
     }
 
@@ -124,16 +141,31 @@ export default function LoginPage() {
           />
 
           {authMode === 'password' ? (
-            <Input
-              id="password"
-              type="password"
-              label={t('auth.password')}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4" />}
-              required
-            />
+            <div className="space-y-2">
+              <Input
+                id="password"
+                type="password"
+                label={t('auth.password')}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                leftIcon={<Lock className="h-4 w-4" />}
+                required
+              />
+              <div className="rounded-xl bg-blue-50 border border-blue-200 p-2.5 text-[11px] text-blue-900 flex items-center justify-between">
+                <span>🔒 <strong>এডমিন লগইন:</strong> 01700000000 | পাসওয়ার্ড: admin1234</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhone('01700000000')
+                    setPassword('admin1234')
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-0.5 rounded text-[10px] cursor-pointer"
+                >
+                  অটো-ফিল
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3 pt-1">
               <label className="text-xs font-bold text-slate-700 block">

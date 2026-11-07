@@ -115,8 +115,11 @@ export function LocationPickerModal({
         <OsmLocationPicker
           latitude={coords.latitude}
           longitude={coords.longitude}
-          onChange={(newLat, newLng) => {
+          onChange={(newLat, newLng, isGps) => {
             setCoords({ latitude: newLat, longitude: newLng })
+            if (isGps && (!address || address.includes('পূর্ব হাজীপাড়া'))) {
+              setAddress('আমার বর্তমান লোকেশন (GPS পিন করা)')
+            }
           }}
           height="280px"
         />

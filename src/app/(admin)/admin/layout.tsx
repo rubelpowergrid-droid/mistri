@@ -16,16 +16,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { lang, setLanguage } = useI18n()
   const isBn = lang === 'bn'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [pendingCount, setPendingCount] = useState<number>(3)
+
+  React.useEffect(() => {
+    async function loadCount() {
+      try {
+        const res = await fetch('/api/admin/verification')
+        const data = await res.json()
+        if (data.success && typeof data.count === 'number') {
+          setPendingCount(data.count)
+        }
+      } catch {}
+    }
+    loadCount()
+  }, [pathname])
 
   const navLinks = [
     { href: '/admin/dashboard', label: isBn ? 'ওভারভিউ ড্যাশবোর্ড' : 'Overview Dashboard', icon: LayoutDashboard },
-    { href: '/admin/verification', label: isBn ? 'মিস্ত্রী ভেরিফিকেশন' : 'NID Verification', icon: ShieldCheck, badge: '৩' },
+    { 
+      href: '/admin/verification', 
+      label: isBn ? 'মিস্ত্রী ভেরিফিকেশন' : 'NID Verification', 
+      icon: ShieldCheck, 
+      badge: pendingCount > 0 ? (isBn ? (pendingCount === 3 ? '৩' : String(pendingCount)) : String(pendingCount)) : undefined 
+    },
     { href: '/admin/mistris', label: isBn ? 'সকল মিস্ত্রী' : 'All Mistris', icon: Wrench },
     { href: '/admin/customers', label: isBn ? 'কাস্টমার তালিকা' : 'Customers', icon: Users },
     { href: '/admin/categories', label: isBn ? 'ক্যাটাগরি ও সার্ভিস' : 'Categories & Services', icon: Layers },
     { href: '/admin/locations', label: isBn ? 'জেলা ও উপজেলা জিও' : 'Geo Locations', icon: MapPin },
     { href: '/admin/bookings', label: isBn ? 'বুকিং ও ডিসপিউট' : 'Bookings & Disputes', icon: Calendar },
-    { href: '/admin/reports', label: isBn ? 'রিপোর্ট ও এনালাইটিক্স' : 'Reports & Analytics', icon: FileText },
   ]
 
   return (

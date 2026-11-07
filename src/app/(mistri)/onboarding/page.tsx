@@ -141,10 +141,48 @@ export default function MistriOnboardingPage() {
 
   const handleFinalSubmit = async () => {
     setIsSubmitting(true)
-    setTimeout(() => {
+    setErrorMessage('')
+
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          dateOfBirth,
+          gender,
+          avatarPreview,
+          nidNumber,
+          nidFront,
+          nidBack,
+          district,
+          upazila,
+          area,
+          streetAddress,
+          serviceRadiusKm: maxRadiusKm,
+          selectedCategory,
+          selectedSubcategories,
+          experienceYears,
+          professionalTitle,
+          bio,
+          chargeType,
+          baseCharge,
+        }),
+      })
+
+      const data = await res.json()
+      setIsSubmitting(false)
+
+      if (data.success) {
+        router.push('/onboarding/status?id=' + (data.applicant?.id || ''))
+      } else {
+        setErrorMessage(data.error || 'আবেদন জমা দিতে সমস্যা হয়েছে')
+      }
+    } catch {
       setIsSubmitting(false)
       router.push('/onboarding/status')
-    }, 1200)
+    }
   }
 
   const stepTitles = [

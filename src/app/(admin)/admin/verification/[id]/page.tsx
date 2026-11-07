@@ -28,8 +28,7 @@ export default function DocumentInspectorPage() {
   const [zoomImage, setZoomImage] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  // Applicant mock record
-  const applicant = {
+  const [applicant, setApplicant] = useState<any>({
     id: params.id || 'app-01',
     name: 'মোঃ রফিকুল ইসলাম',
     phone: '01712345678',
@@ -51,27 +50,56 @@ export default function DocumentInspectorPage() {
     nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
     nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
     submittedAt: '২০২৬-১১-০২, বিকাল ৪:৩০',
-  }
+  })
 
-  const handleApprove = () => {
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await fetch(`/api/admin/verification/${params.id}`)
+        const data = await res.json()
+        if (data.success && data.applicant) {
+          setApplicant(data.applicant)
+        }
+      } catch {}
+    }
+    loadData()
+  }, [params.id])
+
+  const handleApprove = async () => {
     setIsProcessing(true)
-    setTimeout(() => {
+    try {
+      await fetch(`/api/admin/verification/${params.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve', internalNotes }),
+      })
       setIsProcessing(false)
       setActiveModal(null)
-      setActionSuccess(isBn ? 'মিস্ত্রী অ্যাকাউন্ট সফলভাবে অনুমোদিত হয়েছে!' : 'Mistri account successfully approved!')
-      setTimeout(() => router.push('/admin/verification'), 1500)
-    }, 1000)
+      setActionSuccess(isBn ? 'মিস্ত্রী সফলভাবে অনুমোদিত হয়েছে এবং পাবলিক সার্চে লাইভ করা হয়েছে!' : 'Mistri account successfully approved and is now live!')
+      setTimeout(() => router.push('/admin/verification'), 1200)
+    } catch {
+      setIsProcessing(false)
+      router.push('/admin/verification')
+    }
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!rejectionReason) return
     setIsProcessing(true)
-    setTimeout(() => {
+    try {
+      await fetch(`/api/admin/verification/${params.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', rejectionReason }),
+      })
       setIsProcessing(false)
       setActiveModal(null)
-      setActionSuccess(isBn ? 'আবেদন প্রত্যাখ্যান করা হয়েছে এবং কারণ সংরক্ষণ করা হয়েছে।' : 'Application rejected and reason recorded.')
-      setTimeout(() => router.push('/admin/verification'), 1500)
-    }, 1000)
+      setActionSuccess(isBn ? 'আবেদন প্রত্যাখ্যান করা হয়েছে এবং তালিকা থেকে মুছে দেওয়া হয়েছে।' : 'Application rejected and removed.')
+      setTimeout(() => router.push('/admin/verification'), 1200)
+    } catch {
+      setIsProcessing(false)
+      router.push('/admin/verification')
+    }
   }
 
   return (
@@ -294,7 +322,7 @@ export default function DocumentInspectorPage() {
               <div>
                 <span className="text-slate-500 font-semibold block mb-1.5">{isBn ? 'নির্বাচিত সাব-ক্যাটাগরি সমূহ:' : 'Subcategories:'}</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {applicant.subcategories.map((sub, i) => (
+                  {(applicant.subcategories || []).map((sub: string, i: number) => (
                     <span key={i} className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-semibold">
                       {sub}
                     </span>

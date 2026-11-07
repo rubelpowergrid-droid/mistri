@@ -217,13 +217,14 @@ export async function GET(request: NextRequest) {
   const maxDistance = Number(searchParams.get('distance') || 999)
   const sortBy = searchParams.get('sort') || 'nearest'
 
-  let filtered = MISTRI_DIRECTORY.filter((m) => {
+  const allMistris = [...(global.__APPROVED_MISTRIS__ || []), ...MISTRI_DIRECTORY]
+  let filtered = allMistris.filter((m) => {
     // Text search
     if (q) {
       const matchName = m.name_bn.toLowerCase().includes(q) || m.name_en.toLowerCase().includes(q)
       const matchTitle = m.professional_title.toLowerCase().includes(q)
       const matchCategory = m.category_name_bn.includes(q) || m.category_name_en.toLowerCase().includes(q)
-      const matchSub = m.subcategories.some(s => s.toLowerCase().includes(q))
+      const matchSub = (m.subcategories || []).some((s: string) => s.toLowerCase().includes(q))
       if (!matchName && !matchTitle && !matchCategory && !matchSub) return false
     }
 
