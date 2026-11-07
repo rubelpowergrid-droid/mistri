@@ -76,8 +76,13 @@ export default function MistriStatusPage() {
           <a href="tel:01722092804" className="font-bold text-blue-700 hover:underline">০১৭২২০৯২৮০৪</a>
         </div>
 
-        <div className="pt-2">
-          <Link href="/" className="block w-full">
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+          <Link href="/mistri/profile" className="flex-1">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5">
+              <span>{isBn ? 'আমার প্রোফাইল দেখুন' : 'View My Profile'}</span>
+            </Button>
+          </Link>
+          <Link href="/" className="flex-1">
             <Button variant="outline" className="w-full text-xs font-semibold py-2.5">
               {isBn ? 'হোমপেজে ফিরুন' : 'Back to Home'}
             </Button>

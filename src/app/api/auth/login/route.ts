@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           success: true,
           role: 'mistri',
           status: 'approved',
-          redirectUrl: '/mistri/bookings',
+          redirectUrl: '/mistri/profile',
           user: {
             id: mistri.id,
             name: mistri.name,
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
           success: true,
           role: 'mistri',
           status: 'pending',
-          redirectUrl: `/onboarding/status?id=${mistri.id}`,
-          message: 'আপনার আবেদনটি পর্যালোচনার জন্য জমা রয়েছে। এডমিন অনুমোদনের পর সেবা প্রদান শুরু করতে পারবেন।',
+          redirectUrl: '/mistri/profile',
+          message: 'আপনার আবেদনটি পর্যালোচনার জন্য জমা রয়েছে। আপনার প্রোফাইলটি নিচে দেখে নিন।',
           user: {
             id: mistri.id,
             name: mistri.name,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         success: true,
         role: 'mistri',
         status: 'approved',
-        redirectUrl: '/mistri/bookings',
+        redirectUrl: '/mistri/profile',
         user: {
           id: defaultMistri.id,
           name: defaultMistri.name_bn,

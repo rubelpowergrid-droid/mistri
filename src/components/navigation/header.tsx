@@ -11,6 +11,18 @@ export function Header() {
   const [selectedLocation, setSelectedLocation] = useState('ঠাকুরগাঁও সদর')
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState<number>(2) // initial demo indicator
+  const [currentUser, setCurrentUser] = useState<{ name?: string; role?: string; phone?: string } | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('mistri_user')
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored))
+        } catch {}
+      }
+    }
+  }, [])
 
   // Sync unread notifications count
   useEffect(() => {
@@ -98,14 +110,36 @@ export function Header() {
               )}
             </button>
 
-            {/* Auth Button */}
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
-            >
-              <User className="h-3.5 w-3.5" />
-              <span>{t('auth.login')}</span>
-            </Link>
+            {/* Auth / Profile Button */}
+            {currentUser ? (
+              <Link
+                href={
+                  currentUser.role === 'admin'
+                    ? '/admin/dashboard'
+                    : currentUser.role === 'mistri'
+                    ? '/mistri/profile'
+                    : '/profile'
+                }
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
+              >
+                <User className="h-3.5 w-3.5" />
+                <span className="max-w-[100px] truncate">
+                  {currentUser.role === 'admin'
+                    ? 'এডমিন ড্যাশবোর্ড'
+                    : currentUser.role === 'mistri'
+                    ? 'আমার প্রোফাইল'
+                    : 'আমার প্রোফাইল'}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
+              >
+                <User className="h-3.5 w-3.5" />
+                <span>{t('auth.login')}</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

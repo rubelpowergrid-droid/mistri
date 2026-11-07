@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -29,6 +29,28 @@ export default function CustomerProfilePage() {
     activeBookings: 1,
     favoritesCount: 2,
   })
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('mistri_user')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (parsed.role === 'mistri') {
+            router.replace('/mistri/profile')
+            return
+          }
+          if (parsed.name) {
+            setUser(prev => ({ 
+              ...prev, 
+              name: parsed.name, 
+              phone: parsed.phone || prev.phone 
+            }))
+          }
+        } catch {}
+      }
+    }
+  }, [router])
 
   const handleLogout = () => {
     if (confirm(isBn ? 'আপনি কি অ্যাকাউন্ট থেকে লগআউট করতে চান?' : 'Do you want to log out?')) {
