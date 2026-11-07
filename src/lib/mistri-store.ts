@@ -130,6 +130,75 @@ export const PENDING_APPLICANTS: ApplicantRecord[] = [
     nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
     nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
   },
+  {
+    id: 'app-jewel-rana',
+    name: 'মোঃ জুয়েল রানা',
+    phone: '01722159830',
+    nidNumber: '1990521934000123',
+    dateOfBirth: '১৯৯০-০৫-১৫',
+    gender: 'পুরুষ',
+    category: 'ইলেকট্রিক্যাল কাজ',
+    categorySlug: 'electrical-services',
+    subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
+    experienceYears: 6,
+    district: 'ঠাকুরগাঁও',
+    upazila: 'ঠাকুরগাঁও সদর',
+    area: 'হাজীপাড়া',
+    streetAddress: 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
+    serviceRadiusKm: 15,
+    chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
+    baseCharge: 400,
+    bio: 'আমি বিগত ৬ বছর ধরে ঠাকুরগাঁও সদর ও আশপাশের এলাকায় সব ধরনের বৈদ্যুতিক ওয়্যারিং, ফ্যান ফিটিংস ও মেরামতের কাজ সুনামের সাথে করে আসছি।',
+    submittedAt: '২০২৬-১১-০৭, রাত ৮:০০',
+    status: 'approved',
+    avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+    nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
+    nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
+  },
+]
+
+export const INITIAL_APPROVED_MISTRIS = [
+  {
+    id: 'm-jewel-rana',
+    name_bn: 'মোঃ জুয়েল রানা',
+    name_en: 'Md. Jewel Rana',
+    phone: '01722159830',
+    professional_title: 'সিনিয়র ইলেকট্রিশিয়ান ও ওয়্যারিং টেকনিশিয়ান',
+    title: 'সিনিয়র ইলেকট্রিশিয়ান ও ওয়্যারিং টেকনিশিয়ান',
+    category: 'ইলেকট্রিক্যাল কাজ',
+    category_slug: 'electrical-services',
+    category_name_bn: 'ইলেকট্রিক্যাল কাজ',
+    category_name_en: 'Electrical Services',
+    subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
+    district: 'Thakurgaon',
+    district_bn: 'ঠাকুরগাঁও',
+    upazila: 'Thakurgaon Sadar',
+    upazila_bn: 'ঠাকুরগাঁও সদর',
+    experience_years: 6,
+    experienceYears: 6,
+    average_rating: 5.0,
+    rating: 5.0,
+    reviewsCount: 1,
+    total_reviews: 1,
+    completedJobs: 14,
+    total_completed_jobs: 14,
+    base_charge: 400,
+    charge_type: 'negotiable',
+    is_available: true,
+    available_today: true,
+    available_tomorrow: true,
+    is_verified: true,
+    distance_km: 1.2,
+    avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+    bio: 'আমি বিগত ৬ বছর ধরে ঠাকুরগাঁও সদর ও আশপাশের এলাকায় সব ধরনের বৈদ্যুতিক ওয়্যারিং, ফ্যান ফিটিংস ও মেরামতের কাজ সুনামের সাথে করে আসছি।',
+    portfolio: [
+      { id: 'p-jr-1', title: 'বাসা-বাড়ির ডিবি বোর্ড ওয়্যারিং', image_url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80' }
+    ],
+    reviews: [
+      { id: 'r-jr-1', customer_name: 'মোঃ মাসুদ রানা', rating_overall: 5, date: 'আজকে', comment: 'অত্যন্ত দক্ষ এবং দায়িত্বশীল কারিগর। সময়মতো কাজ শেষ করেছেন।' }
+    ],
+    status: 'approved',
+  }
 ]
 
 export const INITIAL_CUSTOMERS: CustomerRecord[] = [
@@ -323,18 +392,20 @@ export function updateApplicantStatus(
 
   if (action === 'approve') {
     applicant.status = 'approved'
-    // Remove from pending queue
-    store.splice(index, 1)
+    // Keep in store so it remains accessible in the 'Approved' list
 
     // Add to approved live search directory
     if (!global.__APPROVED_MISTRIS__) {
-      global.__APPROVED_MISTRIS__ = []
+      global.__APPROVED_MISTRIS__ = [...INITIAL_APPROVED_MISTRIS]
     }
     const liveMistri = {
-      id: `m-live-${applicant.id}`,
+      id: applicant.id.startsWith('m-') ? applicant.id : `m-live-${applicant.id}`,
       name_bn: applicant.name,
       name_en: applicant.name,
+      phone: applicant.phone,
+      title: applicant.category,
       professional_title: applicant.category,
+      category: applicant.category,
       category_slug: applicant.categorySlug || 'electrical-services',
       category_name_bn: applicant.category,
       category_name_en: 'Professional Services',
@@ -344,8 +415,12 @@ export function updateApplicantStatus(
       upazila: applicant.upazila,
       upazila_bn: applicant.upazila,
       experience_years: applicant.experienceYears || 5,
+      experienceYears: applicant.experienceYears || 5,
       average_rating: 5.0,
+      rating: 5.0,
+      reviewsCount: 1,
       total_reviews: 1,
+      completedJobs: 0,
       total_completed_jobs: 0,
       base_charge: applicant.baseCharge || 400,
       charge_type: 'negotiable',
@@ -358,13 +433,21 @@ export function updateApplicantStatus(
       bio: applicant.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
       portfolio: [],
       reviews: [],
+      status: 'approved',
     }
-    global.__APPROVED_MISTRIS__.unshift(liveMistri)
+
+    const existIdx = global.__APPROVED_MISTRIS__.findIndex(
+      (m: any) => m.phone === applicant.phone || m.id === liveMistri.id
+    )
+    if (existIdx >= 0) {
+      global.__APPROVED_MISTRIS__[existIdx] = liveMistri
+    } else {
+      global.__APPROVED_MISTRIS__.unshift(liveMistri)
+    }
+
     return { success: true, applicant }
   } else if (action === 'reject') {
     applicant.status = 'rejected'
-    // Remove from pending queue
-    store.splice(index, 1)
     return { success: true, applicant }
   } else {
     applicant.status = 'under_review'
@@ -375,7 +458,8 @@ export function updateApplicantStatus(
 export function getAdminDashboardStats() {
   const applicants = getApplicantsStore()
   const pendingApplicants = applicants.filter(a => a.status === 'pending')
-  const approvedMistrisCount = 5 + (global.__APPROVED_MISTRIS__?.length || 0)
+  const approvedApplicants = applicants.filter(a => a.status === 'approved')
+  const approvedMistrisCount = 5 + approvedApplicants.length
   const customers = getCustomersStore()
   const bookings = getBookingsStore()
 

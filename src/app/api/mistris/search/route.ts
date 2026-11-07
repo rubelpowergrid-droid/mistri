@@ -217,7 +217,27 @@ export async function GET(request: NextRequest) {
   const maxDistance = Number(searchParams.get('distance') || 999)
   const sortBy = searchParams.get('sort') || 'nearest'
 
-  const allMistris = [...(global.__APPROVED_MISTRIS__ || []), ...MISTRI_DIRECTORY]
+  let supabaseMistris: any[] = []
+  try {
+    const { getApprovedMistrisFromSupabase } = await import('@/lib/supabase-service')
+    supabaseMistris = await getApprovedMistrisFromSupabase()
+  } catch (err) {
+    console.error('Supabase fetch error in search:', err)
+  }
+
+  const { INITIAL_APPROVED_MISTRIS } = await import('@/lib/mistri-store')
+  const liveMemory = (global as any).__APPROVED_MISTRIS__ || INITIAL_APPROVED_MISTRIS
+
+  const rawList = [...supabaseMistris, ...liveMemory, ...MISTRI_DIRECTORY]
+  const seen = new Set<string>()
+  const allMistris: any[] = []
+  for (const m of rawList) {
+    const key = (m.phone || '').replace(/[^0-9]/g, '') || m.id
+    if (!seen.has(key)) {
+      seen.add(key)
+      allMistris.push(m)
+    }
+  }
   let filtered = allMistris.filter((m) => {
     // Text search
     if (q) {

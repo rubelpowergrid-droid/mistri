@@ -21,6 +21,7 @@ export default function VerificationQueuePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [districtFilter, setDistrictFilter] = useState('all')
+  const [statusTab, setStatusTab] = useState<'pending' | 'approved' | 'all'>('pending')
   const [actionMessage, setActionMessage] = useState('')
 
   const fetchApplicants = async () => {
@@ -51,8 +52,10 @@ export default function VerificationQueuePage() {
       })
       const data = await res.json()
       if (data.success) {
-        // Immediately remove from local list
-        setApplicants(prev => prev.filter(a => a.id !== id))
+        // Update local status rather than deleting so it moves to approved tab
+        setApplicants(prev =>
+          prev.map(a => (a.id === id ? { ...a, status: action === 'approve' ? 'approved' : 'rejected' } : a))
+        )
         setActionMessage(
           action === 'approve'
             ? '✓ মিস্ত্রী সফলভাবে অনুমোদিত হয়েছে এবং পাবলিক সার্চে লাইভ করা হয়েছে!'
@@ -65,15 +68,25 @@ export default function VerificationQueuePage() {
     }
   }
 
+  const pendingCount = applicants.filter(a => a.status === 'pending').length
+  const approvedCount = applicants.filter(a => a.status === 'approved').length
+
   const filteredApplicants = applicants.filter((app) => {
+    const matchesTab = 
+      statusTab === 'all' || 
+      (statusTab === 'pending' && app.status === 'pending') || 
+      (statusTab === 'approved' && app.status === 'approved')
+
     const matchesSearch = 
       app.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
       app.phone?.includes(searchQuery) || 
       app.nidNumber?.includes(searchQuery)
+
     const matchesDistrict = 
       districtFilter === 'all' || 
       app.district?.toLowerCase().includes(districtFilter.toLowerCase())
-    return matchesSearch && matchesDistrict
+
+    return matchesTab && matchesSearch && matchesDistrict
   })
 
   return (
@@ -109,32 +122,84 @@ export default function VerificationQueuePage() {
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <Card className="p-4 border-slate-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="w-full sm:w-80">
-          <Input
-            id="searchQueue"
-            placeholder={isBn ? 'নাম, মোবাইল নম্বর বা এনআইডি...' : 'Search by name, phone or NID...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<Search className="h-4 w-4 text-slate-400" />}
-          />
+      {/* Tabs and Filters */}
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setStatusTab('pending')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusTab === 'pending'
+                ? 'bg-white text-blue-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>{isBn ? 'পেন্ডিং ভেরিফিকেশন' : 'Pending Verification'}</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-black">
+              {toBanglaNumber(pendingCount)}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusTab('approved')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusTab === 'approved'
+                ? 'bg-white text-emerald-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>{isBn ? 'অনুমোদিত মিস্ত্রী' : 'Approved Workers'}</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-black">
+              {toBanglaNumber(approvedCount)}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusTab('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              statusTab === 'all'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>{isBn ? 'সকল আবেদন' : 'All Registrations'}</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-800 font-black">
+              {toBanglaNumber(applicants.length)}
+            </span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="h-4 w-4 text-slate-500 shrink-0" />
-          <select
-            value={districtFilter}
-            onChange={(e) => setDistrictFilter(e.target.value)}
-            className="w-full sm:w-48 rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-          >
-            <option value="all">{isBn ? 'সকল জেলা' : 'All Districts'}</option>
-            <option value="ঠাকুরগাঁও">{isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon'}</option>
-            <option value="পঞ্চগড়">{isBn ? 'পঞ্চগড়' : 'Panchagarh'}</option>
-            <option value="দিনাজপুর">{isBn ? 'দিনাজপুর' : 'Dinajpur'}</option>
-          </select>
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-2 items-center">
+          <div className="w-full sm:w-64">
+            <Input
+              id="searchQueue"
+              placeholder={isBn ? 'নাম, মোবাইল বা এনআইডি...' : 'Search name, phone, NID...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftIcon={<Search className="h-4 w-4 text-slate-400" />}
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <select
+              value={districtFilter}
+              onChange={(e) => setDistrictFilter(e.target.value)}
+              className="w-full sm:w-36 rounded-xl border border-slate-300 bg-white py-2 px-2.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+            >
+              <option value="all">{isBn ? 'সকল জেলা' : 'All Districts'}</option>
+              <option value="ঠাকুরগাঁও">{isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon'}</option>
+              <option value="পঞ্চগড়">{isBn ? 'পঞ্চগড়' : 'Panchagarh'}</option>
+              <option value="দিনাজপুর">{isBn ? 'দিনাজপুর' : 'Dinajpur'}</option>
+            </select>
+          </div>
         </div>
-      </Card>
+      </div>
 
       {/* Verification Applicants Table */}
       <Card className="overflow-hidden border-slate-200 shadow-xs">
@@ -212,10 +277,22 @@ export default function VerificationQueuePage() {
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <Badge variant="warning" className="text-[10px] py-0.5">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>অপেক্ষমাণ</span>
-                      </Badge>
+                      {app.status === 'approved' ? (
+                        <Badge variant="success" className="text-[10px] py-0.5 bg-emerald-100 text-emerald-800 border-emerald-300">
+                          <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600" />
+                          <span>অনুমোদিত (লাইভ)</span>
+                        </Badge>
+                      ) : app.status === 'rejected' ? (
+                        <Badge variant="danger" className="text-[10px] py-0.5 bg-red-100 text-red-800 border-red-300">
+                          <XCircle className="h-3 w-3 mr-1 text-red-600" />
+                          <span>বাতিলকৃত</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" className="text-[10px] py-0.5">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>অপেক্ষমাণ</span>
+                        </Badge>
+                      )}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
@@ -226,23 +303,34 @@ export default function VerificationQueuePage() {
                             <span>পরিদর্শন</span>
                           </Button>
                         </Link>
-                        <Button
-                          size="sm"
-                          onClick={() => handleQuickAction(app.id, 'approve')}
-                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          <span>অনুমোদন</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleQuickAction(app.id, 'reject')}
-                          className="h-8 text-xs text-red-600 hover:bg-red-50 border-red-200 px-2.5"
-                        >
-                          <XCircle className="h-3.5 w-3.5 mr-1" />
-                          <span>বাতিল</span>
-                        </Button>
+                        {app.status === 'approved' ? (
+                          <Link href="/admin/mistris">
+                            <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5">
+                              <Wrench className="h-3.5 w-3.5 mr-1" />
+                              <span>সকল মিস্ত্রীতে দেখুন</span>
+                            </Button>
+                          </Link>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleQuickAction(app.id, 'approve')}
+                              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              <span>অনুমোদন</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleQuickAction(app.id, 'reject')}
+                              className="h-8 text-xs text-red-600 hover:bg-red-50 border-red-200 px-2.5"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" />
+                              <span>বাতিল</span>
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

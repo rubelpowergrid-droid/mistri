@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { addApplicantToQueue } from '@/lib/mistri-store'
+import { saveMistriToSupabase } from '@/lib/supabase-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,6 +59,26 @@ export async function POST(request: NextRequest) {
       chargeType: chargeType || 'negotiable',
       baseCharge: Number(baseCharge) || 400,
     })
+
+    // Also persist to Supabase PostgreSQL database
+    try {
+      await saveMistriToSupabase({
+        fullName,
+        phone,
+        password,
+        nidNumber,
+        district: district || 'ঠাকুরগাঁও',
+        upazila: upazila || 'ঠাকুরগাঁও সদর',
+        streetAddress,
+        professionalTitle: professionalTitle || selectedCategory || 'দক্ষ ইলেকট্রিশিয়ান',
+        bio,
+        experienceYears: Number(experienceYears) || 5,
+        baseCharge: Number(baseCharge) || 400,
+        status: 'pending',
+      })
+    } catch (dbErr) {
+      console.error('Supabase persistence error during onboarding:', dbErr)
+    }
 
     return NextResponse.json({
       success: true,

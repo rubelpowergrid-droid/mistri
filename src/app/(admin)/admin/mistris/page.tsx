@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Wrench, Search, Star, ShieldCheck, ShieldAlert, 
-  MapPin, CheckCircle2, Ban, Eye, Phone 
+  MapPin, CheckCircle2, Ban, Eye, Phone, RefreshCw 
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -36,8 +36,24 @@ export default function AdminMistrisPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [districtFilter, setDistrictFilter] = useState('all')
+  const [isLoading, setIsLoading] = useState(true)
 
   const [mistris, setMistris] = useState<MistriWorker[]>([
+    {
+      id: 'm-jewel-rana',
+      name: isBn ? 'মোঃ জুয়েল রানা' : 'Md. Jewel Rana',
+      phone: '01722159830',
+      title: isBn ? 'সিনিয়র ইলেকট্রিশিয়ান ও টেকনিশিয়ান' : 'Senior Electrician & Technician',
+      category: isBn ? 'ইলেকট্রিক্যাল কাজ' : 'Electrical',
+      district: isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon',
+      upazila: isBn ? 'ঠাকুরগাঁও সদর' : 'Thakurgaon Sadar',
+      experienceYears: 6,
+      rating: 5.0,
+      reviewsCount: 1,
+      completedJobs: 14,
+      status: 'approved',
+      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+    },
     {
       id: 'm-1',
       name: isBn ? 'মোঃ রফিকুল ইসলাম' : 'Md. Rafiqul Islam',
@@ -100,6 +116,25 @@ export default function AdminMistrisPage() {
     },
   ])
 
+  const fetchMistris = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/admin/mistris')
+      const data = await res.json()
+      if (data.success && data.mistris && data.mistris.length > 0) {
+        setMistris(data.mistris)
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin mistris:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchMistris()
+  }, [])
+
   const toggleSuspend = (mistriId: string) => {
     setMistris(prev =>
       prev.map(m => {
@@ -131,9 +166,15 @@ export default function AdminMistrisPage() {
               : 'Monitor active and suspended professionals across all districts'}
           </p>
         </div>
-        <Badge variant="primary" className="text-xs px-3 py-1 font-bold">
-          {toBanglaNumber(filteredMistris.length)} {isBn ? 'জন মিস্ত্রী' : 'Workers'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="primary" className="text-xs px-3 py-1 font-bold">
+            {toBanglaNumber(filteredMistris.length)} {isBn ? 'জন মিস্ত্রী' : 'Workers'}
+          </Badge>
+          <Button variant="outline" size="sm" onClick={fetchMistris} isLoading={isLoading}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
