@@ -364,9 +364,15 @@ export default function NewBookingPage() {
             <Input
               id="contactPhone"
               type="tel"
-              label={isBn ? 'যোগাযোগের মোবাইল নম্বর' : 'Contact Phone Number'}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={11}
+              label={isBn ? 'যোগাযোগের মোবাইল নম্বর (ইংরেজীতে)' : 'Contact Phone Number (English)'}
               value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
+              onChange={(e) => {
+                const converted = e.target.value.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+                setContactPhone(converted.replace(/[^0-9]/g, '').slice(0, 11))
+              }}
               leftIcon={<Phone className="h-4 w-4" />}
               required
             />
@@ -377,7 +383,6 @@ export default function NewBookingPage() {
               label={isBn ? 'আপনার প্রস্তাবিত বাজেট (টাকা, ঐচ্ছিক)' : 'Proposed Budget (BDT, Optional)'}
               value={estimatedBudget}
               onChange={(e) => setEstimatedBudget(e.target.value ? Number(e.target.value) : '')}
-              leftIcon={<DollarSign className="h-4 w-4" />}
             />
           </div>
         </Card>

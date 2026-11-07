@@ -201,3 +201,4 @@ export function updateApplicantStatus(
     return { success: true, applicant }
   }
 }
+

@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
-  Upload, ArrowRight, ArrowLeft, Camera, DollarSign,
+  Upload, ArrowRight, ArrowLeft, Camera,
   AlertCircle
 } from 'lucide-react'
 import { useI18n } from '@/locales'
@@ -56,6 +56,23 @@ export default function MistriOnboardingPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80'
   )
+
+  // Input Sanitizers for English Digits Only
+  const handlePhoneInput = (val: string) => {
+    // Convert Bengali digits (০-৯) to English digits (0-9)
+    const converted = val.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+    // Retain only English numerals (0-9), max 11 digits
+    const digitsOnly = converted.replace(/[^0-9]/g, '').slice(0, 11)
+    setPhone(digitsOnly)
+  }
+
+  const handleNidInput = (val: string) => {
+    // Convert Bengali digits (০-৯) to English digits (0-9)
+    const converted = val.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+    // Retain only English numerals (0-9), max 17 digits
+    const digitsOnly = converted.replace(/[^0-9]/g, '').slice(0, 17)
+    setNidNumber(digitsOnly)
+  }
 
   // Step 2: NID Identity
   const [nidNumber, setNidNumber] = useState('1990521934000123')
@@ -120,9 +137,17 @@ export default function MistriOnboardingPage() {
         setErrorMessage(isBn ? 'নাম ও মোবাইল নম্বর পূরণ করুন' : 'Provide full name and phone')
         return
       }
+      if (phone.length < 11) {
+        setErrorMessage(isBn ? 'সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন' : 'Provide valid 11-digit mobile number')
+        return
+      }
     } else if (currentStep === 2) {
       if (!nidNumber || !nidFront || !nidBack) {
         setErrorMessage(isBn ? 'এনআইডি নম্বর এবং উভয় পাশের ছবি আপলোড করা আবশ্যক' : 'NID number and both front & back photos are required')
+        return
+      }
+      if (nidNumber.length !== 10 && nidNumber.length !== 17) {
+        setErrorMessage(isBn ? 'এনআইডি নম্বর অবশ্যই ১০ বা ১৭ সংখ্যার হতে হবে' : 'NID number must be 10 or 17 digits')
         return
       }
     } else if (currentStep === 3) {
@@ -310,9 +335,13 @@ export default function MistriOnboardingPage() {
               <Input
                 id="phone"
                 type="tel"
-                label={t('auth.phone_number')}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={11}
+                label={isBn ? 'মোবাইল নম্বর (ইংরেজীতে)' : 'Mobile Number (English)'}
+                placeholder="017XXXXXXXX"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneInput(e.target.value)}
                 required
               />
             </div>
@@ -359,10 +388,14 @@ export default function MistriOnboardingPage() {
 
             <Input
               id="nidNumber"
-              label={isBn ? '১০ বা ১৭ সংখ্যার এনআইডি নম্বর' : '10 or 17 digit NID Number'}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={17}
+              label={isBn ? '১০ বা ১৭ সংখ্যার এনআইডি নম্বর (ইংরেজীতে)' : '10 or 17 digit NID Number (English)'}
               placeholder="1990XXXXXXXXXXXXX"
               value={nidNumber}
-              onChange={(e) => setNidNumber(e.target.value)}
+              onChange={(e) => handleNidInput(e.target.value)}
               leftIcon={<Shield className="h-4 w-4" />}
               required
             />
@@ -629,7 +662,6 @@ export default function MistriOnboardingPage() {
                 label={isBn ? 'আনুমানিক প্রারম্ভিক মজুরি (টাকা)' : 'Estimated Starting Charge (BDT)'}
                 value={baseCharge}
                 onChange={(e) => setBaseCharge(Number(e.target.value))}
-                leftIcon={<DollarSign className="h-4 w-4" />}
               />
             </div>
 

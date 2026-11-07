@@ -116,10 +116,16 @@ function RegisterContent() {
         <Input
           id="phone"
           type="tel"
-          label={t('auth.phone_number')}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={11}
+          label={isBn ? 'মোবাইল নম্বর (ইংরেজীতে)' : 'Mobile Number (English)'}
           placeholder="01XXXXXXXXX"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            const converted = e.target.value.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+            setPhone(converted.replace(/[^0-9]/g, '').slice(0, 11))
+          }}
           leftIcon={<Phone className="h-4 w-4" />}
           required
         />

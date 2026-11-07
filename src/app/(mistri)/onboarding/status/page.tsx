@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Clock, ShieldCheck, CheckCircle2, ArrowRight, Phone, MessageSquare } from 'lucide-react'
+import { Clock, ShieldCheck, CheckCircle2, Phone } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -73,19 +73,13 @@ export default function MistriStatusPage() {
             <Phone className="h-4 w-4 text-blue-600 shrink-0" />
             <span className="font-semibold">{isBn ? 'সাহায্যের জন্য হেল্পলাইন:' : 'Support Helpline:'}</span>
           </div>
-          <span className="font-bold text-blue-700">০১৭০০-০০০০০০</span>
+          <a href="tel:01722092804" className="font-bold text-blue-700 hover:underline">০১৭২২০৯২৮০৪</a>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Link href="/" className="flex-1">
-            <Button variant="outline" className="w-full text-xs">
+        <div className="pt-2">
+          <Link href="/" className="block w-full">
+            <Button variant="outline" className="w-full text-xs font-semibold py-2.5">
               {isBn ? 'হোমপেজে ফিরুন' : 'Back to Home'}
-            </Button>
-          </Link>
-          <Link href="/admin/verification" className="flex-1">
-            <Button className="w-full text-xs bg-slate-900 hover:bg-slate-800">
-              <span>{isBn ? 'অ্যাডমিন ডেস্কে দেখুন' : 'View in Admin Queue'}</span>
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </Link>
         </div>

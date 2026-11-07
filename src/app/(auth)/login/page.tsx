@@ -132,10 +132,19 @@ export default function LoginPage() {
           <Input
             id="phone"
             type="tel"
-            label={t('auth.phone_number')}
+            inputMode="tel"
+            label={isBn ? 'মোবাইল নম্বর (ইংরেজীতে)' : 'Mobile Number (English)'}
             placeholder="017XXXXXXXX"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              if (val.toLowerCase().startsWith('admin')) {
+                setPhone(val)
+              } else {
+                const converted = val.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+                setPhone(converted.replace(/[^0-9]/g, '').slice(0, 11))
+              }
+            }}
             leftIcon={<Phone className="h-4 w-4" />}
             required
           />
@@ -153,11 +162,11 @@ export default function LoginPage() {
                 required
               />
               <div className="rounded-xl bg-blue-50 border border-blue-200 p-2.5 text-[11px] text-blue-900 flex items-center justify-between">
-                <span>🔒 <strong>এডমিন লগইন:</strong> 01700000000 | পাসওয়ার্ড: admin1234</span>
+                <span>🔒 <strong>এডমিন লগইন:</strong> 01722092804 / 01700000000 | পাসওয়ার্ড: admin1234</span>
                 <button
                   type="button"
                   onClick={() => {
-                    setPhone('01700000000')
+                    setPhone('01722092804')
                     setPassword('admin1234')
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-0.5 rounded text-[10px] cursor-pointer"
