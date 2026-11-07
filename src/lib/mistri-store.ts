@@ -1,4 +1,4 @@
-// Central Mistri Verification and Directory Store
+// Central Mistri Verification, Customers, Bookings and Directory Store
 
 export interface ApplicantRecord {
   id: string
@@ -24,6 +24,32 @@ export interface ApplicantRecord {
   avatar: string
   nidFrontUrl?: string
   nidBackUrl?: string
+}
+
+export interface CustomerRecord {
+  id: string
+  name: string
+  phone: string
+  district: string
+  upazila: string
+  address: string
+  totalBookings: number
+  lastBookingDate: string
+  status: 'active' | 'inactive'
+  avatar: string
+}
+
+export interface BookingRecord {
+  id: string
+  bookingNumber: string
+  mistriName: string
+  customerName: string
+  customerPhone: string
+  serviceName: string
+  location: string
+  amount: number
+  status: 'completed' | 'in_progress' | 'pending'
+  date: string
 }
 
 // Initial pending applicants
@@ -105,10 +131,114 @@ export const PENDING_APPLICANTS: ApplicantRecord[] = [
   },
 ]
 
+export const INITIAL_CUSTOMERS: CustomerRecord[] = [
+  {
+    id: 'cust-01',
+    name: 'মোঃ মাসুদ রানা',
+    phone: '01722092804',
+    district: 'ঠাকুরগাঁও',
+    upazila: 'ঠাকুরগাঁও সদর',
+    address: 'পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
+    totalBookings: 4,
+    lastBookingDate: '২০২৬-১১-০৭',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cust-02',
+    name: 'আহমেদ জুবায়ের',
+    phone: '01711223344',
+    district: 'ঠাকুরগাঁও',
+    upazila: 'পীরগঞ্জ',
+    address: 'পীরগঞ্জ বাজার রোড',
+    totalBookings: 2,
+    lastBookingDate: '২০২৬-১১-০৪',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cust-03',
+    name: 'ফারহানা চৌধুরী',
+    phone: '01899887766',
+    district: 'পঞ্চগড়',
+    upazila: 'পঞ্চগড় সদর',
+    address: 'কলেজ রোড, পঞ্চগড়',
+    totalBookings: 3,
+    lastBookingDate: '২০২৬-১০-২৮',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cust-04',
+    name: 'কামরুল হাসান',
+    phone: '01922334455',
+    district: 'দিনাজপুর',
+    upazila: 'দিনাজপুর সদর',
+    address: 'বালুবাড়ী, দিনাজপুর সদর',
+    totalBookings: 5,
+    lastBookingDate: '২০২৬-১১-০১',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cust-05',
+    name: 'তানভীর আহমেদ',
+    phone: '01733445566',
+    district: 'ঠাকুরগাঁও',
+    upazila: 'রাণীশংকৈল',
+    address: 'রাণীশংকৈল বাসস্ট্যান্ড',
+    totalBookings: 1,
+    lastBookingDate: '২০২৬-১০-১৫',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  },
+]
+
+export const INITIAL_BOOKINGS: BookingRecord[] = [
+  {
+    id: 'b-01',
+    bookingNumber: 'MST-261107-ABOD',
+    mistriName: 'মোঃ রফিকুল ইসলাম',
+    customerName: 'মোঃ মাসুদ রানা',
+    customerPhone: '01722092804',
+    serviceName: 'বাসা-বাড়ির ওয়্যারিং ও ডিবি মেরামত',
+    location: 'পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
+    amount: 500,
+    status: 'completed',
+    date: '২০২৬-১১-০৭',
+  },
+  {
+    id: 'b-02',
+    bookingNumber: 'MST-261104-KP12',
+    mistriName: 'আব্দুল করিম',
+    customerName: 'আহমেদ জুবায়ের',
+    customerPhone: '01711223344',
+    serviceName: 'পানির মোটর ও পাম্প মেরামত',
+    location: 'পীরগঞ্জ বাজার রোড, ঠাকুরগাঁও',
+    amount: 350,
+    status: 'in_progress',
+    date: '২০২৬-১১-০৪',
+  },
+  {
+    id: 'b-03',
+    bookingNumber: 'MST-261028-XY89',
+    mistriName: 'তরিকুল হাসান',
+    customerName: 'ফারহানা চৌধুরী',
+    customerPhone: '01899887766',
+    serviceName: 'টাইলস ও ফ্লোর ফিটিংস',
+    location: 'কলেজ রোড, পঞ্চগড়',
+    amount: 1200,
+    status: 'completed',
+    date: '২০২৬-১০-২৮',
+  },
+]
+
 // Global store for persistent memory during server lifetime
 declare global {
   var __MISTRI_APPLICANTS__: ApplicantRecord[] | undefined
   var __APPROVED_MISTRIS__: any[] | undefined
+  var __CUSTOMERS_STORE__: CustomerRecord[] | undefined
+  var __BOOKINGS_STORE__: BookingRecord[] | undefined
 }
 
 export function getApplicantsStore(): ApplicantRecord[] {
@@ -116,6 +246,45 @@ export function getApplicantsStore(): ApplicantRecord[] {
     global.__MISTRI_APPLICANTS__ = [...PENDING_APPLICANTS]
   }
   return global.__MISTRI_APPLICANTS__
+}
+
+export function getCustomersStore(): CustomerRecord[] {
+  if (!global.__CUSTOMERS_STORE__) {
+    global.__CUSTOMERS_STORE__ = [...INITIAL_CUSTOMERS]
+  }
+  return global.__CUSTOMERS_STORE__
+}
+
+export function getBookingsStore(): BookingRecord[] {
+  if (!global.__BOOKINGS_STORE__) {
+    global.__BOOKINGS_STORE__ = [...INITIAL_BOOKINGS]
+  }
+  return global.__BOOKINGS_STORE__
+}
+
+export function addBookingToStore(booking: {
+  mistriName?: string
+  customerName?: string
+  customerPhone?: string
+  serviceName?: string
+  location?: string
+  amount?: number
+}): BookingRecord {
+  const store = getBookingsStore()
+  const newBooking: BookingRecord = {
+    id: `b-${Date.now()}`,
+    bookingNumber: 'MST-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+    mistriName: booking.mistriName || 'দক্ষ কারিগর',
+    customerName: booking.customerName || 'সম্মানিত গ্রাহক',
+    customerPhone: booking.customerPhone || '017XXXXXXXX',
+    serviceName: booking.serviceName || 'সাধারণ সেবা',
+    location: booking.location || 'ঠাকুরগাঁও সদর',
+    amount: booking.amount || 400,
+    status: 'completed',
+    date: new Date().toISOString().slice(0, 10),
+  }
+  store.unshift(newBooking)
+  return newBooking
 }
 
 export function addApplicantToQueue(applicant: Omit<ApplicantRecord, 'id' | 'status' | 'submittedAt'>): ApplicantRecord {
@@ -202,3 +371,55 @@ export function updateApplicantStatus(
   }
 }
 
+export function getAdminDashboardStats() {
+  const applicants = getApplicantsStore()
+  const pendingApplicants = applicants.filter(a => a.status === 'pending')
+  const approvedMistrisCount = 5 + (global.__APPROVED_MISTRIS__?.length || 0)
+  const customers = getCustomersStore()
+  const bookings = getBookingsStore()
+
+  const thakurgaonCount = customers.filter(c => c.district.includes('ঠাকুরগাঁও')).length + 3
+  const panchagarhCount = customers.filter(c => c.district.includes('পঞ্চগড়')).length + 1
+  const dinajpurCount = customers.filter(c => c.district.includes('দিনাজপুর')).length + 1
+  const totalGeo = thakurgaonCount + panchagarhCount + dinajpurCount || 1
+
+  const districtDistribution = [
+    { 
+      name_bn: 'ঠাকুরগাঁও জেলা', 
+      name_en: 'Thakurgaon District', 
+      percentage: Math.round((thakurgaonCount / totalGeo) * 100), 
+      count: thakurgaonCount, 
+      color: 'bg-blue-600' 
+    },
+    { 
+      name_bn: 'পঞ্চগড় জেলা', 
+      name_en: 'Panchagarh District', 
+      percentage: Math.round((panchagarhCount / totalGeo) * 100), 
+      count: panchagarhCount, 
+      color: 'bg-emerald-600' 
+    },
+    { 
+      name_bn: 'দিনাজপুর জেলা', 
+      name_en: 'Dinajpur District', 
+      percentage: Math.round((dinajpurCount / totalGeo) * 100), 
+      count: dinajpurCount, 
+      color: 'bg-amber-500' 
+    },
+  ]
+
+  const categoryBookingShares = [
+    { name_bn: 'ইলেকট্রিক্যাল সার্ভিস', name_en: 'Electrical Services', count: 2, share: '৪০%' },
+    { name_bn: 'প্লাম্বিং সার্ভিস', name_en: 'Plumbing Services', count: 1, share: '৩০%' },
+    { name_bn: 'রং করার কাজ', name_en: 'Painting Services', count: 1, share: '১৫%' },
+    { name_bn: 'রাজমিস্ত্রীর কাজ', name_en: 'Masonry Services', count: 1, share: '১৫%' },
+  ]
+
+  return {
+    totalCustomers: customers.length,
+    approvedMistris: approvedMistrisCount,
+    pendingVerifications: pendingApplicants.length,
+    totalBookings: bookings.length,
+    districtDistribution,
+    categoryBookingShares,
+  }
+}

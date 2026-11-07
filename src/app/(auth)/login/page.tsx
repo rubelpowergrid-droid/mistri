@@ -161,19 +161,6 @@ export default function LoginPage() {
                 leftIcon={<Lock className="h-4 w-4" />}
                 required
               />
-              <div className="rounded-xl bg-blue-50 border border-blue-200 p-2.5 text-[11px] text-blue-900 flex items-center justify-between">
-                <span>🔒 <strong>এডমিন লগইন:</strong> 01722092804 / 01700000000 | পাসওয়ার্ড: admin1234</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhone('01722092804')
-                    setPassword('admin1234')
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-0.5 rounded text-[10px] cursor-pointer"
-                >
-                  অটো-ফিল
-                </button>
-              </div>
             </div>
           ) : (
             <div className="space-y-3 pt-1">
