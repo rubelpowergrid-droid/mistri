@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { 
@@ -52,18 +52,46 @@ export default function NewBookingPage() {
     }
   }, [params.mistriId])
 
-  const handlePhotoUploadMock = () => {
-    if (uploadedPhotos.length >= 3) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleRealPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const remainingSlots = 3 - uploadedPhotos.length
+    if (remainingSlots <= 0) {
       alert(isBn ? 'সর্বোচ্চ ৩টি ছবি আপলোড করা যাবে' : 'Maximum 3 photos allowed')
       return
     }
-    const samplePhotos = [
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80',
-    ]
-    const nextPhoto = samplePhotos[uploadedPhotos.length % samplePhotos.length]
-    setUploadedPhotos(prev => [...prev, nextPhoto])
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots)
+
+    filesToProcess.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(isBn ? 'শুধুমাত্র ছবি (JPG, PNG) আপলোড করুন' : 'Please upload images only')
+        return
+      }
+
+      if (file.size > 8 * 1024 * 1024) {
+        alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ৮ মেগাবাইট হতে পারবে' : 'Image size cannot exceed 8MB')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const result = event.target?.result as string
+        if (result) {
+          setUploadedPhotos(prev => {
+            if (prev.length >= 3) return prev
+            return [...prev, result]
+          })
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+
+    // Reset input value so same photo can be re-added if user removes and re-selects
+    e.target.value = ''
   }
 
   const removePhoto = (index: number) => {
@@ -246,11 +274,22 @@ export default function NewBookingPage() {
                 </div>
               ))}
 
+              {/* Hidden Real File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleRealPhotoUpload}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+
               {uploadedPhotos.length < 3 && (
                 <button
                   type="button"
-                  onClick={handlePhotoUploadMock}
-                  className="flex flex-col items-center justify-center h-20 w-20 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 text-slate-400 hover:text-blue-600 transition-colors text-center p-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center justify-center h-20 w-20 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 text-slate-400 hover:text-blue-600 transition-colors text-center p-2 cursor-pointer"
+                  title={isBn ? 'ক্লিক করে আপনার ফোন বা পিসি থেকে ছবি নির্বাচন করুন' : 'Click to select photo from device'}
                 >
                   <Camera className="h-5 w-5 mb-1" />
                   <span className="text-[10px] font-semibold">{isBn ? 'ছবি যোগ' : 'Add Photo'}</span>

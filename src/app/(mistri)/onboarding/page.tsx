@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
@@ -22,6 +22,30 @@ export default function MistriOnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const nidFrontInputRef = useRef<HTMLInputElement>(null)
+  const nidBackInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert(isBn ? 'শুধুমাত্র ছবি (JPG, PNG) আপলোড করুন' : 'Please upload image files')
+      return
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ৮ মেগাবাইট হতে পারবে' : 'Image size cannot exceed 8MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result as string
+      if (result) setter(result)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   // Form States
   // Step 1: Personal
@@ -208,20 +232,31 @@ export default function MistriOnboardingPage() {
 
             {/* Profile Photo */}
             <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+              <input
+                type="file"
+                ref={avatarInputRef}
+                onChange={(e) => handleFileUpload(e, setAvatarPreview)}
+                accept="image/*"
+                className="hidden"
+              />
+              <div 
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative h-20 w-20 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 flex items-center justify-center overflow-hidden cursor-pointer group"
+                title={isBn ? 'ছবি পরিবর্তন করতে ক্লিক করুন' : 'Click to change photo'}
+              >
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                  <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover group-hover:opacity-80 transition-opacity" />
                 ) : (
-                  <Camera className="h-6 w-6 text-slate-400" />
+                  <Camera className="h-6 w-6 text-slate-400 group-hover:text-blue-600 transition-colors" />
                 )}
               </div>
               <div className="space-y-1">
-                <Button variant="outline" size="sm" type="button" onClick={() => setAvatarPreview('https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80')}>
+                <Button variant="outline" size="sm" type="button" onClick={() => avatarInputRef.current?.click()}>
                   <Upload className="h-3.5 w-3.5 mr-1" />
                   {isBn ? 'ছবি পরিবর্তন করুন' : 'Change Photo'}
                 </Button>
                 <p className="text-[11px] text-slate-400">
-                  {isBn ? 'ক্লিয়ার পোর্ট্রেট ছবি দিন (সর্বোচ্চ ৫ মেগাবাইট)' : 'Clear portrait photo (Max 5MB)'}
+                  {isBn ? 'ক্লিয়ার পোর্ট্রেট ছবি দিন (সর্বোচ্চ ৮ মেগাবাইট)' : 'Clear portrait photo (Max 8MB)'}
                 </p>
               </div>
             </div>
@@ -297,21 +332,32 @@ export default function MistriOnboardingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               {/* NID Front */}
               <div className="space-y-2">
+                <input
+                  type="file"
+                  ref={nidFrontInputRef}
+                  onChange={(e) => handleFileUpload(e, setNidFront)}
+                  accept="image/*"
+                  className="hidden"
+                />
                 <label className="block text-xs font-semibold text-slate-700">
                   {isBn ? 'NID কার্ডের সামনের দিকের ছবি' : 'NID Card Front Photo'}
                 </label>
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center hover:border-blue-400 transition-colors">
+                <div 
+                  onClick={() => nidFrontInputRef.current?.click()}
+                  className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center hover:border-blue-500 transition-colors cursor-pointer group"
+                  title={isBn ? 'NID কার্ডের সামনের ছবি আপলোড করতে ক্লিক করুন' : 'Click to upload NID front photo'}
+                >
                   {nidFront ? (
                     <div className="space-y-2">
-                      <img src={nidFront} alt="NID Front" className="h-32 w-full object-cover rounded-xl" />
+                      <img src={nidFront} alt="NID Front" className="h-32 w-full object-cover rounded-xl group-hover:opacity-85 transition-opacity" />
                       <Badge variant="success" className="text-[10px]">
-                        {isBn ? 'ছবি সংযুক্ত হয়েছে' : 'Photo Attached'}
+                        {isBn ? 'ছবি পরিবর্তন করতে ক্লিক করুন' : 'Click to change photo'}
                       </Badge>
                     </div>
                   ) : (
                     <div className="py-6 space-y-2">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto" />
-                      <span className="text-xs text-slate-500 block">
+                      <Upload className="h-8 w-8 text-slate-400 group-hover:text-blue-600 mx-auto transition-colors" />
+                      <span className="text-xs text-slate-500 group-hover:text-blue-600 block transition-colors">
                         {isBn ? 'ক্লিয়ার সামনের ছবি আপলোড করুন' : 'Upload front side photo'}
                       </span>
                     </div>
@@ -321,21 +367,32 @@ export default function MistriOnboardingPage() {
 
               {/* NID Back */}
               <div className="space-y-2">
+                <input
+                  type="file"
+                  ref={nidBackInputRef}
+                  onChange={(e) => handleFileUpload(e, setNidBack)}
+                  accept="image/*"
+                  className="hidden"
+                />
                 <label className="block text-xs font-semibold text-slate-700">
                   {isBn ? 'NID কার্ডের পেছনের দিকের ছবি' : 'NID Card Back Photo'}
                 </label>
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center hover:border-blue-400 transition-colors">
+                <div 
+                  onClick={() => nidBackInputRef.current?.click()}
+                  className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center hover:border-blue-500 transition-colors cursor-pointer group"
+                  title={isBn ? 'NID কার্ডের পেছনের ছবি আপলোড করতে ক্লিক করুন' : 'Click to upload NID back photo'}
+                >
                   {nidBack ? (
                     <div className="space-y-2">
-                      <img src={nidBack} alt="NID Back" className="h-32 w-full object-cover rounded-xl" />
+                      <img src={nidBack} alt="NID Back" className="h-32 w-full object-cover rounded-xl group-hover:opacity-85 transition-opacity" />
                       <Badge variant="success" className="text-[10px]">
-                        {isBn ? 'ছবি সংযুক্ত হয়েছে' : 'Photo Attached'}
+                        {isBn ? 'ছবি পরিবর্তন করতে ক্লিক করুন' : 'Click to change photo'}
                       </Badge>
                     </div>
                   ) : (
                     <div className="py-6 space-y-2">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto" />
-                      <span className="text-xs text-slate-500 block">
+                      <Upload className="h-8 w-8 text-slate-400 group-hover:text-blue-600 mx-auto transition-colors" />
+                      <span className="text-xs text-slate-500 group-hover:text-blue-600 block transition-colors">
                         {isBn ? 'ক্লিয়ার পেছনের ছবি আপলোড করুন' : 'Upload back side photo'}
                       </span>
                     </div>
