@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
     const {
       fullName,
       phone,
+      password,
       dateOfBirth,
       gender,
       avatarPreview,
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     const newRecord = addApplicantToQueue({
       name: fullName,
       phone,
+      password,
       nidNumber,
       dateOfBirth,
       gender,

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
   Upload, ArrowRight, ArrowLeft, Camera,
-  AlertCircle
+  AlertCircle, Lock, KeyRound, Eye, EyeOff, MessageSquare
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
@@ -101,6 +101,77 @@ export default function MistriOnboardingPage() {
   const [chargeType, setChargeType] = useState('negotiable')
   const [baseCharge, setBaseCharge] = useState(400)
 
+  // Step 5: Password & WhatsApp OTP States
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [isOtpSent, setIsOtpSent] = useState(false)
+  const [isOtpSending, setIsOtpSending] = useState(false)
+  const [isOtpVerified, setIsOtpVerified] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [otpMessage, setOtpMessage] = useState('')
+  const [otpError, setOtpError] = useState('')
+
+  const handleSendOtp = async () => {
+    setOtpError('')
+    setOtpMessage('')
+    setIsOtpSending(true)
+
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, channel: 'whatsapp' }),
+      })
+      const data = await res.json()
+      setIsOtpSending(false)
+
+      if (data.success) {
+        setIsOtpSent(true)
+        setOtpMessage(
+          isBn
+            ? `আপনার WhatsApp নম্বরে (${phone}) ওটিপি পাঠানো হয়েছে। কোডটি নিচে লিখে যাচাই করুন।`
+            : `OTP sent to your WhatsApp (${phone}). Enter it below.`
+        )
+      } else {
+        setOtpError(data.error || 'WhatsApp ওটিপি পাঠাতে সমস্যা হয়েছে')
+      }
+    } catch {
+      setIsOtpSending(false)
+      setOtpError('ওটিপি পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।')
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.trim().length === 0) {
+      setOtpError(isBn ? 'ওটিপি কোড লিখুন' : 'Enter OTP code')
+      return
+    }
+    setOtpError('')
+    setIsVerifyingOtp(true)
+
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: otpCode.trim() }),
+      })
+      const data = await res.json()
+      setIsVerifyingOtp(false)
+
+      if (data.success) {
+        setIsOtpVerified(true)
+        setOtpMessage(isBn ? '✓ হোয়াটসঅ্যাপ নম্বর সফলভাবে যাচাই হয়েছে!' : '✓ WhatsApp verified successfully!')
+      } else {
+        setOtpError(data.error || 'ভুল ওটিপি কোড, আবার চেষ্টা করুন')
+      }
+    } catch {
+      setIsVerifyingOtp(false)
+      setOtpError('যাচাইকরণে ত্রুটি হয়েছে')
+    }
+  }
+
   const categories = [
     { id: 'electrical-services', name_bn: 'ইলেকট্রিক্যাল কাজ', name_en: 'Electrical Services' },
     { id: 'plumbing-services', name_bn: 'প্লাম্বিং সার্ভিস', name_en: 'Plumbing Services' },
@@ -165,8 +236,24 @@ export default function MistriOnboardingPage() {
   }
 
   const handleFinalSubmit = async () => {
-    setIsSubmitting(true)
     setErrorMessage('')
+
+    if (!isOtpVerified) {
+      setErrorMessage(isBn ? 'অনুগ্রহ করে প্রথমে WhatsApp ওটিপি কোডটি যাচাই করুন' : 'Please verify WhatsApp OTP code first')
+      return
+    }
+
+    if (!password || password.length < 6) {
+      setErrorMessage(isBn ? 'কমপক্ষে ৬ অক্ষরের একটি গোপন পাসওয়ার্ড সেট করুন' : 'Password must be at least 6 characters')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage(isBn ? 'পাসওয়ার্ড দুটি মেলেনি, অনুগ্রহ করে সঠিক পাসওয়ার্ড নিশ্চিত করুন' : 'Passwords do not match')
+      return
+    }
+
+    setIsSubmitting(true)
 
     try {
       const res = await fetch('/api/onboarding', {
@@ -175,6 +262,7 @@ export default function MistriOnboardingPage() {
         body: JSON.stringify({
           fullName,
           phone,
+          password,
           dateOfBirth,
           gender,
           avatarPreview,
@@ -200,6 +288,18 @@ export default function MistriOnboardingPage() {
       setIsSubmitting(false)
 
       if (data.success) {
+        if (typeof window !== 'undefined' && data.applicant) {
+          localStorage.setItem(
+            'mistri_user',
+            JSON.stringify({
+              id: data.applicant.id,
+              name: fullName,
+              phone,
+              role: 'mistri',
+              status: 'pending',
+            })
+          )
+        }
         router.push('/onboarding/status?id=' + (data.applicant?.id || ''))
       } else {
         setErrorMessage(data.error || 'আবেদন জমা দিতে সমস্যা হয়েছে')
@@ -215,7 +315,7 @@ export default function MistriOnboardingPage() {
     { num: 2, title: isBn ? 'জাতীয় পরিচয়পত্র' : 'NID Document', icon: Shield },
     { num: 3, title: isBn ? 'এলাকা ও দূরত্ব' : 'Work Area', icon: MapPin },
     { num: 4, title: isBn ? 'দক্ষতা ও পারিশ্রমিক' : 'Skills & Rates', icon: Wrench },
-    { num: 5, title: isBn ? 'পর্যালোচনা' : 'Review', icon: CheckCircle2 },
+    { num: 5, title: isBn ? 'যাচাই ও পাসওয়ার্ড' : 'Verify & Password', icon: CheckCircle2 },
   ]
 
   return (
@@ -680,54 +780,211 @@ export default function MistriOnboardingPage() {
           </div>
         )}
 
-        {/* STEP 5: Final Review */}
+        {/* STEP 5: Final Review, WhatsApp OTP & Password Setup */}
         {currentStep === 5 && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="border-b border-slate-100 pb-3">
               <h2 className="text-base font-bold text-slate-900">
-                {isBn ? 'ধাপ ৫: তথ্য পর্যালোচনা ও সাবমিশন' : 'Step 5: Review & Submit Application'}
+                {isBn ? 'ধাপ ৫: তথ্য পর্যালোচনা, WhatsApp যাচাই ও পাসওয়ার্ড সেটআপ' : 'Step 5: Review, WhatsApp OTP & Password Setup'}
               </h2>
               <p className="text-xs text-slate-500">
-                {isBn ? 'সবগুলো তথ্য সঠিক আছে কিনা যাচাই করে সাবমিট করুন' : 'Confirm your details before sending to Admin for verification'}
+                {isBn 
+                  ? 'সব তথ্য পর্যালোচনা করুন, WhatsApp-এ ওটিপি যাচাই করুন এবং পরবর্তীতে লগইন করার জন্য একটি গোপন পাসওয়ার্ড সেট করুন।' 
+                  : 'Review details, verify your phone via WhatsApp OTP, and set your account password.'}
               </p>
             </div>
 
+            {/* Application Summary Card */}
             <div className="rounded-2xl bg-slate-50 p-4 space-y-3 text-xs text-slate-700 border border-slate-200">
               <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="font-semibold text-slate-500">{isBn ? 'নাম:' : 'Name:'}</span>
+                <span className="font-semibold text-slate-500">{isBn ? 'পূর্ণ নাম:' : 'Name:'}</span>
                 <span className="font-bold text-slate-900">{fullName}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="font-semibold text-slate-500">{isBn ? 'মোবাইল:' : 'Phone:'}</span>
+                <span className="font-semibold text-slate-500">{isBn ? 'মোবাইল নম্বর:' : 'Phone:'}</span>
                 <span className="font-bold text-slate-900">{phone}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="font-semibold text-slate-500">{isBn ? 'এনআইডি:' : 'NID:'}</span>
+                <span className="font-semibold text-slate-500">{isBn ? 'এনআইডি নম্বর:' : 'NID:'}</span>
                 <span className="font-bold text-slate-900">{nidNumber}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-200/60">
+                <span className="font-semibold text-slate-500">{isBn ? 'প্রধান ক্যাটাগরি:' : 'Category:'}</span>
+                <span className="font-bold text-slate-900">{professionalTitle || selectedCategory}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-200/60">
                 <span className="font-semibold text-slate-500">{isBn ? 'কাজের এলাকা:' : 'Area:'}</span>
                 <span className="font-bold text-slate-900">{district}, {upazila} ({toBanglaNumber(maxRadiusKm)} কিমি ব্যাসার্ধ)</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="font-semibold text-slate-500">{isBn ? 'অভিজ্ঞতা:' : 'Experience:'}</span>
-                <span className="font-bold text-slate-900">{toBanglaNumber(experienceYears)} বছর</span>
-              </div>
               <div className="flex justify-between py-1">
-                <span className="font-semibold text-slate-500">{isBn ? 'বেস মজুরি:' : 'Base Charge:'}</span>
+                <span className="font-semibold text-slate-500">{isBn ? 'প্রারম্ভিক মজুরি:' : 'Base Charge:'}</span>
                 <span className="font-bold text-blue-600">৳{toBanglaNumber(baseCharge)} ({chargeType})</span>
               </div>
             </div>
 
-            <div className="rounded-2xl bg-blue-50/70 p-4 border border-blue-200 text-xs text-blue-800 space-y-1">
+            {/* WhatsApp OTP Verification Box */}
+            <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/40 p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    ১
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-emerald-950">
+                      {isBn ? 'হোয়াটসঅ্যাপ (WhatsApp) ওটিপি যাচাই' : 'WhatsApp OTP Verification'}
+                    </h3>
+                    <p className="text-[11px] text-emerald-800">
+                      {isBn ? `আপনার নম্বর: ${phone}` : `Phone: ${phone}`}
+                    </p>
+                  </div>
+                </div>
+                {isOtpVerified && (
+                  <Badge variant="success" className="bg-emerald-600 text-white text-[11px] px-2.5 py-1 font-bold">
+                    ✓ {isBn ? 'যাচাইকৃত' : 'Verified'}
+                  </Badge>
+                )}
+              </div>
+
+              {!isOtpVerified ? (
+                <div className="space-y-3 pt-1">
+                  {!isOtpSent ? (
+                    <Button
+                      type="button"
+                      onClick={handleSendOtp}
+                      isLoading={isOtpSending}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-xs"
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      <span>{isBn ? 'WhatsApp-এ ওটিপি পাঠান' : 'Send OTP via WhatsApp'}</span>
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          id="otpCode"
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="৪-সংখ্যার কোড দিন (যেমন: 1234)"
+                          value={otpCode}
+                          onChange={(e) => {
+                            const converted = e.target.value.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
+                            setOtpCode(converted.replace(/[^0-9]/g, ''))
+                          }}
+                          className="text-center font-mono font-bold tracking-widest text-base"
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          isLoading={isVerifyingOtp}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 shrink-0"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <span>{isBn ? 'যাচাই করুন' : 'Verify'}</span>
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-emerald-800 font-medium">{otpMessage}</span>
+                        <button
+                          type="button"
+                          onClick={handleSendOtp}
+                          disabled={isOtpSending}
+                          className="text-blue-600 hover:underline font-bold"
+                        >
+                          {isBn ? 'পুনরায় পাঠান' : 'Resend OTP'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {otpError && (
+                    <div className="rounded-xl bg-red-50 p-2.5 text-xs text-red-600 border border-red-200 font-medium">
+                      {otpError}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl bg-emerald-100/70 p-3 text-xs text-emerald-900 font-bold flex items-center gap-2 border border-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span>{isBn ? 'আপনার WhatsApp নম্বরটি সফলভাবে নিশ্চিত ও সুরক্ষিত করা হয়েছে।' : 'WhatsApp number verified and secured.'}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Password Setup Box */}
+            <div className="rounded-2xl border-2 border-blue-500/30 bg-blue-50/40 p-4 sm:p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  ২
+                </div>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-blue-950">
+                    {isBn ? 'অ্যাকাউন্টের পাসওয়ার্ড সেট করুন (Set Password)' : 'Set Account Password'}
+                  </h3>
+                  <p className="text-[11px] text-blue-800">
+                    {isBn ? 'পরবর্তীতে অ্যাপে লগইন করার জন্য এই পাসওয়ার্ড ব্যবহার করবেন।' : 'Use this password for future logins.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    label={isBn ? 'নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)' : 'Password (min 6 characters)'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    leftIcon={<Lock className="h-4 w-4" />}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-8 text-slate-400 hover:text-slate-600"
+                    title={showPassword ? 'পাসওয়ার্ড লুকান' : 'পাসওয়ার্ড দেখুন'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                <div>
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    label={isBn ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm Password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    leftIcon={<KeyRound className="h-4 w-4" />}
+                    required
+                  />
+                </div>
+              </div>
+
+              {password && confirmPassword && (
+                <div className="text-[11px] font-bold">
+                  {password === confirmPassword ? (
+                    <span className="text-emerald-700">✓ পাসওয়ার্ড মিলেছে</span>
+                  ) : (
+                    <span className="text-red-600">✗ পাসওয়ার্ড দুটি মেলেনি</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Admin Policy Notice */}
+            <div className="rounded-2xl bg-amber-50/80 p-3.5 border border-amber-200 text-xs text-amber-900 space-y-1">
               <span className="font-bold flex items-center gap-1.5">
-                <Shield className="h-4 w-4 text-blue-600" />
-                {isBn ? 'অ্যাডমিন পর্যালোচনা শর্তাবলী' : 'Admin Review Policy'}
+                <Shield className="h-4 w-4 text-amber-700" />
+                {isBn ? 'অ্যাডমিন অনুমোদন ও লাইভ পলিসি' : 'Admin Approval & Live Policy'}
               </span>
-              <p>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
                 {isBn 
-                  ? 'আপনার আবেদন জমা দেয়ার পর অ্যাডমিন টিম ২৪ ঘণ্টার মধ্যে এনআইডি তথ্য পর্যালোচনা করবে। আবেদন অনুমোদিত হলে আপনি মেসেজের মাধ্যমে নোটিফিকেশন পাবেন এবং আপনার অ্যাকাউন্ট সক্রিয় হবে।'
-                  : 'Your application will be verified within 24 hours. Once verified, you will be alerted and able to accept customer bookings.'}
+                  ? 'রেজিস্ট্রেশন সম্পন্ন হওয়ার সাথে সাথে আপনার আবেদনটি এডমিনের ভেরিফিকেশন ড্যাশবোর্ডে চলে যাবে। এডমিন জাতীয় পরিচয়পত্র যাচাই করে অনুমোদন দিলে আপনার প্রোফাইলটি অ্যাপে সবার জন্য উন্মুক্ত হবে এবং যে কেউ আপনাকে কাজের জন্য বুক করতে পারবে।'
+                  : 'Once registered, your application will be routed to the Admin dashboard. Upon Admin approval, your profile goes live for public booking.'}
               </p>
             </div>
           </div>
@@ -757,10 +1014,10 @@ export default function MistriOnboardingPage() {
               type="button"
               onClick={handleFinalSubmit}
               isLoading={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold px-6"
+              className="bg-emerald-600 hover:bg-emerald-700 text-xs font-bold px-6 shadow-md"
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              <span>{isBn ? 'ভেরিফিকেশনের জন্য জমা দিন' : 'Submit for Verification'}</span>
+              <span>{isBn ? 'রেজিস্ট্রেশন ও পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm Registration & Password'}</span>
             </Button>
           )}
         </div>

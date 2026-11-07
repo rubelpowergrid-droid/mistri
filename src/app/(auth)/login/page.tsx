@@ -33,33 +33,30 @@ export default function LoginPage() {
     setIsLoading(true)
 
     if (authMode === 'password') {
-      const isAdminUser = cleanPhone === '01700000000' || cleanPhone === '01722092804' || phone.toLowerCase().includes('admin')
-      
-      if (isAdminUser) {
-        if (password !== 'admin1234' && password !== 'Mistri@2026') {
-          setIsLoading(false)
-          setError(isBn ? 'ভুল এডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন (পাসওয়ার্ড: admin1234)' : 'Incorrect admin password! (Default: admin1234)')
-          return
-        }
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanPhone, password }),
+        })
+        const data = await res.json()
         setIsLoading(false)
-        router.push('/admin/dashboard')
-        return
-      }
 
-      if (password.length < 4) {
-        setIsLoading(false)
-        setError(isBn ? 'কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড দিন' : 'Password must be at least 4 characters')
-        return
-      }
-
-      setTimeout(() => {
-        setIsLoading(false)
-        if (cleanPhone.endsWith('99')) {
-          router.push('/mistri/bookings')
+        if (data.success) {
+          if (typeof window !== 'undefined' && data.user) {
+            localStorage.setItem('mistri_user', JSON.stringify(data.user))
+          }
+          if (data.message) {
+            alert(data.message)
+          }
+          router.push(data.redirectUrl || '/')
         } else {
-          router.push('/')
+          setError(data.error || (isBn ? 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' : 'Invalid credentials'))
         }
-      }, 500)
+      } catch {
+        setIsLoading(false)
+        setError(isBn ? 'লগইন করতে সমস্যা হয়েছে' : 'Failed to login')
+      }
       return
     }
 

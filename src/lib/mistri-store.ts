@@ -4,6 +4,7 @@ export interface ApplicantRecord {
   id: string
   name: string
   phone: string
+  password?: string
   nidNumber: string
   dateOfBirth?: string
   gender?: string
