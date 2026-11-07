@@ -116,6 +116,26 @@ function VerifyOtpContent() {
         </p>
       </div>
 
+      {/* Developer Sandbox Quick-Test Notice */}
+      <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 text-center shadow-xs">
+        <div className="flex items-center justify-center gap-1.5 font-bold">
+          <span>💡 টেস্ট ওটিপি কোড:</span>
+          <button
+            type="button"
+            onClick={() => setOtp('1234')}
+            className="font-mono font-black text-sm bg-amber-200 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300 transition-colors cursor-pointer"
+            title="ক্লিক করে কোড বসান"
+          >
+            1234
+          </button>
+        </div>
+        <p className="text-[11px] text-amber-700 mt-1">
+          {isBn
+            ? 'মোবাইলে মেসেজ বিলম্বিত হলে উপরের ১২৩৪ বাটনে চাপুন অথবা কোডটি লিখে লগইন করুন।'
+            : 'If message is delayed, click 1234 or type it manually to proceed instantly.'}
+        </p>
+      </div>
+
       {error && (
         <div className="rounded-xl bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-200">
           {error}
