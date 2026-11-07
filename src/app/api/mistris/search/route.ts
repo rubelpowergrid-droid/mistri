@@ -234,7 +234,7 @@ export async function GET(request: NextRequest) {
     if (subcategory && !m.subcategories.includes(subcategory)) return false
 
     // District filter
-    if (district && district !== 'all' && m.district !== district) return false
+    if (district && district !== 'all' && m.district.toLowerCase() !== district.toLowerCase() && m.district_bn !== district) return false
 
     // Numeric filters
     if (m.average_rating < minRating) return false

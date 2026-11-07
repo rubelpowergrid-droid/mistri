@@ -531,15 +531,20 @@ ON public.users FOR ALL USING (public.is_admin());
 CREATE POLICY "Customers can view and update own profile" 
 ON public.customer_profiles FOR ALL USING (user_id = auth.uid());
 
+-- SECURITY DEFINER helper to prevent recursive RLS check
+CREATE OR REPLACE FUNCTION public.mistri_can_view_customer(check_customer_id UUID, user_uid UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.bookings b
+    INNER JOIN public.mistri_profiles mp ON mp.id = b.mistri_id
+    WHERE b.customer_id = check_customer_id AND mp.user_id = user_uid
+      AND b.status IN ('accepted', 'scheduled', 'in_progress')
+  );
+$$;
+
 CREATE POLICY "Mistris can view counterpart customer in active booking"
 ON public.customer_profiles FOR SELECT USING (
-    EXISTS (
-        SELECT 1 FROM public.bookings b
-        INNER JOIN public.mistri_profiles mp ON mp.id = b.mistri_id
-        WHERE b.customer_id = public.customer_profiles.id 
-          AND mp.user_id = auth.uid()
-          AND b.status IN ('accepted', 'scheduled', 'in_progress')
-    )
+    public.mistri_can_view_customer(id, auth.uid())
 );
 
 CREATE POLICY "Admins have full access to customer profiles" 
@@ -596,22 +601,31 @@ ON public.mistri_portfolio FOR ALL USING (
 );
 
 -- 9. Bookings Policies
+-- SECURITY DEFINER helpers to prevent recursive RLS check
+CREATE OR REPLACE FUNCTION public.customer_has_booking(check_customer_id UUID, user_uid UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.customer_profiles cp
+    WHERE cp.id = check_customer_id AND cp.user_id = user_uid
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.mistri_has_booking(check_mistri_id UUID, user_uid UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.mistri_profiles mp
+    WHERE mp.id = check_mistri_id AND mp.user_id = user_uid
+  );
+$$;
+
 CREATE POLICY "Customers can manage own bookings" 
 ON public.bookings FOR ALL USING (
-    EXISTS (
-        SELECT 1 FROM public.customer_profiles cp 
-        WHERE cp.id = public.bookings.customer_id 
-          AND cp.user_id = auth.uid()
-    )
+    public.customer_has_booking(customer_id, auth.uid())
 );
 
 CREATE POLICY "Mistris can view and update assigned bookings" 
 ON public.bookings FOR ALL USING (
-    EXISTS (
-        SELECT 1 FROM public.mistri_profiles mp 
-        WHERE mp.id = public.bookings.mistri_id 
-          AND mp.user_id = auth.uid()
-    )
+    public.mistri_has_booking(mistri_id, auth.uid())
 );
 
 CREATE POLICY "Admins have full access to bookings" 
