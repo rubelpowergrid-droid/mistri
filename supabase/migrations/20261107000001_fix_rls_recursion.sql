@@ -69,3 +69,4 @@ CREATE POLICY "Mistris can view and update assigned bookings"
 ON public.bookings FOR ALL USING (
     public.mistri_has_booking(mistri_id, auth.uid())
 );
+
