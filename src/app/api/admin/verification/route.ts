@@ -5,12 +5,12 @@ import { getApplicantsFromSupabase } from '@/lib/supabase-service'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const statusParam = searchParams.get('status') || 'pending'
+    const statusParam = searchParams.get('status') || 'all'
 
-    // 1. Fetch pending from Supabase
+    // 1. Fetch from Supabase
     let supabaseApplicants: any[] = []
     try {
-      supabaseApplicants = await getApplicantsFromSupabase()
+      supabaseApplicants = await getApplicantsFromSupabase(statusParam)
     } catch (e) {
       console.warn('Supabase getApplicants error:', e)
     }
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       combined.push(sa)
     }
 
-    // Priority 2: Store applicants
+    // Priority 2: Store applicants (only if not already in Supabase)
     for (const a of store) {
       const cleanPhone = (a.phone || '').replace(/[^0-9]/g, '')
       if (!cleanPhone || !seenPhones.has(cleanPhone)) {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter by status (default 'pending' so approved/rejected disappear from verification)
+    // Filter by status if not 'all'
     const filtered = statusParam === 'all' 
       ? combined 
       : combined.filter(a => a.status === statusParam)
@@ -52,4 +52,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 })
   }
 }
-

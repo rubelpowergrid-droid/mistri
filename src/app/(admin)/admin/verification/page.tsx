@@ -52,8 +52,8 @@ export default function VerificationQueuePage() {
       })
       const data = await res.json()
       if (data.success) {
-        // Immediately remove from pending verification queue
-        setApplicants(prev => prev.filter(a => a.id !== id))
+        // Update status in local state so it moves out of pending tab into approved tab
+        setApplicants(prev => prev.map(a => a.id === id ? { ...a, status: action === 'approve' ? 'approved' : 'rejected' } : a))
         setActionMessage(
           action === 'approve'
             ? '✓ মিস্ত্রী সফলভাবে অনুমোদিত হয়েছে এবং পাবলিক সার্চ ও সকল মিস্ত্রী তালিকায় লাইভ করা হয়েছে!'

@@ -45,3 +45,4 @@ export function clearStoredUser(): void {
     console.error('Failed to clear session:', err)
   }
 }
+

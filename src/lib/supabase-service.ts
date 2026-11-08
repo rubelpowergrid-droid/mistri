@@ -5,6 +5,8 @@ export async function saveMistriToSupabase(data: {
   phone: string
   password?: string
   nidNumber?: string
+  dateOfBirth?: string
+  gender?: string
   district?: string
   upazila?: string
   streetAddress?: string
@@ -21,7 +23,7 @@ export async function saveMistriToSupabase(data: {
 
     let userId: string | null = null
 
-    // Check if user already exists
+    // Check if user already exists in users table
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -30,6 +32,23 @@ export async function saveMistriToSupabase(data: {
 
     if (existingUser?.id) {
       userId = existingUser.id
+      // Ensure user role is mistri
+      await supabase.from('users').update({ role: 'mistri' }).eq('id', userId)
+      if (data.password) {
+        try {
+          await supabase.auth.admin.updateUserById(userId, {
+            password: data.password,
+            email_confirm: true,
+            user_metadata: {
+              phone: cleanPhone,
+              full_name: data.fullName,
+              role: 'mistri',
+            },
+          })
+        } catch (pwErr) {
+          console.warn('Update password warning:', pwErr)
+        }
+      }
     } else {
       // Create auth user
       const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
@@ -52,6 +71,21 @@ export async function saveMistriToSupabase(data: {
         )
         if (existingAuth?.id) {
           userId = existingAuth.id
+          if (data.password) {
+            try {
+              await supabase.auth.admin.updateUserById(userId, {
+                password: data.password,
+                email_confirm: true,
+                user_metadata: {
+                  phone: cleanPhone,
+                  full_name: data.fullName,
+                  role: 'mistri',
+                },
+              })
+            } catch (pwe) {
+              console.warn('Auth user password update error:', pwe)
+            }
+          }
           await supabase.from('users').upsert({
             id: userId,
             phone: cleanPhone,
@@ -106,6 +140,8 @@ export async function saveMistriToSupabase(data: {
           full_name: data.fullName,
           professional_title: data.professionalTitle || 'দক্ষ ইলেকট্রিশিয়ান',
           bio: data.bio || '',
+          date_of_birth: data.dateOfBirth || null,
+          gender: data.gender || null,
           district_id: districtId,
           upazila_id: upazilaId,
           street_address: data.streetAddress || '',
@@ -171,13 +207,19 @@ export async function updateMistriStatusInSupabase(idOrPhoneOrName: string, stat
   }
 }
 
-export async function getApplicantsFromSupabase() {
+export async function getApplicantsFromSupabase(statusParam = 'all') {
   try {
     const supabase = createAdminClient() as any
-    const { data, error } = await supabase
+    let query = supabase
       .from('mistri_profiles')
       .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
-      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (statusParam && statusParam !== 'all') {
+      query = query.eq('approval_status', statusParam)
+    }
+
+    const { data, error } = await query
 
     if (error || !data) return []
 
@@ -201,7 +243,7 @@ export async function getApplicantsFromSupabase() {
         month: 'long',
         day: 'numeric',
       }),
-      status: 'pending' as const,
+      status: (row.approval_status || 'pending') as 'pending' | 'approved' | 'rejected',
       avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
       nidNumber: '1990521934000123',
     }))

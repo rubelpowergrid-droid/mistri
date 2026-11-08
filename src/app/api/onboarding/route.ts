@@ -61,12 +61,15 @@ export async function POST(request: NextRequest) {
     })
 
     // Also persist to Supabase PostgreSQL database
+    let dbProfile: any = null
     try {
-      await saveMistriToSupabase({
+      dbProfile = await saveMistriToSupabase({
         fullName,
         phone,
         password,
         nidNumber,
+        dateOfBirth,
+        gender,
         district: district || 'ঠাকুরগাঁও',
         upazila: upazila || 'ঠাকুরগাঁও সদর',
         streetAddress,
@@ -76,6 +79,9 @@ export async function POST(request: NextRequest) {
         baseCharge: Number(baseCharge) || 400,
         status: 'pending',
       })
+      if (dbProfile?.id) {
+        newRecord.id = dbProfile.id
+      }
     } catch (dbErr) {
       console.error('Supabase persistence error during onboarding:', dbErr)
     }
