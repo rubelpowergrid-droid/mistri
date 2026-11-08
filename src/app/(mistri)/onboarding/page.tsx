@@ -338,9 +338,9 @@ export default function MistriOnboardingPage() {
       {/* Stepper Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -z-0 -translate-y-1/2"></div>
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-stone-300 -z-0 -translate-y-1/2"></div>
           <div 
-            className="absolute top-1/2 left-0 h-0.5 bg-blue-600 -z-0 -translate-y-1/2 transition-all duration-300"
+            className="absolute top-1/2 left-0 h-0.5 bg-stone-900 -z-0 -translate-y-1/2 transition-all duration-300"
             style={{ width: `${((currentStep - 1) / (stepTitles.length - 1)) * 100}%` }}
           ></div>
 
@@ -349,20 +349,20 @@ export default function MistriOnboardingPage() {
             const isCompleted = step.num < currentStep
             const isCurrent = step.num === currentStep
             return (
-              <div key={step.num} className="flex flex-col items-center relative z-10 bg-slate-50 px-1">
+              <div key={step.num} className="flex flex-col items-center relative z-10 bg-transparent px-1">
                 <div
-                  className={`flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl border-2 transition-all ${
+                  className={`flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl transition-all ${
                     isCompleted
-                      ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
+                      ? 'skeuo-btn-dark text-white'
                       : isCurrent
-                      ? 'border-blue-600 bg-white text-blue-600 ring-4 ring-blue-100 shadow-sm'
-                      : 'border-slate-300 bg-white text-slate-400'
+                      ? 'skeuo-surface-dark text-white ring-4 ring-stone-300 shadow-md'
+                      : 'skeuo-btn-light text-stone-400'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <span className={`text-[11px] font-semibold mt-1.5 hidden sm:block ${
-                  isCurrent ? 'text-blue-600' : isCompleted ? 'text-slate-800' : 'text-slate-400'
+                <span className={`text-[11px] font-bold mt-1.5 hidden sm:block ${
+                  isCurrent ? 'text-stone-900' : isCompleted ? 'text-stone-700' : 'text-stone-400'
                 }`}>
                   {step.title}
                 </span>
@@ -637,12 +637,12 @@ export default function MistriOnboardingPage() {
             />
 
             {/* Radius Slider */}
-            <div className="space-y-2 rounded-2xl bg-blue-50/60 p-4 border border-blue-100">
+            <div className="space-y-2 rounded-2xl skeuo-surface p-4 border border-stone-300">
               <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-800">
+                <span className="text-stone-800">
                   {isBn ? 'সর্বোচ্চ কত দূরত্বের কাজ করতে চান?' : 'Maximum Service Radius'}
                 </span>
-                <span className="text-blue-700 font-bold">
+                <span className="text-stone-900 font-black">
                   {toBanglaNumber(maxRadiusKm)} {isBn ? 'কিলোমিটার' : 'km'}
                 </span>
               </div>
@@ -652,9 +652,9 @@ export default function MistriOnboardingPage() {
                 max={50}
                 value={maxRadiusKm}
                 onChange={(e) => setMaxRadiusKm(Number(e.target.value))}
-                className="w-full accent-blue-600 cursor-pointer"
+                className="w-full accent-stone-900 cursor-pointer"
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-stone-500">
                 {isBn 
                   ? 'আপনার অবস্থান থেকে এই দূরত্বের মধ্যকার কাস্টমারদের নিকট আপনি সার্চ লিস্টে দৃশ্যমান হবেন।'
                   : 'Customers within this radius from your center will be able to discover and book you.'}
@@ -709,10 +709,10 @@ export default function MistriOnboardingPage() {
                       key={sub.id}
                       type="button"
                       onClick={() => toggleSubcategory(sub.id)}
-                      className={`rounded-xl px-3 py-2 text-xs font-semibold transition-all border ${
+                      className={`rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer ${
                         isChecked
-                          ? 'border-blue-600 bg-blue-600 text-white shadow-xs'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                          ? 'skeuo-btn-dark text-white'
+                          : 'skeuo-btn-light text-stone-700'
                       }`}
                     >
                       {isBn ? sub.name_bn : sub.name_en}
@@ -913,16 +913,16 @@ export default function MistriOnboardingPage() {
             </div>
 
             {/* Password Setup Box */}
-            <div className="rounded-2xl border-2 border-blue-500/30 bg-blue-50/40 p-4 sm:p-5 space-y-4">
+            <div className="rounded-2xl skeuo-surface p-4 sm:p-5 space-y-4 border border-stone-300">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                <div className="h-8 w-8 rounded-xl skeuo-btn-dark text-white flex items-center justify-center font-bold text-xs shadow-xs">
                   ২
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-blue-950">
+                  <h3 className="text-xs sm:text-sm font-bold text-stone-900">
                     {isBn ? 'অ্যাকাউন্টের পাসওয়ার্ড সেট করুন (Set Password)' : 'Set Account Password'}
                   </h3>
-                  <p className="text-[11px] text-blue-800">
+                  <p className="text-[11px] text-stone-600">
                     {isBn ? 'পরবর্তীতে অ্যাপে লগইন করার জন্য এই পাসওয়ার্ড ব্যবহার করবেন।' : 'Use this password for future logins.'}
                   </p>
                 </div>
@@ -991,13 +991,13 @@ export default function MistriOnboardingPage() {
         )}
 
         {/* Navigation Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-between pt-4 border-t border-stone-200">
           {currentStep > 1 ? (
             <Button
               variant="outline"
               type="button"
               onClick={() => setCurrentStep(prev => prev - 1)}
-              className="text-xs"
+              className="skeuo-btn-light text-xs font-bold"
             >
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               {isBn ? 'পেছনে যান' : 'Back'}
@@ -1005,7 +1005,7 @@ export default function MistriOnboardingPage() {
           ) : <div></div>}
 
           {currentStep < 5 ? (
-            <Button type="button" onClick={handleNextStep} className="text-xs">
+            <Button type="button" onClick={handleNextStep} className="skeuo-btn-dark text-xs font-bold">
               <span>{isBn ? 'পরবর্তী ধাপ' : 'Next Step'}</span>
               <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Button>
@@ -1014,7 +1014,7 @@ export default function MistriOnboardingPage() {
               type="button"
               onClick={handleFinalSubmit}
               isLoading={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-xs font-bold px-6 shadow-md"
+              className="skeuo-btn-dark text-xs font-bold px-6"
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
               <span>{isBn ? 'রেজিস্ট্রেশন ও পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm Registration & Password'}</span>

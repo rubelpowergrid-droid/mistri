@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber, formatBDT } from '@/lib/utils'
+import { getStoredUser, clearStoredUser, UserSession } from '@/lib/auth-client'
 
 const SERVICE_SUBCATEGORIES: Record<string, string[]> = {
   'electrical-services': [
@@ -102,20 +103,23 @@ export default function MistriProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [session, setSession] = useState<UserSession | null>(null)
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
+
   // Load profile on mount
   useEffect(() => {
     async function loadData() {
       setIsLoading(true)
-      let phoneToLoad = '01722159830'
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('mistri_user')
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored)
-            if (parsed.phone) phoneToLoad = parsed.phone
-          } catch {}
-        }
+      const user = getStoredUser()
+      setSession(user)
+      setIsAuthChecked(true)
+
+      if (!user) {
+        setIsLoading(false)
+        return
       }
+
+      const phoneToLoad = user.phone || '01722159830'
 
       try {
         const res = await fetch(`/api/mistri/profile?phone=${phoneToLoad}`)
@@ -311,14 +315,58 @@ export default function MistriProfilePage() {
 
   const handleLogout = () => {
     if (confirm(isBn ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?')) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('mistri_user')
-      }
+      clearStoredUser()
+      setSession(null)
       router.push('/login')
     }
   }
 
   const availableSubcategories = SERVICE_SUBCATEGORIES[profile.categorySlug] || SERVICE_SUBCATEGORIES['electrical-services']
+
+  if (!isAuthChecked) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 text-center text-xs font-bold text-slate-500">
+        লোড হচ্ছে...
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 space-y-6">
+        <Card className="p-8 text-center space-y-5 border-slate-300 shadow-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-b from-stone-800 to-black text-white shadow-lg border-t border-white/20">
+            <Wrench className="h-8 w-8 text-white" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-xl font-black text-black tracking-tight">
+              {isBn ? 'মিস্ত্রী প্রোফাইলে প্রবেশ করুন' : 'Sign in to Mistri Profile'}
+            </h1>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+              {isBn 
+                ? 'আপনি বর্তমানে লগআউট অবস্থায় আছেন। আপনার মিস্ত্রী ড্যাশবোর্ড ও প্রোফাইল দেখতে অনুগ্রহ করে মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে লগইন করুন।'
+                : 'You are currently signed out. Please log in with your phone and password to manage your profile.'}
+            </p>
+          </div>
+
+          <div className="pt-2 space-y-3">
+            <Link href="/login" className="block w-full">
+              <Button size="lg" className="w-full text-xs font-bold">
+                <span>{isBn ? 'লগইন করুন' : 'Log In'}</span>
+              </Button>
+            </Link>
+
+            <Link href="/onboarding" className="block w-full">
+              <Button variant="outline" size="md" className="w-full text-xs font-bold">
+                <span>{isBn ? 'নতুন মিস্ত্রী হিসেবে আবেদন করুন' : 'Register as a Mistri'}</span>
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 pb-28 sm:pb-16">
@@ -341,8 +389,8 @@ export default function MistriProfilePage() {
         <div className="flex items-center gap-2">
           {profile.approvalStatus === 'approved' && (
             <Link href={`/mistri/${profile.id || 'm-jewel-rana'}`} target="_blank">
-              <Button variant="outline" size="sm" className="text-xs">
-                <ExternalLink className="h-3.5 w-3.5 mr-1 text-blue-600" />
+              <Button variant="outline" size="sm" className="skeuo-btn-light text-xs">
+                <ExternalLink className="h-3.5 w-3.5 mr-1 text-slate-800" />
                 <span>{isBn ? 'পাবলিক ভিউ দেখুন' : 'View Public Profile'}</span>
               </Button>
             </Link>
@@ -352,7 +400,7 @@ export default function MistriProfilePage() {
             variant="outline" 
             size="sm" 
             onClick={handleLogout}
-            className="text-xs text-red-600 hover:bg-red-50 border-red-200"
+            className="skeuo-btn-light text-xs text-red-600 hover:bg-red-50 border-red-300"
           >
             <LogOut className="h-3.5 w-3.5 mr-1" />
             <span>{isBn ? 'লগআউট' : 'Logout'}</span>
@@ -361,19 +409,19 @@ export default function MistriProfilePage() {
       </div>
 
       {/* Main Profile Summary Banner Card */}
-      <Card className="p-6 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl shadow-xl border-slate-800 relative overflow-hidden">
+      <Card className="p-6 skeuo-surface-dark text-white rounded-3xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10 text-center md:text-left">
           {/* Avatar with Camera upload button */}
           <div className="relative group">
             <img
               src={profile.avatar}
               alt={profile.fullName}
-              className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-blue-500 shadow-lg"
+              className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-stone-400 shadow-xl"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-1 p-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all cursor-pointer"
+              className="absolute bottom-1 right-1 p-2 rounded-xl skeuo-btn-dark text-white shadow-md transition-all cursor-pointer"
               title="প্রোফাইল ছবি পরিবর্তন করুন"
             >
               <Camera className="h-4 w-4" />
@@ -391,27 +439,27 @@ export default function MistriProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 justify-center md:justify-start">
               <h2 className="text-2xl font-black tracking-tight">{profile.fullName}</h2>
               {profile.approvalStatus === 'approved' ? (
-                <Badge variant="success" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs px-2.5 py-0.5">
+                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-stone-100 border-stone-600 text-xs px-2.5 py-0.5">
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-400" />
                   <span>ভেরিফাইড ও অনুমোদিত কারিগর</span>
                 </Badge>
               ) : (
-                <Badge variant="warning" className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-xs px-2.5 py-0.5">
+                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-amber-300 border-stone-600 text-xs px-2.5 py-0.5">
                   <Clock className="h-3.5 w-3.5 mr-1 text-amber-400" />
                   <span>ভেরিফিকেশন পর্যালোচনায় রয়েছে</span>
                 </Badge>
               )}
             </div>
 
-            <p className="text-sm text-blue-400 font-semibold">{profile.professionalTitle}</p>
+            <p className="text-sm text-stone-300 font-semibold">{profile.professionalTitle}</p>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-300 pt-1 font-mono">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-stone-300 pt-1 font-mono">
               <span className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-blue-400" />
+                <Phone className="h-3.5 w-3.5 text-stone-400" />
                 <span>{profile.phone}</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-blue-400" />
+                <MapPin className="h-3.5 w-3.5 text-stone-400" />
                 <span>{profile.district}, {profile.upazila}</span>
               </span>
             </div>
@@ -574,16 +622,16 @@ export default function MistriProfilePage() {
       </Card>
 
       {/* SECTION 2: PHONE NUMBER & OTP VERIFICATION */}
-      <Card className="p-5 sm:p-6 space-y-4 border-blue-200 bg-blue-50/40 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-200/70 pb-3">
+      <Card className="p-5 sm:p-6 space-y-4 skeuo-surface">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-blue-600" />
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              <Phone className="h-4 w-4 text-stone-900" />
+              <h2 className="text-sm sm:text-base font-bold text-stone-900">
                 {isBn ? 'লগইন মোবাইল নম্বর (ওটিপি ভেরিফিকেশন সাপেক্ষে পরিবর্তন)' : 'Mobile Number (Change via OTP)'}
               </h2>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-stone-500">
               {isBn 
                 ? 'আপনার রেজিস্টার্ড মোবাইল নম্বর পরিবর্তন করতে চাইলে নতুন নম্বরে ওটিপি কোড যাচাইয়ের মাধ্যমে পরিবর্তন করা যাবে।' 
                 : 'You can change your phone number by verifying an OTP sent to your new phone.'}
@@ -599,7 +647,7 @@ export default function MistriProfilePage() {
               setPhoneModalSuccess('')
               setIsOtpSent(false)
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shrink-0"
+            className="skeuo-btn-dark text-xs shrink-0"
           >
             <Phone className="h-3.5 w-3.5 mr-1" />
             <span>{isBn ? 'মোবাইল নম্বর পরিবর্তন করুন' : 'Change Phone'}</span>
@@ -608,11 +656,11 @@ export default function MistriProfilePage() {
 
         <div className="flex items-center gap-3">
           <div className="flex-1 max-w-sm">
-            <label className="text-xs font-semibold text-slate-700 block mb-1">বর্তমান মোবাইল নম্বর:</label>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-blue-200 text-slate-900 font-mono font-bold text-xs shadow-xs">
-              <Phone className="h-4 w-4 text-blue-600" />
+            <label className="text-xs font-semibold text-stone-700 block mb-1">বর্তমান মোবাইল নম্বর:</label>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl skeuo-input-well text-stone-900 font-mono font-bold text-xs">
+              <Phone className="h-4 w-4 text-stone-900" />
               <span>{profile.phone}</span>
-              <span className="ml-auto text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">
+              <span className="ml-auto text-[10px] text-stone-900 bg-stone-200 px-2 py-0.5 rounded-full font-bold">
                 ✓ সক্রিয়
               </span>
             </div>
@@ -622,8 +670,8 @@ export default function MistriProfilePage() {
 
       {/* SECTION 3: EDITABLE PROFESSIONAL & SERVICE DETAILS */}
       <form onSubmit={handleSaveProfile} className="space-y-6">
-        <Card className="p-5 sm:p-6 space-y-5 border-slate-200 shadow-xs bg-white">
-          <div className="border-b border-slate-200 pb-3 space-y-1">
+        <Card className="p-5 sm:p-6 space-y-5 skeuo-surface">
+          <div className="border-b border-stone-200 pb-3 space-y-1">
             <div className="flex items-center gap-2">
               <Wrench className="h-4 w-4 text-blue-600" />
               <h2 className="text-sm sm:text-base font-bold text-slate-900">
@@ -678,8 +726,8 @@ export default function MistriProfilePage() {
                     onClick={() => toggleSubcategory(sub)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        ? 'skeuo-btn-dark text-white'
+                        : 'skeuo-btn-light text-stone-800'
                     }`}
                   >
                     {isSelected && '✓ '}
@@ -791,7 +839,7 @@ export default function MistriProfilePage() {
             <Button
               type="submit"
               isLoading={isSaving}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-8 py-3 rounded-xl shadow-md cursor-pointer"
+              className="w-full sm:w-auto skeuo-btn-dark font-bold text-xs px-8 py-3 rounded-xl cursor-pointer"
             >
               <Save className="h-4 w-4 mr-2" />
               <span>{isBn ? 'প্রোফাইল পরিবর্তন সংরক্ষণ করুন' : 'Save Changes'}</span>
@@ -802,22 +850,22 @@ export default function MistriProfilePage() {
 
       {/* Phone Change Modal with OTP */}
       {isPhoneModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4 border border-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl skeuo-surface p-6 shadow-2xl space-y-4 border border-stone-300">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <div className="p-2 rounded-xl bg-stone-900 text-white">
                   <Phone className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">মোবাইল নম্বর পরিবর্তন</h3>
-                  <p className="text-[11px] text-slate-500">OTP ভেরিফিকেশনের মাধ্যমে নতুন নম্বর যুক্ত করুন</p>
+                  <h3 className="text-sm font-bold text-stone-900">মোবাইল নম্বর পরিবর্তন</h3>
+                  <p className="text-[11px] text-stone-500">OTP ভেরিফিকেশনের মাধ্যমে নতুন নম্বর যুক্ত করুন</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsPhoneModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -830,7 +878,7 @@ export default function MistriProfilePage() {
             )}
 
             {phoneModalSuccess && (
-              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200 font-semibold">
+              <div className="p-3 bg-stone-100 text-stone-900 text-xs rounded-xl border border-stone-300 font-semibold">
                 {phoneModalSuccess}
               </div>
             )}
@@ -838,7 +886,7 @@ export default function MistriProfilePage() {
             {!isOtpSent ? (
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">
+                  <label className="text-xs font-semibold text-stone-700">
                     নতুন মোবাইল নম্বর (ইংরেজীতে):
                   </label>
                   <Input
@@ -855,30 +903,30 @@ export default function MistriProfilePage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 block">ওটিপি চ্যানেল নির্বাচন করুন:</label>
+                  <label className="text-xs font-semibold text-stone-700 block">ওটিপি চ্যানেল নির্বাচন করুন:</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setOtpChannel('whatsapp')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      className={`p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         otpChannel === 'whatsapp'
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
-                          : 'border-slate-200 bg-white text-slate-600'
+                          ? 'skeuo-btn-dark'
+                          : 'skeuo-btn-light'
                       }`}
                     >
-                      <MessageCircle className="h-4 w-4 text-emerald-600" />
+                      <MessageCircle className="h-4 w-4" />
                       <span>WhatsApp</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setOtpChannel('sms')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      className={`p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         otpChannel === 'sms'
-                          ? 'border-blue-600 bg-blue-50 text-blue-800'
-                          : 'border-slate-200 bg-white text-slate-600'
+                          ? 'skeuo-btn-dark'
+                          : 'skeuo-btn-light'
                       }`}
                     >
-                      <Phone className="h-4 w-4 text-blue-600" />
+                      <Phone className="h-4 w-4" />
                       <span>SMS</span>
                     </button>
                   </div>
@@ -888,7 +936,7 @@ export default function MistriProfilePage() {
                   type="button"
                   onClick={handleSendOtp}
                   isLoading={isOtpLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl"
+                  className="w-full skeuo-btn-dark font-bold text-xs py-2.5 rounded-xl"
                 >
                   <span>ওটিপি কোড পাঠান</span>
                 </Button>
@@ -922,7 +970,7 @@ export default function MistriProfilePage() {
                   type="button"
                   onClick={handleVerifyAndChangePhone}
                   isLoading={isOtpLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl"
+                  className="w-full skeuo-btn-dark font-bold text-xs py-2.5 rounded-xl"
                 >
                   <CheckCircle2 className="h-4 w-4 mr-1.5" />
                   <span>যাচাই ও মোবাইল নম্বর আপডেট করুন</span>

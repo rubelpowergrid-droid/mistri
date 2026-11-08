@@ -52,14 +52,12 @@ export default function VerificationQueuePage() {
       })
       const data = await res.json()
       if (data.success) {
-        // Update local status rather than deleting so it moves to approved tab
-        setApplicants(prev =>
-          prev.map(a => (a.id === id ? { ...a, status: action === 'approve' ? 'approved' : 'rejected' } : a))
-        )
+        // Immediately remove from pending verification queue
+        setApplicants(prev => prev.filter(a => a.id !== id))
         setActionMessage(
           action === 'approve'
-            ? '✓ মিস্ত্রী সফলভাবে অনুমোদিত হয়েছে এবং পাবলিক সার্চে লাইভ করা হয়েছে!'
-            : '✓ মিস্ত্রী আবেদন বাতিল করা হয়েছে।'
+            ? '✓ মিস্ত্রী সফলভাবে অনুমোদিত হয়েছে এবং পাবলিক সার্চ ও সকল মিস্ত্রী তালিকায় লাইভ করা হয়েছে!'
+            : '✓ মিস্ত্রী আবেদন বাতিল ও তালিকা থেকে সরানো হয়েছে।'
         )
         setTimeout(() => setActionMessage(''), 4000)
       }

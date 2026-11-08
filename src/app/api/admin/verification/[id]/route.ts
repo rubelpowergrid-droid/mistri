@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getApplicantsStore, updateApplicantStatus } from '@/lib/mistri-store'
+import { updateMistriStatusInSupabase } from '@/lib/supabase-service'
 
 const verificationActionSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_correction']),
@@ -45,6 +46,14 @@ export async function POST(
 
     const { action, internalNotes, rejectionReason } = parsed.data
     const result = updateApplicantStatus(id, action)
+
+    // Also persist status update to Supabase
+    try {
+      const identifier = result?.applicant?.phone || id
+      await updateMistriStatusInSupabase(identifier, action === 'approve' ? 'approved' : 'rejected')
+    } catch (dbErr) {
+      console.warn('Supabase status update error:', dbErr)
+    }
 
     return NextResponse.json({
       success: true,

@@ -20,7 +20,7 @@ export function CustomerBottomNav() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 z-40 w-full border-t border-slate-200/80 bg-white/95 backdrop-blur-md sm:hidden">
+    <nav className="fixed bottom-0 left-0 z-40 w-full border-t border-slate-300 bg-white/95 backdrop-blur-md shadow-[0_-4px_15px_rgba(0,0,0,0.06)] sm:hidden">
       <div className="grid h-16 grid-cols-5 items-center px-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href
@@ -30,12 +30,21 @@ export function CustomerBottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                isActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900'
+                'flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all py-1',
+                isActive
+                  ? 'text-black'
+                  : 'text-slate-500 hover:text-black'
               )}
             >
-              <Icon className={cn('h-5 w-5', isActive && 'stroke-[2.5px]')} />
-              <span>{item.label}</span>
+              <div
+                className={cn(
+                  'p-1.5 rounded-xl transition-all',
+                  isActive && 'bg-gradient-to-b from-stone-800 to-black text-white shadow-md'
+                )}
+              >
+                <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-slate-600')} />
+              </div>
+              <span className={cn(isActive && 'font-black')}>{item.label}</span>
             </Link>
           )
         })}
@@ -43,4 +52,3 @@ export function CustomerBottomNav() {
     </nav>
   )
 }
-

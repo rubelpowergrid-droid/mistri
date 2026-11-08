@@ -9,20 +9,20 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 active:scale-98 disabled:opacity-60 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-offset-2'
+    const baseStyles = 'inline-flex items-center justify-center font-bold tracking-tight select-none transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none focus:outline-none'
 
     const sizeStyles = {
-      sm: 'px-3 py-1.5 text-xs gap-1.5',
-      md: 'px-4 py-2.5 text-sm gap-2',
-      lg: 'px-6 py-3 text-base gap-2.5',
+      sm: 'px-3 py-1.5 text-xs gap-1.5 rounded-xl',
+      md: 'px-4 py-2.5 text-sm gap-2 rounded-xl',
+      lg: 'px-6 py-3 text-base gap-2.5 rounded-2xl',
     }
 
     const variantStyles = {
-      primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow focus:ring-blue-500',
-      secondary: 'bg-slate-900 hover:bg-slate-800 text-white focus:ring-slate-700',
-      outline: 'border border-slate-300 hover:bg-slate-100 text-slate-700 focus:ring-blue-500',
-      ghost: 'hover:bg-slate-100 text-slate-700 focus:ring-blue-500',
-      danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+      primary: 'skeuo-btn-dark',
+      secondary: 'skeuo-btn-light',
+      outline: 'skeuo-btn-light border-slate-300',
+      ghost: 'hover:bg-slate-200/80 text-slate-800 rounded-xl active:bg-slate-300',
+      danger: 'bg-gradient-to-b from-stone-900 via-neutral-900 to-black text-white border border-stone-800 border-t-red-500/50 border-b-black shadow-md hover:from-red-950 active:translate-y-0.5',
     }
 
     return (
@@ -44,4 +44,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 )
 Button.displayName = 'Button'
-

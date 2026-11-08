@@ -84,26 +84,26 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8">
-      <Card className="w-full max-w-md p-6 sm:p-8 space-y-6 shadow-lg border-slate-200">
+      <Card className="w-full max-w-md p-6 sm:p-8 space-y-6 skeuo-surface">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md">
-            <Wrench className="h-6 w-6" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-white shadow-xl">
+            <Wrench className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            mistri<span className="text-blue-600">.</span>
+          <h1 className="text-2xl font-black text-stone-900 tracking-tight">
+            mistri<span className="text-stone-500">.</span>
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-stone-600 font-medium">
             {isBn ? 'আপনার মোবাইল নম্বর দিয়ে সরাসরি প্রবেশ করুন' : 'Sign in to your account'}
           </p>
         </div>
 
         {/* Tab switch for OTP vs Password */}
-        <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+        <div className="flex rounded-xl bg-stone-200 p-1 text-xs font-semibold gap-1">
           <button
             type="button"
             onClick={() => setAuthMode('otp')}
-            className={`flex-1 rounded-lg py-2 transition-all ${
-              authMode === 'otp' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+            className={`flex-1 rounded-lg py-2 transition-all cursor-pointer font-bold ${
+              authMode === 'otp' ? 'skeuo-btn-dark' : 'text-stone-700 hover:text-stone-900'
             }`}
           >
             {isBn ? 'ওটিপি যাচাই (OTP Login)' : 'With OTP'}
@@ -111,8 +111,8 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setAuthMode('password')}
-            className={`flex-1 rounded-lg py-2 transition-all ${
-              authMode === 'password' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
+            className={`flex-1 rounded-lg py-2 transition-all cursor-pointer font-bold ${
+              authMode === 'password' ? 'skeuo-btn-dark' : 'text-stone-700 hover:text-stone-900'
             }`}
           >
             {isBn ? 'পাসওয়ার্ড দিয়ে' : 'With Password'}
@@ -190,23 +190,23 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setOtpChannel('sms')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all cursor-pointer ${
                     otpChannel === 'sms'
-                      ? 'border-blue-600 bg-blue-50/60 text-blue-950 shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      ? 'skeuo-btn-dark'
+                      : 'skeuo-btn-light'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
-                    <MessageSquare className="h-4 w-4 text-slate-700" />
+                    <MessageSquare className="h-4 w-4" />
                     <span className="text-xs font-bold">{isBn ? 'সাধারণ SMS' : 'Regular SMS'}</span>
                   </div>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] opacity-80">
                     {isBn ? 'মোবাইল ইনবক্স' : 'Mobile Inbox'}
                   </span>
                 </button>
               </div>
 
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-stone-500">
                 {otpChannel === 'whatsapp'
                   ? (isBn 
                       ? '🔒 আপনার WhatsApp মেসেজে ৪-সংখ্যার সিকিউর ওটিপি পাঠানো হবে।' 
@@ -218,7 +218,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <Button type="submit" isLoading={isLoading} className="w-full py-3 text-sm font-semibold">
+          <Button type="submit" isLoading={isLoading} className="w-full skeuo-btn-dark py-3 text-sm font-semibold cursor-pointer">
             <span>
               {authMode === 'password'
                 ? t('auth.login')
@@ -230,9 +230,9 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="pt-2 text-center text-xs text-slate-500">
+        <div className="pt-2 text-center text-xs text-stone-600">
           <span>{isBn ? 'নতুন মিস্ত্রী হিসেবে যুক্ত হতে চান? ' : 'Are you a skilled professional? '}</span>
-          <Link href="/onboarding" className="font-bold text-blue-600 hover:text-blue-700 underline underline-offset-4">
+          <Link href="/onboarding" className="font-bold text-stone-900 hover:text-black underline underline-offset-4">
             {isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Register as Mistri'}
           </Link>
         </div>

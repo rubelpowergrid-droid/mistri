@@ -44,8 +44,27 @@ export async function saveMistriToSupabase(data: {
       })
 
       if (authErr) {
-        console.error('Supabase auth createUser error:', authErr.message)
-        return null
+        console.warn('Supabase auth createUser warning:', authErr.message)
+        // If user already exists in auth or table, resolve user ID
+        const { data: userList } = await supabase.auth.admin.listUsers()
+        const existingAuth = userList?.users?.find(
+          (u: any) => u.email === email || (u.user_metadata?.phone && u.user_metadata.phone === cleanPhone)
+        )
+        if (existingAuth?.id) {
+          userId = existingAuth.id
+          await supabase.from('users').upsert({
+            id: userId,
+            phone: cleanPhone,
+            email,
+            role: 'mistri',
+            preferred_language: 'bn',
+          }, { onConflict: 'id' })
+        } else {
+          const { data: u } = await supabase.from('users').select('id').eq('phone', cleanPhone).maybeSingle()
+          if (u?.id) {
+            userId = u.id
+          }
+        }
       }
 
       if (authUser?.user?.id) {
@@ -111,10 +130,20 @@ export async function saveMistriToSupabase(data: {
   }
 }
 
-export async function updateMistriStatusInSupabase(phoneOrName: string, status: 'approved' | 'rejected') {
+export async function updateMistriStatusInSupabase(idOrPhoneOrName: string, status: 'approved' | 'rejected') {
   try {
     const supabase = createAdminClient() as any
-    const cleanPhone = phoneOrName.replace(/[^0-9]/g, '')
+
+    // 1. If UUID id passed
+    if (idOrPhoneOrName.includes('-') && idOrPhoneOrName.length > 20) {
+      await supabase
+        .from('mistri_profiles')
+        .update({ approval_status: status })
+        .eq('id', idOrPhoneOrName)
+      return
+    }
+
+    const cleanPhone = idOrPhoneOrName.replace(/[^0-9]/g, '')
 
     if (cleanPhone) {
       const { data: user } = await supabase
@@ -136,9 +165,49 @@ export async function updateMistriStatusInSupabase(phoneOrName: string, status: 
     await supabase
       .from('mistri_profiles')
       .update({ approval_status: status })
-      .ilike('full_name', `%${phoneOrName}%`)
+      .ilike('full_name', `%${idOrPhoneOrName}%`)
   } catch (err: any) {
     console.error('updateMistriStatusInSupabase exception:', err.message)
+  }
+}
+
+export async function getApplicantsFromSupabase() {
+  try {
+    const supabase = createAdminClient() as any
+    const { data, error } = await supabase
+      .from('mistri_profiles')
+      .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+      .eq('approval_status', 'pending')
+
+    if (error || !data) return []
+
+    return data.map((row: any) => ({
+      id: row.id,
+      name: row.full_name,
+      phone: row.users?.phone || '017XXXXXXXX',
+      category: row.professional_title || 'ইলেকট্রিক্যাল কাজ',
+      categorySlug: 'electrical-services',
+      subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং'],
+      experienceYears: row.experience_years || 5,
+      district: row.districts?.name_bn || 'ঠাকুরগাঁও',
+      upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+      streetAddress: row.street_address || '',
+      serviceRadiusKm: 15,
+      chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
+      baseCharge: row.base_charge || 400,
+      bio: row.bio || 'দক্ষ কারিগর। সততার সাথে কাজ করি।',
+      submittedAt: new Date(row.created_at || Date.now()).toLocaleDateString('bn-BD', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      status: 'pending' as const,
+      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+      nidNumber: '1990521934000123',
+    }))
+  } catch (err: any) {
+    console.error('getApplicantsFromSupabase exception:', err.message)
+    return []
   }
 }
 
