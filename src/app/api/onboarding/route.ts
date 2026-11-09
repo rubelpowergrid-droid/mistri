@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       fullName,
+      fatherName,
       phone,
       password,
       dateOfBirth,
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
 
     const newRecord = addApplicantToQueue({
       name: fullName,
+      fatherName: fatherName || '',
       phone,
       password,
       nidNumber,
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
     try {
       dbProfile = await saveMistriToSupabase({
         fullName,
+        fatherName,
         phone,
         password,
         nidNumber,

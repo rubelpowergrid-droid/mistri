@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function saveMistriToSupabase(data: {
   fullName: string
+  fatherName?: string
   phone: string
   password?: string
   nidNumber?: string
@@ -42,6 +43,7 @@ export async function saveMistriToSupabase(data: {
             user_metadata: {
               phone: cleanPhone,
               full_name: data.fullName,
+              father_name: data.fatherName || '',
               role: 'mistri',
             },
           })
@@ -58,6 +60,7 @@ export async function saveMistriToSupabase(data: {
         user_metadata: {
           phone: cleanPhone,
           full_name: data.fullName,
+          father_name: data.fatherName || '',
           role: 'mistri',
         },
       })
@@ -79,6 +82,7 @@ export async function saveMistriToSupabase(data: {
                 user_metadata: {
                   phone: cleanPhone,
                   full_name: data.fullName,
+                  father_name: data.fatherName || '',
                   role: 'mistri',
                 },
               })
@@ -334,7 +338,7 @@ export async function getMistriProfileByPhone(phone: string) {
           bio: profile.bio || '',
           dateOfBirth: profile.date_of_birth || '১৯৯০-০৫-১৫',
           gender: profile.gender || 'পুরুষ (Male)',
-          fatherName: 'মোঃ আব্দুল জব্বার',
+          fatherName: user?.user_metadata?.father_name || (profile as any)?.father_name || 'প্রযোজ্য নয়',
           nidNumber: '1990521934000123',
           district: profile.districts?.name_bn || 'ঠাকুরগাঁও',
           upazila: profile.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
@@ -375,7 +379,7 @@ export async function getMistriProfileByPhone(phone: string) {
       bio: foundApp.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
       dateOfBirth: foundApp.dateOfBirth || '১৯৯০-০৫-১৫',
       gender: foundApp.gender || 'পুরুষ (Male)',
-      fatherName: 'মোঃ আব্দুল জব্বার',
+      fatherName: foundApp.fatherName || 'প্রযোজ্য নয়',
       nidNumber: foundApp.nidNumber || '1990521934000123',
       district: foundApp.district || 'ঠাকুরগাঁও',
       upazila: foundApp.upazila || 'ঠাকুরগাঁও সদর',
@@ -409,7 +413,7 @@ export async function getMistriProfileByPhone(phone: string) {
       bio: initialFound.bio,
       dateOfBirth: '১৯৯০-০৫-১৫',
       gender: 'পুরুষ (Male)',
-      fatherName: 'মোঃ আব্দুল জব্বার',
+      fatherName: (initialFound as any).fatherName || 'মোঃ আব্দুল জব্বার',
       nidNumber: '1990521934000123',
       district: initialFound.district_bn,
       upazila: initialFound.upazila_bn,

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber, formatBDT } from '@/lib/utils'
 import { getStoredUser, clearStoredUser, UserSession } from '@/lib/auth-client'
+import { getSubcategoriesForCategory, DEFAULT_CATEGORIES } from '@/lib/categories'
 
 const SERVICE_SUBCATEGORIES: Record<string, string[]> = {
   'electrical-services': [
@@ -64,7 +65,7 @@ export default function MistriProfilePage() {
   const [profile, setProfile] = useState<any>({
     id: '',
     fullName: 'মোঃ জুয়েল রানা',
-    fatherName: 'মোঃ আব্দুল জব্বার',
+    fatherName: '',
     phone: '01722159830',
     nidNumber: '1990521934000123',
     dateOfBirth: '১৯৯০-০৫-১৫',
@@ -321,7 +322,10 @@ export default function MistriProfilePage() {
     }
   }
 
-  const availableSubcategories = SERVICE_SUBCATEGORIES[profile.categorySlug] || SERVICE_SUBCATEGORIES['electrical-services']
+  const dynamicSubs = getSubcategoriesForCategory(profile.categorySlug || profile.category)
+  const availableSubcategories = dynamicSubs.length > 0 
+    ? dynamicSubs.map(s => isBn ? s.name_bn : s.name_en)
+    : (SERVICE_SUBCATEGORIES[profile.categorySlug] || SERVICE_SUBCATEGORIES['electrical-services'])
 
   if (!isAuthChecked) {
     return (
@@ -439,13 +443,13 @@ export default function MistriProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 justify-center md:justify-start">
               <h2 className="text-2xl font-black tracking-tight">{profile.fullName}</h2>
               {profile.approvalStatus === 'approved' ? (
-                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-stone-100 border-stone-600 text-xs px-2.5 py-0.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-400" />
+                <Badge variant="neutral" className="skeuo-pill bg-stone-900 text-white border-stone-700 text-xs px-2.5 py-0.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-white" />
                   <span>ভেরিফাইড ও অনুমোদিত কারিগর</span>
                 </Badge>
               ) : (
-                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-amber-300 border-stone-600 text-xs px-2.5 py-0.5">
-                  <Clock className="h-3.5 w-3.5 mr-1 text-amber-400" />
+                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-stone-200 border-stone-600 text-xs px-2.5 py-0.5">
+                  <Clock className="h-3.5 w-3.5 mr-1 text-stone-300" />
                   <span>ভেরিফিকেশন পর্যালোচনায় রয়েছে</span>
                 </Badge>
               )}
@@ -466,19 +470,19 @@ export default function MistriProfilePage() {
           </div>
 
           {/* Availability Toggle */}
-          <div className="p-3.5 bg-slate-800/80 rounded-2xl border border-slate-700 space-y-2 shrink-0 text-left">
-            <span className="text-xs font-bold text-slate-300 block">কাজের প্রাপ্যতা:</span>
+          <div className="p-3.5 bg-stone-900 rounded-2xl border border-stone-700 space-y-2 shrink-0 text-left">
+            <span className="text-xs font-bold text-stone-300 block">কাজের প্রাপ্যতা:</span>
             <button
               type="button"
               onClick={() => setProfile((p: any) => ({ ...p, isAvailable: !p.isAvailable }))}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-3 ${
+              className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-3 cursor-pointer ${
                 profile.isAvailable
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-slate-700/60 text-slate-400 border border-slate-600'
+                  ? 'bg-white text-stone-900 border border-white'
+                  : 'bg-stone-800 text-stone-400 border border-stone-700'
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${profile.isAvailable ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${profile.isAvailable ? 'bg-stone-900' : 'bg-stone-500'}`} />
                 <span>{profile.isAvailable ? 'আমি কাজ নিতে প্রস্তুত' : 'সাময়িক বন্ধ'}</span>
               </span>
               <span className="text-[10px] underline">{profile.isAvailable ? 'অন' : 'অফ'}</span>
@@ -487,36 +491,36 @@ export default function MistriProfilePage() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-slate-800 text-center">
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-stone-800 text-center">
           <div>
-            <span className="text-xl font-black text-amber-400 flex items-center justify-center gap-1">
-              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <span className="text-xl font-black text-white flex items-center justify-center gap-1">
+              <Star className="h-4 w-4 fill-white text-white" />
               <span>৫.০</span>
             </span>
-            <span className="text-[11px] text-slate-400">গ্রাহক সন্তুষ্টি</span>
+            <span className="text-[11px] text-stone-400">গ্রাহক সন্তুষ্টি</span>
           </div>
           <div>
             <span className="text-xl font-black text-white">{toBanglaNumber(profile.completedJobs || 14)}</span>
-            <span className="text-[11px] text-slate-400">সম্পন্ন কাজ</span>
+            <span className="text-[11px] text-stone-400">সম্পন্ন কাজ</span>
           </div>
           <div>
             <span className="text-xl font-black text-white">{toBanglaNumber(profile.reviewsCount || 1)}</span>
-            <span className="text-[11px] text-slate-400">পাবলিক রিভিউ</span>
+            <span className="text-[11px] text-stone-400">পাবলিক রিভিউ</span>
           </div>
         </div>
       </Card>
 
       {/* Success / Error Banners */}
       {saveSuccessMessage && (
-        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2 shadow-xs">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+        <div className="rounded-2xl bg-stone-900 border border-stone-800 p-4 text-xs font-bold text-white flex items-center gap-2 shadow-xs">
+          <CheckCircle2 className="h-5 w-5 text-white shrink-0" />
           <span>{saveSuccessMessage}</span>
         </div>
       )}
 
       {saveErrorMessage && (
-        <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-xs font-bold text-red-800 flex items-center gap-2 shadow-xs">
-          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+        <div className="rounded-2xl bg-stone-100 border border-stone-400 p-4 text-xs font-bold text-stone-900 flex items-center gap-2 shadow-xs">
+          <AlertCircle className="h-5 w-5 text-stone-900 shrink-0" />
           <span>{saveErrorMessage}</span>
         </div>
       )}
@@ -564,7 +568,7 @@ export default function MistriProfilePage() {
             </label>
             <input
               type="text"
-              value={profile.fatherName || 'মোঃ আব্দুল জব্বার'}
+              value={profile.fatherName || (isBn ? 'প্রযোজ্য নয়' : 'N/A')}
               disabled
               className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2 px-3 text-xs text-slate-700 cursor-not-allowed select-none"
             />
@@ -673,8 +677,8 @@ export default function MistriProfilePage() {
         <Card className="p-5 sm:p-6 space-y-5 skeuo-surface">
           <div className="border-b border-stone-200 pb-3 space-y-1">
             <div className="flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-blue-600" />
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              <Wrench className="h-4 w-4 text-stone-900" />
+              <h2 className="text-sm sm:text-base font-bold text-stone-900">
                 {isBn ? 'পেশাগত তথ্য ও সেবার বিবরণ (সম্পাদনাযোগ্য)' : 'Professional & Service Details (Editable)'}
               </h2>
             </div>
@@ -745,7 +749,7 @@ export default function MistriProfilePage() {
               <select
                 value={profile.district}
                 onChange={(e) => setProfile((p: any) => ({ ...p, district: e.target.value }))}
-                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-black focus:outline-none"
               >
                 <option value="ঠাকুরগাঁও">ঠাকুরগাঁও</option>
                 <option value="পঞ্চগড়">পঞ্চগড়</option>
@@ -754,11 +758,11 @@ export default function MistriProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">উপজেলা</label>
+              <label className="text-xs font-semibold text-stone-700">উপজেলা</label>
               <select
                 value={profile.upazila}
                 onChange={(e) => setProfile((p: any) => ({ ...p, upazila: e.target.value }))}
-                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-black focus:outline-none"
               >
                 <option value="ঠাকুরগাঁও সদর">ঠাকুরগাঁও সদর</option>
                 <option value="পীরগঞ্জ">পীরগঞ্জ</option>
@@ -802,7 +806,7 @@ export default function MistriProfilePage() {
               <select
                 value={profile.chargeType}
                 onChange={(e) => setProfile((p: any) => ({ ...p, chargeType: e.target.value }))}
-                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-black focus:outline-none"
               >
                 <option value="আলোচনা সাপেক্ষে (Negotiable)">আলোচনা সাপেক্ষে (Negotiable)</option>
                 <option value="নির্ধারিত (Fixed)">নির্ধারিত (Fixed)</option>
@@ -810,7 +814,7 @@ export default function MistriProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">আনুমানিক প্রারম্ভিক মজুরি (টাকা)</label>
+              <label className="text-xs font-semibold text-stone-700">আনুমানিক প্রারম্ভিক মজুরি (টাকা)</label>
               <Input
                 id="baseCharge"
                 type="number"
@@ -824,13 +828,13 @@ export default function MistriProfilePage() {
 
           {/* Bio */}
           <div className="space-y-1 pt-1">
-            <label className="text-xs font-semibold text-slate-700">কাজের বিবরণ বা আত্মপরিচয় (Bio)</label>
+            <label className="text-xs font-semibold text-stone-700">কাজের বিবরণ বা আত্মপরিচয় (Bio)</label>
             <textarea
               rows={4}
               value={profile.bio}
               onChange={(e) => setProfile((p: any) => ({ ...p, bio: e.target.value }))}
               placeholder="আপনার অভিজ্ঞতা এবং কাজের ধরন সংক্ষেপে লিখুন..."
-              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-xs text-stone-900 focus:border-black focus:outline-none"
             />
           </div>
 
@@ -951,7 +955,7 @@ export default function MistriProfilePage() {
                     <button
                       type="button"
                       onClick={() => setIsOtpSent(false)}
-                      className="text-[11px] text-blue-600 hover:underline font-bold"
+                      className="text-[11px] text-stone-900 hover:underline font-bold cursor-pointer"
                     >
                       নম্বর বদলান
                     </button>

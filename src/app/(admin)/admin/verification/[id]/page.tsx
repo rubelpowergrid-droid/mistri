@@ -278,6 +278,12 @@ export default function DocumentInspectorPage() {
                 <span className="text-slate-500 font-semibold">{isBn ? 'নাম:' : 'Full Name:'}</span>
                 <span className="font-bold text-slate-900">{applicant.name}</span>
               </div>
+              {applicant.fatherName && (
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-semibold">{isBn ? 'পিতার নাম / অভিভাবক:' : "Father's Name / Guardian:"}</span>
+                  <span className="font-bold text-slate-900">{applicant.fatherName}</span>
+                </div>
+              )}
               <div className="flex justify-between py-1.5 border-b border-slate-100">
                 <span className="text-slate-500 font-semibold">{isBn ? 'মোবাইল নম্বর:' : 'Mobile Phone:'}</span>
                 <span className="font-bold text-slate-900">{applicant.phone}</span>

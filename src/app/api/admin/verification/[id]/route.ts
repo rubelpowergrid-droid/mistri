@@ -33,6 +33,7 @@ export async function GET(
           applicant = {
             id: profile.id,
             name: profile.full_name,
+            fatherName: (profile.users as any)?.user_metadata?.father_name || '',
             phone: profile.users?.phone || '017XXXXXXXX',
             nidNumber: '1990521934000123',
             dateOfBirth: profile.date_of_birth || '১৯৯০-০৫-১৫',

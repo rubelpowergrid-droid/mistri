@@ -3,6 +3,7 @@
 export interface ApplicantRecord {
   id: string
   name: string
+  fatherName?: string
   phone: string
   password?: string
   nidNumber: string
@@ -319,6 +320,7 @@ export function updateApplicantStatus(
       id: applicant.id.startsWith('m-') ? applicant.id : `m-live-${applicant.id}`,
       name_bn: applicant.name,
       name_en: applicant.name,
+      fatherName: applicant.fatherName,
       phone: applicant.phone,
       title: applicant.category,
       professional_title: applicant.category,

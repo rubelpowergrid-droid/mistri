@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
-  Layers, Plus, Edit2, Trash2, Check, X, 
-  ArrowUpDown, ChevronDown, ChevronRight, Zap, 
-  Wrench, Paintbrush, Hammer, Home, Eye, EyeOff
+  Layers, Plus, Trash2, Check, X, 
+  ChevronDown, ChevronRight, Eye, EyeOff
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -12,90 +11,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber } from '@/lib/utils'
-
-interface Subcategory {
-  id: string
-  name_bn: string
-  name_en: string
-  slug: string
-  is_active: boolean
-}
-
-interface Category {
-  id: string
-  name_bn: string
-  name_en: string
-  slug: string
-  icon: string
-  display_order: number
-  is_active: boolean
-  subcategories: Subcategory[]
-}
+import { DEFAULT_CATEGORIES, CategoryOption, SubcategoryOption } from '@/lib/categories'
 
 export default function AdminCategoriesPage() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: 'cat-1',
-      name_bn: 'ইলেকট্রিক্যাল কাজ',
-      name_en: 'Electrical Services',
-      slug: 'electrical-services',
-      icon: 'Zap',
-      display_order: 1,
-      is_active: true,
-      subcategories: [
-        { id: 'sub-1', name_bn: 'বাসা-বাড়ির ওয়্যারিং', name_en: 'House Wiring', slug: 'house-wiring', is_active: true },
-        { id: 'sub-2', name_bn: 'ফ্যান ও লাইটিং ফিটিং', name_en: 'Fan & Light Fitting', slug: 'fan-light-fitting', is_active: true },
-        { id: 'sub-3', name_bn: 'সুইচ ও সকেট মেরামত', name_en: 'Switch Socket Repair', slug: 'switch-socket-repair', is_active: true },
-        { id: 'sub-4', name_bn: 'সার্কিট ব্রেকার ও ডিবি বোর্ড', name_en: 'Breaker & DB Board', slug: 'db-breaker', is_active: true },
-      ],
-    },
-    {
-      id: 'cat-2',
-      name_bn: 'প্লাম্বিং সার্ভিস',
-      name_en: 'Plumbing Services',
-      slug: 'plumbing-services',
-      icon: 'Wrench',
-      display_order: 2,
-      is_active: true,
-      subcategories: [
-        { id: 'sub-5', name_bn: 'পাইপ ফিটিং ও মেরামত', name_en: 'Pipe Fitting', slug: 'pipe-fitting', is_active: true },
-        { id: 'sub-6', name_bn: 'পানির মোটর ও পাম্প মেরামত', name_en: 'Water Pump Repair', slug: 'water-pump-repair', is_active: true },
-        { id: 'sub-7', name_bn: 'স্যানিটারি ও বাথরুম ফিটিংস', name_en: 'Sanitary Fitting', slug: 'sanitary-fitting', is_active: true },
-      ],
-    },
-    {
-      id: 'cat-3',
-      name_bn: 'রং করার কাজ',
-      name_en: 'Painting Services',
-      slug: 'painting-services',
-      icon: 'Paintbrush',
-      display_order: 3,
-      is_active: true,
-      subcategories: [
-        { id: 'sub-8', name_bn: 'ঘরের ভেতরের দেয়াল রং', name_en: 'Interior Wall Painting', slug: 'interior-paint', is_active: true },
-        { id: 'sub-9', name_bn: 'বাইরের দেয়াল ও ওয়েদারকোট', name_en: 'Exterior Weathercoat', slug: 'exterior-paint', is_active: true },
-        { id: 'sub-10', name_bn: 'কাঠের বার্নিশ ও পলিশ', name_en: 'Wood Polish', slug: 'wood-polish', is_active: true },
-      ],
-    },
-    {
-      id: 'cat-4',
-      name_bn: 'রাজমিস্ত্রীর কাজ',
-      name_en: 'Masonry Services',
-      slug: 'masonry-services',
-      icon: 'Hammer',
-      display_order: 4,
-      is_active: true,
-      subcategories: [
-        { id: 'sub-11', name_bn: 'ইট গাঁথুনি ও প্লাস্টার', name_en: 'Brick Laying', slug: 'brick-laying', is_active: true },
-        { id: 'sub-12', name_bn: 'টাইলস ও মার্বেল ফিটিংস', name_en: 'Tiles Fitting', slug: 'tiles-fitting', is_active: true },
-      ],
-    },
-  ])
-
-  const [expandedCatId, setExpandedCatId] = useState<string | null>('cat-1')
+  const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES)
+  const [isLoading, setIsLoading] = useState(false)
+  const [expandedCatId, setExpandedCatId] = useState<string | null>('electrical-services')
+  
+  // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newCatBn, setNewCatBn] = useState('')
   const [newCatEn, setNewCatEn] = useState('')
@@ -106,60 +32,172 @@ export default function AdminCategoriesPage() {
   const [newSubBn, setNewSubBn] = useState('')
   const [newSubEn, setNewSubEn] = useState('')
 
-  const toggleCategoryActive = (catId: string) => {
+  // Load categories from API on mount
+  useEffect(() => {
+    async function loadCategories() {
+      setIsLoading(true)
+      try {
+        const res = await fetch('/api/admin/categories')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories)
+        }
+      } catch (err) {
+        console.warn('Failed to load live categories:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadCategories()
+  }, [])
+
+  const toggleCategoryActive = async (catId: string) => {
+    // Optimistic UI update
     setCategories(prev =>
-      prev.map(c => c.id === catId ? { ...c, is_active: !c.is_active } : c)
+      prev.map(c => c.id === catId || c.slug === catId ? { ...c, is_active: !c.is_active } : c)
     )
+
+    try {
+      await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_active',
+          type: 'category',
+          categoryId: catId,
+        }),
+      })
+    } catch (err) {
+      console.warn('Failed to toggle category active status:', err)
+    }
   }
 
-  const toggleSubcategoryActive = (catId: string, subId: string) => {
+  const toggleSubcategoryActive = async (catId: string, subId: string) => {
     setCategories(prev =>
       prev.map(c => {
-        if (c.id !== catId) return c
+        if (c.id !== catId && c.slug !== catId) return c
         return {
           ...c,
-          subcategories: c.subcategories.map(s => s.id === subId ? { ...s, is_active: !s.is_active } : s)
+          subcategories: c.subcategories.map(s => s.id === subId || s.slug === subId ? { ...s, is_active: !s.is_active } : s)
         }
       })
     )
+
+    try {
+      await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_active',
+          type: 'subcategory',
+          categoryId: catId,
+          subcategoryId: subId,
+        }),
+      })
+    } catch (err) {
+      console.warn('Failed to toggle subcategory status:', err)
+    }
   }
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newCatBn || !newCatEn) return
-    const newCategory: Category = {
-      id: 'cat-' + Date.now(),
-      name_bn: newCatBn,
-      name_en: newCatEn,
-      slug: newCatSlug || newCatEn.toLowerCase().replace(/\s+/g, '-'),
-      icon: 'Layers',
-      display_order: categories.length + 1,
-      is_active: true,
-      subcategories: [],
+
+    const slug = newCatSlug || newCatEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'category',
+          name_bn: newCatBn,
+          name_en: newCatEn,
+          slug,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.categories) {
+        setCategories(data.categories)
+      } else {
+        const fallbackNew: CategoryOption = {
+          id: slug,
+          name_bn: newCatBn,
+          name_en: newCatEn,
+          slug,
+          icon: 'Layers',
+          display_order: categories.length + 1,
+          is_active: true,
+          subcategories: [],
+        }
+        setCategories(prev => [...prev, fallbackNew])
+      }
+    } catch {
+      // fallback local update
     }
-    setCategories(prev => [...prev, newCategory])
+
     setNewCatBn('')
     setNewCatEn('')
     setNewCatSlug('')
     setIsAddModalOpen(false)
   }
 
-  const handleAddSubcategory = (e: React.FormEvent) => {
+  const handleAddSubcategory = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!targetCatIdForSub || !newSubBn || !newSubEn) return
-    const newSub: Subcategory = {
-      id: 'sub-' + Date.now(),
-      name_bn: newSubBn,
-      name_en: newSubEn,
-      slug: newSubEn.toLowerCase().replace(/\s+/g, '-'),
-      is_active: true,
+
+    const subSlug = newSubEn.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'subcategory',
+          categoryId: targetCatIdForSub,
+          name_bn: newSubBn,
+          name_en: newSubEn,
+          slug: subSlug,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.categories) {
+        setCategories(data.categories)
+      } else {
+        const newSub: SubcategoryOption = {
+          id: subSlug,
+          name_bn: newSubBn,
+          name_en: newSubEn,
+          slug: subSlug,
+          is_active: true,
+        }
+        setCategories(prev =>
+          prev.map(c => (c.id === targetCatIdForSub || c.slug === targetCatIdForSub) ? { ...c, subcategories: [...c.subcategories, newSub] } : c)
+        )
+      }
+    } catch {
+      // fallback
     }
-    setCategories(prev =>
-      prev.map(c => c.id === targetCatIdForSub ? { ...c, subcategories: [...c.subcategories, newSub] } : c)
-    )
+
     setNewSubBn('')
     setNewSubEn('')
     setTargetCatIdForSub(null)
+  }
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (!confirm(isBn ? 'আপনি কি নিশ্চিত যে এই ক্যাটাগরিটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this category?')) return
+
+    try {
+      const res = await fetch(`/api/admin/categories?type=category&categoryId=${catId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success && data.categories) {
+        setCategories(data.categories)
+      } else {
+        setCategories(prev => prev.filter(c => c.id !== catId && c.slug !== catId))
+      }
+    } catch {
+      setCategories(prev => prev.filter(c => c.id !== catId && c.slug !== catId))
+    }
   }
 
   return (
@@ -167,19 +205,19 @@ export default function AdminCategoriesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
             {isBn ? 'সার্ভিস ক্যাটাগরি ও সাব-ক্যাটাগরি পরিচালনা' : 'Service Categories & Subcategories'}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-stone-600">
             {isBn 
-              ? 'নতুন সার্ভিস যুক্ত করুন, নাম পরিবর্তন করুন এবং সাব-ক্যাটাগরি নিয়ন্ত্রণ করুন' 
+              ? 'এডমিন দ্বারা নির্ধারিত ক্যাটাগরি ও সাব-ক্যাটাগরি সমূহ মিস্ত্রী অনবোর্ডিং এবং কাস্টমার অ্যাপে সরাসরি প্রদর্শিত হয়' 
               : 'Configure service taxonomies, add new skills, and manage subcategories'}
           </p>
         </div>
         <Button 
           size="sm" 
           onClick={() => setIsAddModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 font-semibold text-xs"
+          className="skeuo-btn-dark font-semibold text-xs"
         >
           <Plus className="h-4 w-4 mr-1" />
           <span>{isBn ? 'নতুন ক্যাটাগরি যোগ করুন' : 'Add New Category'}</span>
@@ -189,40 +227,41 @@ export default function AdminCategoriesPage() {
       {/* Category List */}
       <div className="space-y-3">
         {categories.map((cat) => {
-          const isExpanded = expandedCatId === cat.id
+          const isExpanded = expandedCatId === cat.id || expandedCatId === cat.slug
+          const catKey = cat.id || cat.slug
           return (
-            <Card key={cat.id} className="p-0 overflow-hidden border-slate-200">
+            <Card key={catKey} className="p-0 overflow-hidden border-stone-300 shadow-xs">
               {/* Category Header Row */}
-              <div className="flex items-center justify-between p-4 bg-white hover:bg-slate-50/60 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-white hover:bg-stone-50 transition-colors">
                 <button
                   type="button"
-                  onClick={() => setExpandedCatId(isExpanded ? null : cat.id)}
+                  onClick={() => setExpandedCatId(isExpanded ? null : catKey)}
                   className="flex items-center gap-3 text-left flex-1"
                 >
-                  <div className={`p-2 rounded-xl border ${cat.is_active ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+                  <div className={`p-2 rounded-xl border ${cat.is_active ? 'bg-stone-900 text-white border-black' : 'bg-stone-100 text-stone-400 border-stone-200'}`}>
                     <Layers className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">
+                      <span className="text-sm font-bold text-stone-900">
                         {isBn ? cat.name_bn : cat.name_en}
                       </span>
-                      <span className="text-xs text-slate-400">({cat.name_en})</span>
-                      <Badge variant={cat.is_active ? 'success' : 'neutral'} className="text-[10px]">
+                      <span className="text-xs text-stone-400">({cat.name_en})</span>
+                      <Badge variant="neutral" className={`text-[10px] ${cat.is_active ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'}`}>
                         {cat.is_active ? (isBn ? 'সক্রিয়' : 'Active') : (isBn ? 'নিষ্ক্রিয়' : 'Inactive')}
                       </Badge>
                     </div>
-                    <span className="text-[11px] text-slate-500">
-                      {toBanglaNumber(cat.subcategories.length)} {isBn ? 'টি সাব-ক্যাটাগরি সংযুক্ত' : 'subcategories'} • স্লাগ: <code className="font-mono text-[10px]">{cat.slug}</code>
+                    <span className="text-[11px] text-stone-600">
+                      {toBanglaNumber(cat.subcategories.length)} {isBn ? 'টি সাব-ক্যাটাগরি সংযুক্ত' : 'subcategories'} • স্লাগ: <code className="font-mono text-[10px] bg-stone-100 px-1 py-0.5 rounded">{cat.slug}</code>
                     </span>
                   </div>
                 </button>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleCategoryActive(cat.id)}
-                    className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 ${
-                      cat.is_active ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    onClick={() => toggleCategoryActive(catKey)}
+                    className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 cursor-pointer ${
+                      cat.is_active ? 'border-stone-300 bg-stone-100 text-stone-800 hover:bg-stone-200' : 'border-stone-300 bg-stone-800 text-white hover:bg-stone-900'
                     }`}
                     title={cat.is_active ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন'}
                   >
@@ -230,8 +269,8 @@ export default function AdminCategoriesPage() {
                   </button>
 
                   <button
-                    onClick={() => setTargetCatIdForSub(cat.id)}
-                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1"
+                    onClick={() => setTargetCatIdForSub(catKey)}
+                    className="p-1.5 rounded-lg border border-stone-300 hover:bg-stone-100 text-stone-800 text-xs font-semibold flex items-center gap-1 cursor-pointer"
                     title="সাব-ক্যাটাগরি যোগ করুন"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -239,9 +278,17 @@ export default function AdminCategoriesPage() {
                   </button>
 
                   <button
+                    onClick={() => handleDeleteCategory(catKey)}
+                    className="p-1.5 rounded-lg border border-stone-200 text-stone-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs transition-colors cursor-pointer"
+                    title="মুছে ফেলুন"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+
+                  <button
                     type="button"
-                    onClick={() => setExpandedCatId(isExpanded ? null : cat.id)}
-                    className="p-1.5 text-slate-400 hover:text-slate-600"
+                    onClick={() => setExpandedCatId(isExpanded ? null : catKey)}
+                    className="p-1.5 text-stone-400 hover:text-stone-700 cursor-pointer"
                   >
                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </button>
@@ -250,39 +297,45 @@ export default function AdminCategoriesPage() {
 
               {/* Subcategories Collapsible Section */}
               {isExpanded && (
-                <div className="border-t border-slate-100 bg-slate-50/50 p-4 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>{isBn ? 'সাব-ক্যাটাগরি তালিকা' : 'Subcategories'}</span>
+                <div className="border-t border-stone-200 bg-stone-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                    <span>{isBn ? 'সাব-ক্যাটাগরি সমূহ (এডমিন নিয়ন্ত্রিত)' : 'Subcategories'}</span>
                     <button
-                      onClick={() => setTargetCatIdForSub(cat.id)}
-                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[11px]"
+                      onClick={() => setTargetCatIdForSub(catKey)}
+                      className="text-stone-900 hover:underline flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                     >
                       <Plus className="h-3 w-3" />
                       <span>{isBn ? 'নতুন সাব-ক্যাটাগরি যোগ করুন' : 'Add Subcategory'}</span>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {cat.subcategories.map((sub) => (
-                      <div
-                        key={sub.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white text-xs"
-                      >
-                        <div>
-                          <p className="font-bold text-slate-900">{isBn ? sub.name_bn : sub.name_en}</p>
-                          <p className="text-[10px] text-slate-400">{sub.name_en}</p>
-                        </div>
-                        <button
-                          onClick={() => toggleSubcategoryActive(cat.id, sub.id)}
-                          className={`p-1 rounded-md text-[10px] font-bold ${
-                            sub.is_active ? 'text-emerald-700 bg-emerald-50' : 'text-slate-400 bg-slate-100'
-                          }`}
+                  {cat.subcategories.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-stone-500 bg-white rounded-xl border border-stone-200">
+                      {isBn ? 'এখনও কোনো সাব-ক্যাটাগরি যুক্ত করা হয়নি' : 'No subcategories added yet'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {cat.subcategories.map((sub) => (
+                        <div
+                          key={sub.id || sub.slug}
+                          className="flex items-center justify-between p-2.5 rounded-xl border border-stone-300 bg-white text-xs shadow-2xs"
                         >
-                          {sub.is_active ? (isBn ? 'অন' : 'ON') : (isBn ? 'অফ' : 'OFF')}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                          <div>
+                            <p className="font-bold text-stone-900">{isBn ? sub.name_bn : sub.name_en}</p>
+                            <p className="text-[10px] text-stone-500">{sub.name_en}</p>
+                          </div>
+                          <button
+                            onClick={() => toggleSubcategoryActive(catKey, sub.id || sub.slug)}
+                            className={`p-1 rounded-md text-[10px] font-bold cursor-pointer ${
+                              sub.is_active ? 'text-white bg-stone-900' : 'text-stone-500 bg-stone-200'
+                            }`}
+                          >
+                            {sub.is_active ? (isBn ? 'অন' : 'ON') : (isBn ? 'অফ' : 'OFF')}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
@@ -292,9 +345,9 @@ export default function AdminCategoriesPage() {
 
       {/* Add Category Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl border-stone-300">
+            <h3 className="text-base font-bold text-stone-900">
               {isBn ? 'নতুন সার্ভিস ক্যাটাগরি যুক্ত করুন' : 'Add New Category'}
             </h3>
             <form onSubmit={handleAddCategory} className="space-y-3">
@@ -325,7 +378,7 @@ export default function AdminCategoriesPage() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsAddModalOpen(false)}>
                   {isBn ? 'বাতিল' : 'Cancel'}
                 </Button>
-                <Button size="sm" type="submit">
+                <Button size="sm" type="submit" className="skeuo-btn-dark">
                   {isBn ? 'সংরক্ষণ করুন' : 'Save'}
                 </Button>
               </div>
@@ -336,9 +389,9 @@ export default function AdminCategoriesPage() {
 
       {/* Add Subcategory Modal */}
       {targetCatIdForSub && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl border-stone-300">
+            <h3 className="text-base font-bold text-stone-900">
               {isBn ? 'নতুন সাব-ক্যাটাগরি যুক্ত করুন' : 'Add New Subcategory'}
             </h3>
             <form onSubmit={handleAddSubcategory} className="space-y-3">
@@ -362,7 +415,7 @@ export default function AdminCategoriesPage() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setTargetCatIdForSub(null)}>
                   {isBn ? 'বাতিল' : 'Cancel'}
                 </Button>
-                <Button size="sm" type="submit">
+                <Button size="sm" type="submit" className="skeuo-btn-dark">
                   {isBn ? 'সংরক্ষণ করুন' : 'Save'}
                 </Button>
               </div>
@@ -373,4 +426,3 @@ export default function AdminCategoriesPage() {
     </div>
   )
 }
-

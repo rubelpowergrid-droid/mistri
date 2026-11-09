@@ -76,3 +76,4 @@ export function getUpazilasForDistrict(districtNameOrId: string, customDistricts
 
   return found ? found.upazilas : list[0].upazilas
 }
+
