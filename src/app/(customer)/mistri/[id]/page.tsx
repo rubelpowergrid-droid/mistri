@@ -148,7 +148,7 @@ export default function MistriProfilePage() {
                 </Badge>
                 {mistri.available_today && (
                   <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    {isBn ? 'আজকে উপলব্ধ' : 'Available Today'}
+                    {isBn ? 'আজকে প্রস্তুত' : 'Available Today'}
                   </span>
                 )}
               </div>
@@ -324,7 +324,7 @@ export default function MistriProfilePage() {
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span><strong>{isBn ? 'উপলব্ধতা:' : 'Availability:'}</strong> সকাল ৮টা - রাত ৮টা</span>
+                <span><strong>{isBn ? 'কাজের সময়:' : 'Availability:'}</strong> সকাল ৮টা - রাত ৮টা</span>
               </div>
             </div>
           </Card>

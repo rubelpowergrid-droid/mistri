@@ -27,6 +27,7 @@ export function setStoredUser(user: UserSession): void {
   try {
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
     window.dispatchEvent(new CustomEvent(AUTH_EVENT_NAME, { detail: user }))
+    window.dispatchEvent(new Event('mistri_auth_changed'))
   } catch (err) {
     console.error('Failed to save session:', err)
   }
@@ -41,6 +42,7 @@ export function clearStoredUser(): void {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_role')
     window.dispatchEvent(new CustomEvent(AUTH_EVENT_NAME, { detail: null }))
+    window.dispatchEvent(new Event('mistri_auth_changed'))
   } catch (err) {
     console.error('Failed to clear session:', err)
   }

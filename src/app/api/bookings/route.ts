@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { addBookingToStore } from '@/lib/mistri-store'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+}
+
 const createBookingSchema = z.object({
   mistriId: z.string().min(1),
   subcategory: z.string().min(1),
@@ -22,9 +31,9 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status') || 'all'
 
   // Mock list of active bookings
-  return NextResponse.json({
-    success: true,
-    data: [
+    return NextResponse.json({
+      success: true,
+      data: [
       {
         id: 'b-1',
         booking_number: 'MST-261103-AB12',
@@ -46,7 +55,7 @@ export async function GET(request: NextRequest) {
         job_address: 'সদর হাসপাতাল রোড, ঠাকুরগাঁও',
       },
     ],
-  })
+  }, { headers: NO_CACHE_HEADERS })
 }
 
 export async function POST(request: NextRequest) {

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Phone, MapPin, Calendar, Heart, Shield, 
   Settings, LogOut, ChevronRight, Globe, Wrench, 
-  CheckCircle2, HelpCircle, ArrowLeft, LogIn 
+  CheckCircle2, HelpCircle, ArrowLeft, LogIn, Printer 
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -92,7 +92,7 @@ export default function CustomerProfilePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-6 pb-24 sm:pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <button
           onClick={() => router.back()}
           className="skeuo-btn-light flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-800 cursor-pointer"
@@ -105,13 +105,39 @@ export default function CustomerProfilePage() {
           {isBn ? 'আমার গ্রাহক প্রোফাইল' : 'My Customer Profile'}
         </h1>
 
-        <button
-          onClick={handleLogout}
-          className="skeuo-btn-light flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-700 hover:text-red-900 border-red-200"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          <span>{isBn ? 'লগআউট' : 'Logout'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="skeuo-btn-light flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-[#2c7865] cursor-pointer"
+            title={isBn ? 'প্রোফাইল প্রিন্ট করুন' : 'Print Profile'}
+          >
+            <Printer className="h-3.5 w-3.5" />
+            <span>{isBn ? 'প্রিন্ট' : 'Print'}</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="skeuo-btn-light flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-700 hover:text-red-900 border-red-200 cursor-pointer"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>{isBn ? 'লগআউট' : 'Logout'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Official Print Header */}
+      <div className="hidden print:block border-b-2 border-stone-800 pb-3 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black text-black">mistri. গ্রাহক একাউন্ট বিবরণী</h1>
+            <p className="text-xs text-stone-700">কাস্টমার রেজিস্টার্ড প্রোফাইল ও বুকিং পরিচিতি</p>
+          </div>
+          <div className="text-right text-[11px] font-mono text-stone-800">
+            <p>তারিখ: {new Date().toLocaleDateString('bn-BD')}</p>
+            <p>গ্রাহক মোবাইল: {session.phone}</p>
+          </div>
+        </div>
       </div>
 
       {/* Main Profile Card - #2c7865 & #fefded Skeuomorphic */}

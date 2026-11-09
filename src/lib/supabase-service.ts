@@ -323,6 +323,12 @@ export async function getMistriProfileByPhone(phone: string) {
       .maybeSingle()
 
     if (user?.id) {
+      let authUserMeta: any = null
+      try {
+        const authRes = await supabase.auth.admin.getUserById(user.id)
+        authUserMeta = authRes.data?.user?.user_metadata
+      } catch (e) {}
+
       const { data: profile } = await supabase
         .from('mistri_profiles')
         .select('*, districts(name_bn, name_en), upazilas(name_bn, name_en)')
@@ -338,7 +344,7 @@ export async function getMistriProfileByPhone(phone: string) {
           bio: profile.bio || '',
           dateOfBirth: profile.date_of_birth || '১৯৯০-০৫-১৫',
           gender: profile.gender || 'পুরুষ (Male)',
-          fatherName: user?.user_metadata?.father_name || (profile as any)?.father_name || '',
+          fatherName: authUserMeta?.father_name || (profile as any)?.father_name || '',
           nidNumber: '1990521934000123',
           district: profile.districts?.name_bn || 'ঠাকুরগাঁও',
           upazila: profile.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',

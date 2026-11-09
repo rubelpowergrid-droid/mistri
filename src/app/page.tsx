@@ -84,62 +84,64 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
-      {/* Hero Section - Pure #2c7865 & #fefded Skeuomorphic */}
-      <section className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] pt-8 pb-12 px-4 sm:px-6 lg:px-8 border-b border-[#225f50]">
-        <div className="mx-auto max-w-4xl text-center space-y-4">
-          <Badge variant="neutral" className="skeuo-pill bg-[#1e5548]/90 text-[#fefded] border-[#38967f] px-3 py-1 text-xs shadow-xs font-semibold">
-            {isBn ? '📍 ঠাকুরগাঁও • পঞ্চগড় • দিনাজপুর' : '📍 Thakurgaon • Panchagarh • Dinajpur'}
-          </Badge>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#fefded]">
-            {isBn ? 'আপনার এলাকার দক্ষ মিস্ত্রী, এখন হাতের মুঠোয়' : 'Find Trusted Local Professionals In Your Area'}
-          </h1>
-          <p className="text-sm sm:text-base text-[#fefded]/85 max-w-2xl mx-auto">
-            {isBn 
-              ? 'ইলেকট্রিশিয়ান, প্লাম্বার, রংমিস্ত্রী থেকে শুরু করে যে কোনো কারিগর খুঁজুন সহজেই এবং সরাসরি বুক করুন।'
-              : 'Search verified electricians, plumbers, painters, and carpenters nearby with transparent ratings.'}
-          </p>
+      {/* Hero Section - Aligned with Header & Main Content in max-w-7xl */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <div className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] py-8 sm:py-12 px-4 sm:px-8 rounded-3xl border border-[#225f50] shadow-xl">
+          <div className="mx-auto max-w-4xl text-center space-y-4">
+            <Badge variant="neutral" className="skeuo-pill bg-[#1e5548]/90 text-[#fefded] border-[#38967f] px-3 py-1 text-xs shadow-xs font-semibold">
+              {isBn ? '📍 ঠাকুরগাঁও • পঞ্চগড় • দিনাজপুর' : '📍 Thakurgaon • Panchagarh • Dinajpur'}
+            </Badge>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#fefded]">
+              {isBn ? 'আপনার এলাকার দক্ষ মিস্ত্রী, এখন হাতের মুঠোয়' : 'Find Trusted Local Professionals In Your Area'}
+            </h1>
+            <p className="text-sm sm:text-base text-[#fefded]/85 max-w-2xl mx-auto">
+              {isBn 
+                ? 'ইলেকট্রিশিয়ান, প্লাম্বার, রংমিস্ত্রী থেকে শুরু করে যে কোনো কারিগর খুঁজুন সহজেই এবং সরাসরি বুক করুন।'
+                : 'Search verified electricians, plumbers, painters, and carpenters nearby with transparent ratings.'}
+            </p>
 
-          {/* Search Box - Skeuomorphic Tactile Well in #fefded */}
-          <div className="mx-auto max-w-2xl pt-2">
-            <div className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-[#fefded] p-2 shadow-2xl border border-[#2c7865]/20">
-              <div className="flex w-full items-center gap-2 px-3 text-[#2c7865]">
-                <Search className="h-5 w-5 text-[#2c7865]/60 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('search.search_placeholder')}
-                  className="w-full bg-transparent py-2 text-sm text-[#14382f] placeholder:text-[#2c7865]/50 focus:outline-none"
-                />
+            {/* Search Box - Skeuomorphic Tactile Well in #fefded */}
+            <div className="mx-auto max-w-2xl pt-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-[#fefded] p-2 shadow-2xl border border-[#2c7865]/20">
+                <div className="flex w-full items-center gap-2 px-3 text-[#2c7865]">
+                  <Search className="h-5 w-5 text-[#2c7865]/60 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('search.search_placeholder')}
+                    className="w-full bg-transparent py-2 text-sm text-[#14382f] placeholder:text-[#2c7865]/50 focus:outline-none"
+                  />
+                </div>
+                <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark text-[#fefded]">
+                    {t('nav.search')}
+                  </Button>
+                </Link>
               </div>
-              <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark text-[#fefded]">
-                  {t('nav.search')}
-                </Button>
-              </Link>
             </div>
-          </div>
 
-          {/* District Quick Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
-            <span className="text-[#fefded]/70 font-medium">{isBn ? 'জেলা বেছে নিন:' : 'Select District:'}</span>
-            {[
-              { id: 'Thakurgaon', bn: 'ঠাকুরগাঁও', en: 'Thakurgaon' },
-              { id: 'Panchagarh', bn: 'পঞ্চগড়', en: 'Panchagarh' },
-              { id: 'Dinajpur', bn: 'দিনাজপুর', en: 'Dinajpur' },
-            ].map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setSelectedDistrict(d.id)}
-                className={`rounded-full px-3.5 py-1 font-semibold transition-all cursor-pointer ${
-                  selectedDistrict === d.id 
-                    ? 'bg-[#fefded] text-[#2c7865] shadow-md font-bold' 
-                    : 'bg-[#1e5548]/80 text-[#fefded]/80 hover:bg-[#1e5548] border border-[#38967f]/40'
-                }`}
-              >
-                {isBn ? d.bn : d.en}
-              </button>
-            ))}
+            {/* District Quick Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
+              <span className="text-[#fefded]/70 font-medium">{isBn ? 'জেলা বেছে নিন:' : 'Select District:'}</span>
+              {[
+                { id: 'Thakurgaon', bn: 'ঠাকুরগাঁও', en: 'Thakurgaon' },
+                { id: 'Panchagarh', bn: 'পঞ্চগড়', en: 'Panchagarh' },
+                { id: 'Dinajpur', bn: 'দিনাজপুর', en: 'Dinajpur' },
+              ].map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setSelectedDistrict(d.id)}
+                  className={`rounded-full px-3.5 py-1 font-semibold transition-all cursor-pointer ${
+                    selectedDistrict === d.id 
+                      ? 'bg-[#fefded] text-[#2c7865] shadow-md font-bold' 
+                      : 'bg-[#1e5548]/80 text-[#fefded]/80 hover:bg-[#1e5548] border border-[#38967f]/40'
+                  }`}
+                >
+                  {isBn ? d.bn : d.en}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -187,7 +189,7 @@ export default function HomePage() {
             <div className="h-2.5 w-2.5 rounded-full bg-stone-900 animate-pulse"></div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-stone-900">
-                {isBn ? 'কাছের উপলব্ধ মিস্ত্রীগণ' : 'Nearby Available Professionals'}
+                {isBn ? 'কাছের দক্ষ মিস্ত্রীগণ' : 'Nearby Available Professionals'}
               </h2>
               <p className="text-xs text-stone-500">
                 {isBn ? 'জিপিএস ভিত্তিক দূরত্বের ক্রমানুসারে' : 'Ranked by geodesic distance'}

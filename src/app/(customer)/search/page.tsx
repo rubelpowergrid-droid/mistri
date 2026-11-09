@@ -450,7 +450,7 @@ function SearchPageContent() {
                   onChange={(e) => setAvailableToday(e.target.checked)}
                   className="rounded text-stone-900 focus:ring-black h-4 w-4 accent-stone-900"
                 />
-                <span>{isBn ? 'আজকেই উপলব্ধ (Available Today)' : 'Available Today'}</span>
+                <span>{isBn ? 'আজকেই প্রস্তুত (Available Today)' : 'Available Today'}</span>
               </label>
             </div>
           </Card>
@@ -595,11 +595,11 @@ function SearchPageContent() {
                             </span>
                             {mistri.available_today ? (
                               <span className="text-[10px] font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-300">
-                                {isBn ? 'আজকে উপলব্ধ' : 'Available Today'}
+                                {isBn ? 'আজকে প্রস্তুত' : 'Available Today'}
                               </span>
                             ) : (
                               <span className="text-[10px] text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">
-                                {isBn ? 'কালকে উপলব্ধ' : 'Available Tomorrow'}
+                                {isBn ? 'কালকে প্রস্তুত' : 'Available Tomorrow'}
                               </span>
                             )}
                           </div>

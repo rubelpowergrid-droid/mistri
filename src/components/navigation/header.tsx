@@ -24,10 +24,12 @@ export function Header() {
     }
 
     window.addEventListener(AUTH_EVENT_NAME, handleAuthChange)
+    window.addEventListener('mistri_auth_changed', handleAuthChange)
     window.addEventListener('storage', handleAuthChange)
 
     return () => {
       window.removeEventListener(AUTH_EVENT_NAME, handleAuthChange)
+      window.removeEventListener('mistri_auth_changed', handleAuthChange)
       window.removeEventListener('storage', handleAuthChange)
     }
   }, [])
@@ -85,7 +87,7 @@ export function Header() {
                     : 'ঠাকুরগাঁও সদর'
                 setSelectedLocation(nextLoc)
               }}
-              className="skeuo-pill flex items-center gap-1.5 bg-[#fefded] hover:bg-[#f4f0d6] px-3 py-1.5 text-xs font-bold text-[#2c7865] border border-[#2c7865]/20 transition-all cursor-pointer"
+              className="skeuo-pill hidden sm:flex items-center gap-1.5 bg-[#fefded] hover:bg-[#f4f0d6] px-3 py-1.5 text-xs font-bold text-[#2c7865] border border-[#2c7865]/20 transition-all cursor-pointer"
             >
               <MapPin className="h-3.5 w-3.5 text-[#2c7865]" />
               <span className="truncate max-w-[120px] sm:max-w-none">{selectedLocation}</span>
@@ -136,10 +138,10 @@ export function Header() {
                   ) : (
                     <User className="h-3.5 w-3.5" />
                   )}
-                  <span className="max-w-[110px] truncate">
+                  <span className="max-w-[75px] sm:max-w-[120px] truncate">
                     {currentUser.role === 'admin'
                       ? 'অ্যাডমিন'
-                      : currentUser.name || 'আমার প্রোফাইল'}
+                      : currentUser.name || (currentUser.role === 'mistri' ? 'মিস্ত্রী প্রোফাইল' : 'আমার প্রোফাইল')}
                   </span>
                 </Link>
 

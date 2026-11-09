@@ -24,10 +24,10 @@ export default function VerificationQueuePage() {
   const [statusTab, setStatusTab] = useState<'pending' | 'approved' | 'all'>('pending')
   const [actionMessage, setActionMessage] = useState('')
 
-  const fetchApplicants = async () => {
-    setIsLoading(true)
+  const fetchApplicants = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true)
     try {
-      const res = await fetch('/api/admin/verification')
+      const res = await fetch('/api/admin/verification', { cache: 'no-store' })
       const data = await res.json()
       if (data.success) {
         setApplicants(data.applicants || [])
@@ -35,12 +35,18 @@ export default function VerificationQueuePage() {
     } catch {
       // Fallback
     } finally {
-      setIsLoading(false)
+      if (showLoading) setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchApplicants()
+    fetchApplicants(true)
+    const timer = setInterval(() => fetchApplicants(false), 4000)
+    window.addEventListener('focus', () => fetchApplicants(false))
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', () => fetchApplicants(false))
+    }
   }, [])
 
   const handleQuickAction = async (id: string, action: 'approve' | 'reject') => {
@@ -107,7 +113,7 @@ export default function VerificationQueuePage() {
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={fetchApplicants} isLoading={isLoading}>
+        <Button variant="outline" size="sm" onClick={() => fetchApplicants(true)} isLoading={isLoading}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
           <span>রিফ্রেশ</span>
         </Button>

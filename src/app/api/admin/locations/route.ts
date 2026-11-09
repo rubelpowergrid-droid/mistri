@@ -3,6 +3,15 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DEFAULT_DISTRICTS } from '@/lib/locations'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+}
+
 const createLocationSchema = z.object({
   type: z.enum(['district', 'upazila', 'area']),
   parent_id: z.string().optional(),
@@ -34,7 +43,7 @@ export async function GET() {
             areasCount: 10,
           })),
         })),
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
   } catch (err) {
     console.warn('Supabase locations query error, using defaults:', err)
@@ -43,7 +52,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     districts: DEFAULT_DISTRICTS,
-  })
+  }, { headers: NO_CACHE_HEADERS })
 }
 
 export async function POST(request: NextRequest) {

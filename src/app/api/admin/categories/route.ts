@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCategoriesStore, CategoryOption, SubcategoryOption } from '@/lib/categories'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+}
+
 export async function GET() {
   try {
     const supabase = createAdminClient() as any
@@ -29,7 +38,7 @@ export async function GET() {
             is_active: s.is_active ?? true,
           })),
         })),
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
   } catch (err) {
     console.warn('Supabase categories fetch warning, falling back to memory store:', err)
@@ -39,7 +48,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     categories: store,
-  })
+  }, { headers: NO_CACHE_HEADERS })
 }
 
 export async function POST(request: NextRequest) {

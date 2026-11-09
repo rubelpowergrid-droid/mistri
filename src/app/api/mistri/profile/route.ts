@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getMistriProfileByPhone, updateMistriProfileByPhone } from '@/lib/supabase-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -11,18 +20,18 @@ export async function GET(request: NextRequest) {
     if (!profile) {
       return NextResponse.json(
         { success: false, error: 'মিস্ত্রী প্রোফাইল পাওয়া যায়নি' },
-        { status: 404 }
+        { status: 404, headers: NO_CACHE_HEADERS }
       )
     }
 
     return NextResponse.json({
       success: true,
       profile,
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }
@@ -51,11 +60,11 @@ export async function PUT(request: NextRequest) {
       success: true,
       message: 'প্রোফাইল সফলভাবে আপডেট করা হয়েছে',
       result,
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     )
   }
 }

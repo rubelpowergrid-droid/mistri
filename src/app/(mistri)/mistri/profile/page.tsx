@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Phone, ShieldCheck, Wrench, Lock, CheckCircle2, 
   MapPin, Clock, Star, AlertCircle, Save, ArrowLeft, 
-  Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X
+  Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X, Printer
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -107,23 +107,24 @@ export default function MistriProfilePage() {
   const [session, setSession] = useState<UserSession | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false)
 
-  // Load profile on mount
+  // Load profile on mount with real-time reactive sync
   useEffect(() => {
+    let isInitial = true
     async function loadData() {
-      setIsLoading(true)
+      if (isInitial) setIsLoading(true)
       const user = getStoredUser()
       setSession(user)
       setIsAuthChecked(true)
 
       if (!user) {
-        setIsLoading(false)
+        if (isInitial) setIsLoading(false)
         return
       }
 
       const phoneToLoad = user.phone || '01722159830'
 
       try {
-        const res = await fetch(`/api/mistri/profile?phone=${phoneToLoad}`)
+        const res = await fetch(`/api/mistri/profile?phone=${phoneToLoad}`, { cache: 'no-store' })
         const data = await res.json()
         if (data.success && data.profile) {
           setProfile(data.profile)
@@ -131,10 +132,27 @@ export default function MistriProfilePage() {
       } catch (err) {
         console.error('Failed to load profile:', err)
       } finally {
-        setIsLoading(false)
+        if (isInitial) {
+          setIsLoading(false)
+          isInitial = false
+        }
       }
     }
+
     loadData()
+
+    // 4-second real-time polling + window focus & storage listener
+    const interval = setInterval(loadData, 4000)
+    window.addEventListener('focus', loadData)
+    window.addEventListener('storage', loadData)
+    window.addEventListener('mistri_profile_updated', loadData)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', loadData)
+      window.removeEventListener('storage', loadData)
+      window.removeEventListener('mistri_profile_updated', loadData)
+    }
   }, [])
 
   // Subcategory toggle
@@ -390,25 +408,49 @@ export default function MistriProfilePage() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
-          {profile.approvalStatus === 'approved' && (
-            <Link href={`/mistri/${profile.id || 'm-jewel-rana'}`} target="_blank">
-              <Button variant="outline" size="sm" className="skeuo-btn-light text-xs">
-                <ExternalLink className="h-3.5 w-3.5 mr-1 text-slate-800" />
-                <span>{isBn ? 'পাবলিক ভিউ দেখুন' : 'View Public Profile'}</span>
-              </Button>
-            </Link>
-          )}
+        <div className="flex flex-wrap items-center gap-2 no-print">
+          <Link href={`/mistri/${profile.id || 'm-jewel-rana'}`} target="_blank">
+            <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold text-[#2c7865] cursor-pointer">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              <span>{isBn ? 'পাবলিক ভিউ দেখুন' : 'View Public Profile'}</span>
+            </Button>
+          </Link>
+
+          <Button 
+            type="button"
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.print()}
+            className="skeuo-btn-light text-xs font-bold text-[#2c7865] border-[#2c7865]/30 hover:bg-[#2c7865]/10 cursor-pointer"
+            title={isBn ? 'প্রোফাইল প্রিন্ট বা পিডিএফ সেভ করুন' : 'Print Profile or Save as PDF'}
+          >
+            <Printer className="h-3.5 w-3.5 mr-1" />
+            <span>{isBn ? 'প্রোফাইল প্রিন্ট' : 'Print Profile'}</span>
+          </Button>
 
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleLogout}
-            className="skeuo-btn-light text-xs text-red-600 hover:bg-red-50 border-red-300"
+            className="skeuo-btn-light text-xs font-bold text-red-600 hover:bg-red-50 border-red-300 cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5 mr-1" />
             <span>{isBn ? 'লগআউট' : 'Logout'}</span>
           </Button>
+        </div>
+      </div>
+
+      {/* Official Print-Only Header for Bio-Data / CV Generation */}
+      <div className="hidden print:block border-b-2 border-stone-800 pb-3 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black text-black">mistri. কারিগর পরিচিতি পত্র (Biodata)</h1>
+            <p className="text-xs text-stone-700">জাতীয় পরিচয়পত্র ভেরিফাইড কারিগর প্রোফাইল ও কাজের রেকর্ড</p>
+          </div>
+          <div className="text-right text-[11px] font-mono text-stone-800">
+            <p>তারিখ: {new Date().toLocaleDateString('bn-BD')}</p>
+            <p>আইডি: {profile.id || 'MST-LIVE-PROFILE'}</p>
+          </div>
         </div>
       </div>
 

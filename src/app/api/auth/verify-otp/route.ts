@@ -48,18 +48,25 @@ export async function POST(request: NextRequest) {
           .maybeSingle()
 
         if (dbUser?.id) {
-          const { data: profile } = await supabase
-            .from('mistri_profiles')
-            .select('*')
-            .eq('user_id', dbUser.id)
-            .maybeSingle()
-
-          if (profile) {
+          if (dbUser.role === 'mistri') {
             role = 'mistri'
-            name = profile.full_name
-            status = profile.approval_status || 'pending'
-            userId = profile.id
+            const { data: profile } = await supabase
+              .from('mistri_profiles')
+              .select('*')
+              .eq('user_id', dbUser.id)
+              .maybeSingle()
+
+            let authUser: any = null
+            try {
+              const aRes = await supabase.auth.admin.getUserById(dbUser.id)
+              authUser = aRes.data?.user
+            } catch (e) {}
+
+            name = profile?.full_name || authUser?.user_metadata?.full_name || 'মিস্ত্রী কারিগর'
+            status = profile?.approval_status || 'approved'
+            userId = profile?.id || dbUser.id
           } else {
+            role = 'customer'
             const { data: customer } = await supabase
               .from('customer_profiles')
               .select('*')

@@ -308,31 +308,31 @@ function CustomerLiveTrackContent() {
       {/* Worker Card and Safety Privacy Policy */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Worker Details */}
-        <Card className="p-4 skeuo-surface flex items-center justify-between">
+        <Card className="p-4 skeuo-surface flex items-center justify-between border-[#2c7865]/20">
           <div className="flex items-center gap-3">
             <img
               src={booking.mistriAvatar}
               alt={booking.mistriName}
-              className="h-12 w-12 rounded-2xl object-cover border border-stone-300 shadow-sm"
+              className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm"
             />
             <div>
-              <h3 className="text-sm font-bold text-stone-900">{booking.mistriName}</h3>
-              <p className="text-xs text-stone-500">{booking.mistriTitle}</p>
-              <span className="text-[11px] font-mono font-bold text-stone-800">{booking.mistriPhone}</span>
+              <h3 className="text-sm font-bold text-[#14382f]">{booking.mistriName}</h3>
+              <p className="text-xs text-[#2c7865]">{booking.mistriTitle}</p>
+              <span className="text-[11px] font-mono font-bold text-[#14382f]">{booking.mistriPhone}</span>
             </div>
           </div>
-          <Badge variant="neutral" className={`text-[10px] skeuo-pill font-bold ${isEnRoute ? 'bg-stone-900 text-white' : 'bg-amber-100 text-amber-900'}`}>
+          <Badge variant="neutral" className={`text-[10px] skeuo-pill font-bold ${isEnRoute ? 'bg-[#2c7865] text-[#fefded]' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
             {isEnRoute ? (isBn ? 'অন-রুট' : 'En Route') : (isBn ? 'অপেক্ষমাণ' : 'Pending')}
           </Badge>
         </Card>
 
         {/* Privacy Note */}
-        <Card className="p-4 skeuo-surface space-y-1 text-stone-700 text-xs">
-          <div className="flex items-center gap-1.5 font-bold text-stone-900">
-            <ShieldCheck className="h-4 w-4 text-stone-900" />
+        <Card className="p-4 skeuo-surface space-y-1 text-[#14382f] text-xs border-[#2c7865]/20">
+          <div className="flex items-center gap-1.5 font-bold text-[#2c7865]">
+            <ShieldCheck className="h-4 w-4 text-[#2c7865]" />
             <span>{isBn ? 'গোপনীয়তা ও নিরাপত্তা নীতি' : 'Privacy & Consent Protection'}</span>
           </div>
-          <p className="text-[11px] text-stone-500 leading-relaxed">
+          <p className="text-[11px] text-[#2c7865]/80 leading-relaxed">
             {isBn 
               ? 'এই লাইভ জিপিএস সেশনটি উভয় পক্ষের সম্মতিতে শুধুমাত্র কাজ শুরুর পূর্ব পর্যন্ত সক্রিয় থাকবে। কাজ সম্পন্ন বা বাতিল হলে সেশনটি স্বয়ংক্রিয়ভাবে বন্ধ ও মুছে যাবে।'
               : 'Live tracking is consent-based and strictly active while traveling. It terminates automatically upon job completion.'}
@@ -343,41 +343,41 @@ function CustomerLiveTrackContent() {
       {/* Cancel Confirmation Modal */}
       {isCancelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl skeuo-surface p-6 shadow-2xl space-y-4 border border-stone-300">
-            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+          <div className="w-full max-w-md rounded-3xl skeuo-surface p-6 shadow-2xl space-y-4 border border-[#2c7865]/30">
+            <div className="flex items-center justify-between border-b border-[#2c7865]/20 pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-red-100 text-red-700">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-stone-900">বুকিং বাতিলকরণ নিশ্চিত করুন</h3>
-                  <p className="text-[11px] text-stone-500">বুকিং আইডি: {booking.id}</p>
+                  <h3 className="text-sm font-bold text-[#14382f]">বুকিং বাতিলকরণ নিশ্চিত করুন</h3>
+                  <p className="text-[11px] text-[#2c7865]/70">বুকিং আইডি: {booking.id}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCancelModalOpen(false)}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-[#f4f0d6]"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs text-stone-700 font-medium">
+              <p className="text-xs text-[#14382f] font-medium">
                 আপনি কি নিশ্চিত যে এই কারিগরের সাথে বুকিং অনুরোধটি বাতিল করতে চান?
               </p>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800 block">বাতিলের প্রধান কারণ:</label>
+                <label className="text-xs font-bold text-[#14382f] block">বাতিলের প্রধান কারণ:</label>
                 <div className="space-y-1.5">
                   {CANCELLATION_REASONS.map((reason) => (
                     <label
                       key={reason}
                       className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
                         cancelReason === reason
-                          ? 'border-stone-900 bg-stone-100 font-bold text-stone-900'
-                          : 'border-stone-200 hover:bg-stone-50 text-stone-700'
+                          ? 'border-[#2c7865] bg-[#f4f0d6] font-bold text-[#2c7865]'
+                          : 'border-[#2c7865]/20 hover:bg-[#fefded] text-[#14382f]'
                       }`}
                     >
                       <input
@@ -385,7 +385,7 @@ function CustomerLiveTrackContent() {
                         name="cancelReasonTrack"
                         checked={cancelReason === reason}
                         onChange={() => setCancelReason(reason)}
-                        className="accent-stone-900"
+                        className="accent-[#2c7865]"
                       />
                       <span>{reason}</span>
                     </label>
@@ -394,24 +394,24 @@ function CustomerLiveTrackContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800 block">অতিরিক্ত মন্তব্য (ঐচ্ছিক):</label>
+                <label className="text-xs font-bold text-[#14382f] block">অতিরিক্ত মন্তব্য (ঐচ্ছিক):</label>
                 <textarea
                   value={cancelNotes}
                   onChange={(e) => setCancelNotes(e.target.value)}
                   placeholder="অন্য কোনো কারণ থাকলে লিখুন..."
                   rows={2}
-                  className="w-full skeuo-input-well p-2.5 text-xs text-stone-900 focus:outline-none rounded-xl"
+                  className="w-full skeuo-input-well p-2.5 text-xs text-[#14382f] focus:outline-none rounded-xl"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2c7865]/20">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCancelModalOpen(false)}
-                className="skeuo-btn-light text-xs font-bold"
+                className="skeuo-btn-light text-xs font-bold text-[#2c7865]"
               >
                 না, ফিরে যান
               </Button>
