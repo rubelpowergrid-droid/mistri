@@ -26,7 +26,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#2563EB',
+  themeColor: '#2c7865',
 }
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="bn" className={tiroBangla.variable}>
-      <body className={`${tiroBangla.className} min-h-screen bg-slate-50 text-slate-900 antialiased pb-20 sm:pb-0`}>
+      <body className={`${tiroBangla.className} min-h-screen bg-[#fefded] text-[#14382f] antialiased pb-20 sm:pb-0`}>
         <I18nProvider>
           <PwaRegistrar />
           <div className="flex min-h-screen flex-col">

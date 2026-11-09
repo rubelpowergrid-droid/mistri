@@ -68,18 +68,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ]
 
   return (
-    <div className="min-h-screen bg-slate-100/70 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#fefded] flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden flex h-14 items-center justify-between bg-slate-900 text-white px-4 border-b border-slate-800">
+      <div className="md:hidden flex h-14 items-center justify-between bg-[#14382f] text-[#fefded] px-4 border-b border-[#225f50]">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2c7865] text-[#fefded] font-bold text-sm">
             M
           </div>
           <span className="font-bold text-sm tracking-tight">mistri Admin</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+          className="p-1.5 rounded-lg text-[#fefded]/70 hover:text-white hover:bg-[#1e5548]"
         >
           {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -87,28 +87,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar Navigation */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-200 flex flex-col justify-between transition-transform duration-200 ease-in-out md:static md:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-[#14382f] text-[#fefded] flex flex-col justify-between transition-transform duration-200 ease-in-out md:static md:translate-x-0 border-r border-[#225f50]
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-4 space-y-6">
           {/* Brand header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-4 border-b border-[#225f50]">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-xs font-black">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2c7865] text-[#fefded] shadow-xs font-black">
                 M
               </div>
               <div>
                 <span className="font-black text-white text-base tracking-tight">
-                  mistri<span className="text-blue-500">.</span>
+                  mistri<span className="text-[#38967f]">.</span>
                 </span>
-                <span className="block text-[10px] text-blue-400 font-semibold tracking-wider uppercase">
+                <span className="block text-[10px] text-[#38967f] font-semibold tracking-wider uppercase">
                   Admin Portal
                 </span>
               </div>
             </div>
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="md:hidden text-slate-400 hover:text-white"
+              className="md:hidden text-[#fefded]/60 hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
@@ -126,8 +126,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-100'
+                      ? 'bg-[#2c7865] text-[#fefded] shadow-md font-bold'
+                      : 'text-[#fefded]/70 hover:bg-[#1e5548] hover:text-[#fefded]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -135,7 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span>{item.label}</span>
                   </div>
                   {item.badge && (
-                    <Badge variant="warning" className="bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 text-[10px]">
+                    <Badge variant="warning" className="bg-[#fefded] text-[#2c7865] font-bold px-1.5 py-0.2 text-[10px]">
                       {item.badge}
                     </Badge>
                   )}
@@ -146,12 +146,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-800 space-y-3">
+        <div className="p-4 border-t border-[#225f50] space-y-3">
           <div className="flex items-center justify-between px-1 text-xs">
-            <span className="text-slate-400 text-[11px]">{isBn ? 'সিস্টেম ভাষা:' : 'Language:'}</span>
+            <span className="text-[#fefded]/70 text-[11px]">{isBn ? 'সিস্টেম ভাষা:' : 'Language:'}</span>
             <button
               onClick={() => setLanguage(lang === 'bn' ? 'en' : 'bn')}
-              className="text-xs font-bold text-blue-400 hover:text-blue-300"
+              className="text-xs font-bold text-[#38967f] hover:text-[#fefded]"
             >
               {lang === 'bn' ? 'English' : 'বাংলা'}
             </button>
@@ -159,13 +159,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <Link
             href="/"
-            className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-slate-800/70 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+            className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-[#1e5548]/70 hover:bg-[#1e5548] text-xs font-semibold text-[#fefded]/80 hover:text-white transition-colors"
           >
             <div className="flex items-center gap-2">
-              <ArrowLeft className="h-3.5 w-3.5 text-slate-400" />
+              <ArrowLeft className="h-3.5 w-3.5 text-[#fefded]/60" />
               <span>{isBn ? 'পাবলিক সাইটে ফিরুন' : 'Back to Public App'}</span>
             </div>
-            <ChevronRight className="h-3 w-3 text-slate-500" />
+            <ChevronRight className="h-3 w-3 text-[#fefded]/60" />
           </Link>
 
           {/* Admin Sign Out */}
@@ -185,18 +185,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content Pane */}
       <main className="flex-1 overflow-x-hidden min-h-[calc(100vh-3.5rem)] md:min-h-screen">
         {/* Top Control Bar */}
-        <div className="hidden md:flex h-16 items-center justify-between bg-white border-b border-slate-200/80 px-6">
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+        <div className="hidden md:flex h-16 items-center justify-between bg-[#fefded] border-b border-[#dcd6b8] px-6">
+          <div className="flex items-center gap-2 text-xs text-[#2c7865]/70 font-medium">
             <span>Admin</span>
             <span>/</span>
-            <span className="text-slate-900 font-bold capitalize">
+            <span className="text-[#2c7865] font-bold capitalize">
               {pathname.split('/')[2] || 'Dashboard'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-[#2c7865] bg-[#f4f0d6] px-2.5 py-1 rounded-full border border-[#dcd6b8]">
+              <span className="h-2 w-2 rounded-full bg-[#2c7865] animate-pulse"></span>
               {isBn ? 'সুপার অ্যাডমিন সেশন সক্রিয়' : 'Super Admin Active'}
             </span>
 

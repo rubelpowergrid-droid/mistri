@@ -56,19 +56,19 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-300/80 bg-white/95 backdrop-blur-md shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+      <header className="sticky top-0 z-40 w-full border-b border-[#2c7865]/20 bg-[#fefded]/95 backdrop-blur-md shadow-[0_2px_10px_rgba(44,120,101,0.06)]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-b from-stone-800 via-neutral-900 to-black text-white shadow-md border-t border-white/25 border-b-black transition-transform group-hover:scale-105">
-                <Wrench className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-b from-[#38967f] via-[#2c7865] to-[#1e5548] text-[#fefded] shadow-md border-t border-[#fefded]/30 border-b-[#14382f] transition-transform group-hover:scale-105">
+                <Wrench className="h-5 w-5 text-[#fefded]" />
               </div>
               <div>
-                <span className="text-xl font-black tracking-tight text-black">
-                  mistri<span className="text-stone-900 font-extrabold">.</span>
+                <span className="text-xl font-black tracking-tight text-[#2c7865]">
+                  mistri<span className="text-[#1e5548] font-extrabold">.</span>
                 </span>
-                <span className="hidden sm:inline-block ml-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <span className="hidden sm:inline-block ml-2 text-xs font-bold text-[#2c7865]/70 uppercase tracking-wider">
                   {lang === 'bn' ? 'সেবা মার্কেটপ্লেস' : 'Services'}
                 </span>
               </div>
@@ -85,9 +85,9 @@ export function Header() {
                     : 'ঠাকুরগাঁও সদর'
                 setSelectedLocation(nextLoc)
               }}
-              className="skeuo-pill flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-800 transition-all cursor-pointer"
+              className="skeuo-pill flex items-center gap-1.5 bg-[#fefded] hover:bg-[#f4f0d6] px-3 py-1.5 text-xs font-bold text-[#2c7865] border border-[#2c7865]/20 transition-all cursor-pointer"
             >
-              <MapPin className="h-3.5 w-3.5 text-black" />
+              <MapPin className="h-3.5 w-3.5 text-[#2c7865]" />
               <span className="truncate max-w-[120px] sm:max-w-none">{selectedLocation}</span>
             </button>
           </div>
@@ -97,22 +97,22 @@ export function Header() {
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
-              className="skeuo-btn-light flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-800 transition-all"
+              className="skeuo-btn-light flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold transition-all"
               title="ভাষা পরিবর্তন করুন / Change Language"
             >
-              <Globe className="h-3.5 w-3.5 text-slate-700" />
+              <Globe className="h-3.5 w-3.5" />
               <span>{lang === 'bn' ? 'EN' : 'বাং'}</span>
             </button>
 
             {/* Notification Button */}
             <button
               onClick={() => setIsNotificationOpen(true)}
-              className="skeuo-btn-light relative p-2 text-slate-800 transition-all"
+              className="skeuo-btn-light relative p-2 transition-all"
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-black px-1 text-[10px] font-black text-white ring-2 ring-white">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#2c7865] px-1 text-[10px] font-black text-[#fefded] ring-2 ring-[#fefded]">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -129,10 +129,10 @@ export function Header() {
                       ? '/mistri/profile'
                       : '/profile'
                   }
-                  className="skeuo-btn-dark flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white transition-all"
+                  className="skeuo-btn-dark flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-[#fefded] transition-all"
                 >
                   {currentUser.role === 'admin' ? (
-                    <Shield className="h-3.5 w-3.5 text-amber-400" />
+                    <Shield className="h-3.5 w-3.5 text-amber-300" />
                   ) : (
                     <User className="h-3.5 w-3.5" />
                   )}
@@ -160,7 +160,7 @@ export function Header() {
             ) : (
               <Link
                 href="/login"
-                className="skeuo-btn-dark flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white transition-all"
+                className="skeuo-btn-dark flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#fefded] transition-all"
               >
                 <User className="h-3.5 w-3.5" />
                 <span>{t('auth.login')}</span>

@@ -84,13 +84,13 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md p-6 sm:p-8 space-y-6 skeuo-surface">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-white shadow-xl">
-            <Wrench className="h-7 w-7 text-white" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-[#fefded] shadow-xl">
+            <Wrench className="h-7 w-7 text-[#fefded]" />
           </div>
-          <h1 className="text-2xl font-black text-stone-900 tracking-tight">
-            mistri<span className="text-stone-500">.</span>
+          <h1 className="text-2xl font-black text-[#2c7865] tracking-tight">
+            mistri<span className="text-[#1e5548]">.</span>
           </h1>
-          <p className="text-sm text-stone-600 font-medium">
+          <p className="text-sm text-[#2c7865]/80 font-medium">
             {isBn ? 'আপনার মোবাইল নম্বর দিয়ে সরাসরি প্রবেশ করুন' : 'Sign in to your account'}
           </p>
         </div>

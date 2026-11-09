@@ -363,13 +363,13 @@ function MistriOnboardingContent() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
-        <Badge variant="neutral" className="skeuo-pill bg-black text-white border-black text-xs px-3 py-1">
+        <Badge variant="neutral" className="skeuo-pill bg-[#2c7865] text-[#fefded] border-[#225f50] text-xs px-3 py-1">
           {isBn ? '👷‍♂️ মিস্ত্রী ভেরিফিকেশন অনবোর্ডিং' : '👷‍♂️ Professional Verification Onboarding'}
         </Badge>
-        <h1 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#2c7865] tracking-tight">
           {isBn ? 'আপনার প্রফেশনাল প্রোফাইল তৈরি করুন' : 'Build Your Professional Profile'}
         </h1>
-        <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto">
+        <p className="text-xs sm:text-sm text-[#2c7865]/80 max-w-lg mx-auto">
           {isBn 
             ? 'এডমিন দ্বারা অনুমোদিত হলে আপনি সরাসরি কাস্টমারদের বুকিং পাবেন ও অ্যাপের সার্চ লিস্টে স্থান পাবেন।'
             : 'Upon Admin review and approval, your profile will go live to receive customer bookings.'}
@@ -379,9 +379,9 @@ function MistriOnboardingContent() {
       {/* Stepper Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-stone-300 -z-0 -translate-y-1/2"></div>
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#dcd6b8] -z-0 -translate-y-1/2"></div>
           <div 
-            className="absolute top-1/2 left-0 h-0.5 bg-black -z-0 -translate-y-1/2 transition-all duration-300"
+            className="absolute top-1/2 left-0 h-0.5 bg-[#2c7865] -z-0 -translate-y-1/2 transition-all duration-300"
             style={{ width: `${((currentStep - 1) / (stepTitles.length - 1)) * 100}%` }}
           ></div>
 
@@ -394,16 +394,16 @@ function MistriOnboardingContent() {
                 <div
                   className={`flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl transition-all ${
                     isCompleted
-                      ? 'skeuo-btn-dark bg-stone-900 text-white'
+                      ? 'skeuo-btn-dark bg-[#2c7865] text-[#fefded]'
                       : isCurrent
-                      ? 'skeuo-surface-dark bg-black text-white ring-4 ring-stone-300 shadow-md'
-                      : 'skeuo-btn-light bg-white border border-stone-300 text-stone-400'
+                      ? 'skeuo-surface-dark bg-[#2c7865] text-[#fefded] ring-4 ring-[#2c7865]/20 shadow-md'
+                      : 'skeuo-btn-light bg-[#fefded] border border-[#dcd6b8] text-[#2c7865]/60'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
                 <span className={`text-[11px] font-bold mt-1.5 hidden sm:block ${
-                  isCurrent ? 'text-black' : isCompleted ? 'text-stone-700' : 'text-stone-400'
+                  isCurrent ? 'text-[#2c7865]' : isCompleted ? 'text-[#2c7865]/80' : 'text-[#2c7865]/50'
                 }`}>
                   {step.title}
                 </span>

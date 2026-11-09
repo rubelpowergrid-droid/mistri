@@ -245,31 +245,31 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick Action Queue Banner */}
-      <Card className="p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+      <Card className="p-5 skeuo-surface-dark bg-gradient-to-r from-[#1c5245] via-[#2c7865] to-[#378b75] text-[#fefded] flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="space-y-1 text-center md:text-left">
           <div className="flex items-center gap-2 justify-center md:justify-start">
             <Badge 
               variant="warning" 
-              className={stats.pendingVerifications > 0 ? "bg-amber-400 text-slate-900 font-bold" : "bg-emerald-400 text-slate-900 font-bold"}
+              className="bg-[#fefded] text-[#2c7865] font-bold"
             >
               {stats.pendingVerifications > 0 
                 ? (isBn ? 'জরুরি একশন' : 'Action Required') 
                 : (isBn ? 'সব যাচাই সম্পন্ন' : 'All Verified')}
             </Badge>
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-[#fefded]/80">
               {stats.pendingVerifications > 0
                 ? (isBn ? `${toBanglaNumber(stats.pendingVerifications)} জন নতুন মিস্ত্রীর আবেদন জমা হয়েছে` : `${stats.pendingVerifications} worker applications pending`)
                 : (isBn ? 'বর্তমানে কোনো পেন্ডিং আবেদন নেই' : 'No pending applications')}
             </span>
           </div>
-          <h3 className="text-base font-bold text-white">
+          <h3 className="text-base font-bold text-[#fefded]">
             {stats.pendingVerifications > 0
               ? (isBn ? 'জাতীয় পরিচয়পত্র ও মোবাইল যাচাইকরণ সম্পাদন করুন' : 'Review Pending NID Credentials and Approve Workers')
               : (isBn ? 'সকল মিস্ত্রীর প্রোফাইল যাচাইকৃত ও লাইভ রয়েছে' : 'All worker profiles are verified and live in search')}
           </h3>
         </div>
         <Link href={stats.pendingVerifications > 0 ? "/admin/verification" : "/admin/mistris"}>
-          <Button variant="primary" className="bg-blue-500 hover:bg-blue-600 text-xs font-bold px-5 shrink-0">
+          <Button variant="primary" className="skeuo-btn-dark text-[#fefded] text-xs font-bold px-5 shrink-0">
             <span>
               {stats.pendingVerifications > 0 
                 ? (isBn ? 'ভেরিফিকেশন ডেস্কে যান' : 'Open Verification Desk') 

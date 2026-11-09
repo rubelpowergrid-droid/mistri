@@ -4,105 +4,135 @@
 
 @theme {
   --font-sans: var(--font-tiro-bangla), "Tiro Bangla", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-primary: #2c7865;
+  --color-primary-dark: #1b4e42;
+  --color-primary-light: #38967f;
+  --color-ivory: #fefded;
+  --color-ivory-dark: #f4f0d6;
+  --color-ivory-border: #dcd6b8;
+
+  --color-stone-950: #14382f;
+  --color-stone-900: #2c7865;
+  --color-stone-800: #225f50;
+  --color-stone-700: #2c7865;
+  --color-stone-600: #388470;
+  --color-stone-500: #499984;
+  --color-stone-400: #68ad9b;
+  --color-stone-300: #dcd6b8;
+  --color-stone-200: #e9e4cd;
+  --color-stone-100: #f4f0d6;
+  --color-stone-50: #fefded;
+
+  --color-slate-950: #14382f;
+  --color-slate-900: #2c7865;
+  --color-slate-800: #225f50;
+  --color-slate-700: #2c7865;
+  --color-slate-600: #388470;
+  --color-slate-500: #499984;
+  --color-slate-400: #68ad9b;
+  --color-slate-300: #dcd6b8;
+  --color-slate-200: #e9e4cd;
+  --color-slate-100: #f4f0d6;
+  --color-slate-50: #fefded;
 }
 
 :root {
   --font-tiro-bangla: "Tiro Bangla", serif;
-  --primary: #121212;
-  --primary-hover: #262626;
-  --secondary: #222222;
-  --background: #ebeef2;
-  --surface: #ffffff;
-  --surface-muted: #f4f6f8;
-  --text-main: #0a0a0a;
-  --text-muted: #52525b;
-  --border: #d4d8de;
-  --border-light: #ffffff;
-  --success: #171717;
-  --warning: #404040;
-  --error: #7f1d1d;
+  --primary: #2c7865;
+  --primary-hover: #225f50;
+  --secondary: #38967f;
+  --background: #fefded;
+  --surface: #fefded;
+  --surface-muted: #f4f0d6;
+  --text-main: #14382f;
+  --text-muted: #388470;
+  --border: #dcd6b8;
+  --border-light: #fefded;
+  --success: #2c7865;
+  --warning: #b45309;
+  --error: #b91c1c;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--text-main);
+  background-color: #fefded;
+  color: #14382f;
   font-family: var(--font-tiro-bangla), "Tiro Bangla", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
   min-height: 100vh;
 }
 
 /* ==========================================================================
-   BLACK & WHITE SKEUOMORPHISM DESIGN SYSTEM (Tactile, Depth, Physical Bevels)
+   #2c7865 & #fefded SKEUOMORPHISM DESIGN SYSTEM
    ========================================================================== */
 
-/* Raised Skeuomorphic Surface / Card (Light Mode) */
+/* Raised Skeuomorphic Surface / Card (Ivory / Soft Cream #fefded) */
 .skeuo-surface {
-  background: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fefded;
+  border: 1px solid rgba(44, 120, 101, 0.18);
+  border-bottom: 2px solid rgba(44, 120, 101, 0.28);
   box-shadow: 
-    0 1px 2px 0 rgba(0, 0, 0, 0.05),
-    0 8px 16px -4px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 1px 3px 0 rgba(44, 120, 101, 0.06),
+    0 8px 18px -4px rgba(44, 120, 101, 0.12),
+    0 0 0 1px rgba(44, 120, 101, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   border-radius: 1.25rem;
   transition: all 0.2s ease-in-out;
 }
 
-/* Raised Skeuomorphic Surface (Dark / Carbon Mode) */
+/* Raised Skeuomorphic Surface (Dark Teal / Pine #2c7865 Mode) */
 .skeuo-surface-dark {
-  background: linear-gradient(160deg, #262626 0%, #141414 60%, #0d0d0d 100%);
-  border: 1px solid #333333;
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.85);
+  background: linear-gradient(160deg, #378b75 0%, #2c7865 55%, #1c5245 100%);
+  border: 1px solid #225f50;
+  border-top: 1px solid rgba(254, 253, 237, 0.35);
+  border-bottom: 2px solid #14382f;
   box-shadow: 
-    0 10px 25px -5px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.4),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+    0 10px 25px -5px rgba(28, 82, 69, 0.45),
+    0 4px 10px -2px rgba(28, 82, 69, 0.35),
+    inset 0 1px 1px rgba(254, 253, 237, 0.25);
+  color: #fefded;
   border-radius: 1.5rem;
 }
 
-/* Tactile 3D Skeuomorphic Button (Black / Primary) */
+/* Tactile 3D Skeuomorphic Button (Teal #2c7865 / Primary) */
 .skeuo-btn-dark {
-  background: linear-gradient(180deg, #333333 0%, #1a1a1a 45%, #0f0f0f 100%);
-  color: #ffffff !important;
-  border: 1px solid #262626;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.9);
+  background: linear-gradient(180deg, #38967f 0%, #2c7865 48%, #1f5649 100%);
+  color: #fefded !important;
+  border: 1px solid #225f50;
+  border-top: 1px solid rgba(254, 253, 237, 0.4);
+  border-bottom: 2px solid #14382f;
   box-shadow: 
-    0 3px 6px -1px rgba(0, 0, 0, 0.35),
-    0 2px 4px -1px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 3px 6px -1px rgba(20, 56, 47, 0.35),
+    0 2px 4px -1px rgba(20, 56, 47, 0.25),
+    inset 0 1px 0 rgba(254, 253, 237, 0.3);
   border-radius: 0.875rem;
   font-weight: 700;
   transition: all 0.15s ease-out;
   cursor: pointer;
 }
 .skeuo-btn-dark:hover {
-  background: linear-gradient(180deg, #3d3d3d 0%, #242424 50%, #171717 100%);
+  background: linear-gradient(180deg, #42a48c 0%, #328470 50%, #256758 100%);
   box-shadow: 
-    0 4px 8px -1px rgba(0, 0, 0, 0.45),
-    0 2px 5px -1px rgba(0, 0, 0, 0.3);
+    0 4px 8px -1px rgba(20, 56, 47, 0.45),
+    0 2px 5px -1px rgba(20, 56, 47, 0.3);
 }
 .skeuo-btn-dark:active {
   transform: translateY(1.5px);
-  background: #111111;
+  background: #1c5245;
   box-shadow: 
-    inset 0 3px 6px rgba(0, 0, 0, 0.9),
-    0 1px 2px rgba(0, 0, 0, 0.2);
+    inset 0 3px 6px rgba(10, 30, 25, 0.8),
+    0 1px 2px rgba(20, 56, 47, 0.2);
 }
 
-/* Tactile 3D Skeuomorphic Button (White / Silver / Secondary) */
+/* Tactile 3D Skeuomorphic Button (Ivory #fefded / Secondary) */
 .skeuo-btn-light {
-  background: linear-gradient(180deg, #ffffff 0%, #f0f2f5 55%, #e1e4e8 100%);
-  color: #0f172a !important;
-  border: 1px solid #cbd5e1;
+  background: linear-gradient(180deg, #ffffff 0%, #fefded 55%, #f4f0d6 100%);
+  color: #2c7865 !important;
+  border: 1px solid #dcd6b8;
   border-top: 1px solid #ffffff;
-  border-bottom: 2px solid #94a3b8;
+  border-bottom: 2px solid #c8be96;
   box-shadow: 
-    0 3px 5px -1px rgba(0, 0, 0, 0.1),
-    0 1px 3px -1px rgba(0, 0, 0, 0.06),
+    0 3px 5px -1px rgba(44, 120, 101, 0.1),
+    0 1px 3px -1px rgba(44, 120, 101, 0.06),
     inset 0 1px 0 #ffffff;
   border-radius: 0.875rem;
   font-weight: 700;
@@ -110,45 +140,45 @@ body {
   cursor: pointer;
 }
 .skeuo-btn-light:hover {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 55%, #eaeef2 100%);
-  border-color: #94a3b8;
+  background: linear-gradient(180deg, #ffffff 0%, #fcf9e5 55%, #eae4be 100%);
+  border-color: #c8be96;
 }
 .skeuo-btn-light:active {
   transform: translateY(1.5px);
-  background: #e2e8f0;
+  background: #eae4be;
   box-shadow: 
-    inset 0 3px 5px rgba(0, 0, 0, 0.18),
-    0 1px 1px rgba(0, 0, 0, 0.05);
+    inset 0 3px 5px rgba(44, 120, 101, 0.18),
+    0 1px 1px rgba(44, 120, 101, 0.05);
 }
 
 /* Debossed Inset Well (Inputs & Search wells) */
 .skeuo-input-well {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-top: 1px solid #94a3b8;
+  background: #fdfcee;
+  border: 1px solid #dcd6b8;
+  border-top: 1px solid #c8be96;
   box-shadow: 
-    inset 0 2px 4px rgba(0, 0, 0, 0.07),
-    inset 0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 2px 4px rgba(44, 120, 101, 0.08),
+    inset 0 1px 2px rgba(44, 120, 101, 0.05),
     0 1px 0 rgba(255, 255, 255, 0.8);
   border-radius: 0.875rem;
-  color: #0f172a;
+  color: #14382f;
 }
 .skeuo-input-well:focus-within {
   background: #ffffff;
-  border-color: #0f172a;
+  border-color: #2c7865;
   box-shadow: 
-    inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 0 0 2px rgba(15, 23, 42, 0.15);
+    inset 0 1px 3px rgba(44, 120, 101, 0.08),
+    0 0 0 2px rgba(44, 120, 101, 0.25);
 }
 
 /* Tactile Pill Badges */
 .skeuo-pill {
   border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(44, 120, 101, 0.25);
+  border-top: 1px solid rgba(254, 253, 237, 0.9);
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 1px 3px rgba(44, 120, 101, 0.1),
+    inset 0 1px 0 rgba(254, 253, 237, 0.8);
 }
 
 /* Custom scrollbar */

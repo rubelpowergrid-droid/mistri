@@ -412,23 +412,23 @@ export default function MistriProfilePage() {
         </div>
       </div>
 
-      {/* Main Profile Summary Banner Card */}
-      <Card className="p-6 skeuo-surface-dark text-white rounded-3xl relative overflow-hidden">
+      {/* Main Profile Summary Banner Card - #2c7865 & #fefded Skeuomorphic */}
+      <Card className="p-6 skeuo-surface-dark text-[#fefded] rounded-3xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10 text-center md:text-left">
           {/* Avatar with Camera upload button */}
           <div className="relative group">
             <img
               src={profile.avatar}
               alt={profile.fullName}
-              className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-stone-400 shadow-xl"
+              className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-[#fefded]/40 shadow-xl"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-1 p-2 rounded-xl skeuo-btn-dark text-white shadow-md transition-all cursor-pointer"
+              className="absolute bottom-1 right-1 p-2 rounded-xl skeuo-btn-dark text-[#fefded] shadow-md transition-all cursor-pointer"
               title="প্রোফাইল ছবি পরিবর্তন করুন"
             >
-              <Camera className="h-4 w-4" />
+              <Camera className="h-4 w-4 text-[#fefded]" />
             </button>
             <input
               type="file"
@@ -441,48 +441,48 @@ export default function MistriProfilePage() {
 
           <div className="space-y-2 flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 justify-center md:justify-start">
-              <h2 className="text-2xl font-black tracking-tight">{profile.fullName}</h2>
+              <h2 className="text-2xl font-black tracking-tight text-[#fefded]">{profile.fullName}</h2>
               {profile.approvalStatus === 'approved' ? (
-                <Badge variant="neutral" className="skeuo-pill bg-stone-900 text-white border-stone-700 text-xs px-2.5 py-0.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-white" />
+                <Badge variant="neutral" className="skeuo-pill bg-[#1e5548] text-[#fefded] border-[#38967f] text-xs px-2.5 py-0.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-[#fefded]" />
                   <span>ভেরিফাইড ও অনুমোদিত কারিগর</span>
                 </Badge>
               ) : (
-                <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-stone-200 border-stone-600 text-xs px-2.5 py-0.5">
-                  <Clock className="h-3.5 w-3.5 mr-1 text-stone-300" />
+                <Badge variant="neutral" className="skeuo-pill bg-[#1e5548] text-[#fefded]/80 border-[#38967f] text-xs px-2.5 py-0.5">
+                  <Clock className="h-3.5 w-3.5 mr-1 text-[#fefded]/70" />
                   <span>ভেরিফিকেশন পর্যালোচনায় রয়েছে</span>
                 </Badge>
               )}
             </div>
 
-            <p className="text-sm text-stone-300 font-semibold">{profile.professionalTitle}</p>
+            <p className="text-sm text-[#fefded]/90 font-semibold">{profile.professionalTitle}</p>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-stone-300 pt-1 font-mono">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-[#fefded]/80 pt-1 font-mono">
               <span className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-stone-400" />
+                <Phone className="h-3.5 w-3.5 text-[#fefded]/70" />
                 <span>{profile.phone}</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-stone-400" />
+                <MapPin className="h-3.5 w-3.5 text-[#fefded]/70" />
                 <span>{profile.district}, {profile.upazila}</span>
               </span>
             </div>
           </div>
 
           {/* Availability Toggle */}
-          <div className="p-3.5 bg-stone-900 rounded-2xl border border-stone-700 space-y-2 shrink-0 text-left">
-            <span className="text-xs font-bold text-stone-300 block">কাজের প্রাপ্যতা:</span>
+          <div className="p-3.5 bg-[#1e5548] rounded-2xl border border-[#38967f]/30 space-y-2 shrink-0 text-left">
+            <span className="text-xs font-bold text-[#fefded] block">কাজের প্রাপ্যতা:</span>
             <button
               type="button"
               onClick={() => setProfile((p: any) => ({ ...p, isAvailable: !p.isAvailable }))}
               className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-3 cursor-pointer ${
                 profile.isAvailable
-                  ? 'bg-white text-stone-900 border border-white'
-                  : 'bg-stone-800 text-stone-400 border border-stone-700'
+                  ? 'bg-[#fefded] text-[#2c7865] border border-[#fefded]'
+                  : 'bg-[#14382f] text-[#fefded]/60 border border-[#225f50]'
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${profile.isAvailable ? 'bg-stone-900' : 'bg-stone-500'}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${profile.isAvailable ? 'bg-[#2c7865]' : 'bg-[#fefded]/40'}`} />
                 <span>{profile.isAvailable ? 'আমি কাজ নিতে প্রস্তুত' : 'সাময়িক বন্ধ'}</span>
               </span>
               <span className="text-[10px] underline">{profile.isAvailable ? 'অন' : 'অফ'}</span>
@@ -491,21 +491,21 @@ export default function MistriProfilePage() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-stone-800 text-center">
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-[#38967f]/30 text-center">
           <div>
-            <span className="text-xl font-black text-white flex items-center justify-center gap-1">
-              <Star className="h-4 w-4 fill-white text-white" />
+            <span className="text-xl font-black text-[#fefded] flex items-center justify-center gap-1">
+              <Star className="h-4 w-4 fill-[#fefded] text-[#fefded]" />
               <span>৫.০</span>
             </span>
-            <span className="text-[11px] text-stone-400">গ্রাহক সন্তুষ্টি</span>
+            <span className="text-[11px] text-[#fefded]/70">গ্রাহক সন্তুষ্টি</span>
           </div>
           <div>
-            <span className="text-xl font-black text-white">{toBanglaNumber(profile.completedJobs || 14)}</span>
-            <span className="text-[11px] text-stone-400">সম্পন্ন কাজ</span>
+            <span className="text-xl font-black text-[#fefded]">{toBanglaNumber(profile.completedJobs || 14)}</span>
+            <span className="text-[11px] text-[#fefded]/70">সম্পন্ন কাজ</span>
           </div>
           <div>
-            <span className="text-xl font-black text-white">{toBanglaNumber(profile.reviewsCount || 1)}</span>
-            <span className="text-[11px] text-stone-400">পাবলিক রিভিউ</span>
+            <span className="text-xl font-black text-[#fefded]">{toBanglaNumber(profile.reviewsCount || 1)}</span>
+            <span className="text-[11px] text-[#fefded]/70">পাবলিক রিভিউ</span>
           </div>
         </div>
       </Card>

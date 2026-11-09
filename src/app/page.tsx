@@ -84,45 +84,45 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
-      {/* Hero Section - Pure Black & White Skeuomorphic */}
-      <section className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-stone-900 via-stone-950 to-black text-white pt-8 pb-12 px-4 sm:px-6 lg:px-8 border-b border-stone-800">
+      {/* Hero Section - Pure #2c7865 & #fefded Skeuomorphic */}
+      <section className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] pt-8 pb-12 px-4 sm:px-6 lg:px-8 border-b border-[#225f50]">
         <div className="mx-auto max-w-4xl text-center space-y-4">
-          <Badge variant="neutral" className="skeuo-pill bg-stone-800/90 text-stone-200 border-stone-700 px-3 py-1 text-xs shadow-xs font-semibold">
+          <Badge variant="neutral" className="skeuo-pill bg-[#1e5548]/90 text-[#fefded] border-[#38967f] px-3 py-1 text-xs shadow-xs font-semibold">
             {isBn ? '📍 ঠাকুরগাঁও • পঞ্চগড় • দিনাজপুর' : '📍 Thakurgaon • Panchagarh • Dinajpur'}
           </Badge>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#fefded]">
             {isBn ? 'আপনার এলাকার দক্ষ মিস্ত্রী, এখন হাতের মুঠোয়' : 'Find Trusted Local Professionals In Your Area'}
           </h1>
-          <p className="text-sm sm:text-base text-stone-300 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-[#fefded]/85 max-w-2xl mx-auto">
             {isBn 
               ? 'ইলেকট্রিশিয়ান, প্লাম্বার, রংমিস্ত্রী থেকে শুরু করে যে কোনো কারিগর খুঁজুন সহজেই এবং সরাসরি বুক করুন।'
               : 'Search verified electricians, plumbers, painters, and carpenters nearby with transparent ratings.'}
           </p>
 
-          {/* Search Box - Skeuomorphic Tactile Well */}
+          {/* Search Box - Skeuomorphic Tactile Well in #fefded */}
           <div className="mx-auto max-w-2xl pt-2">
-            <div className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-white p-2 shadow-2xl border border-stone-300">
-              <div className="flex w-full items-center gap-2 px-3 text-stone-900">
-                <Search className="h-5 w-5 text-stone-400 shrink-0" />
+            <div className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-[#fefded] p-2 shadow-2xl border border-[#2c7865]/20">
+              <div className="flex w-full items-center gap-2 px-3 text-[#2c7865]">
+                <Search className="h-5 w-5 text-[#2c7865]/60 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('search.search_placeholder')}
-                  className="w-full bg-transparent py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
+                  className="w-full bg-transparent py-2 text-sm text-[#14382f] placeholder:text-[#2c7865]/50 focus:outline-none"
                 />
               </div>
               <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark bg-stone-900 hover:bg-black text-white">
+                <Button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark text-[#fefded]">
                   {t('nav.search')}
                 </Button>
               </Link>
             </div>
           </div>
 
-          {/* District Quick Pills - High Contrast Monochrome */}
+          {/* District Quick Pills */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
-            <span className="text-stone-400 font-medium">{isBn ? 'জেলা বেছে নিন:' : 'Select District:'}</span>
+            <span className="text-[#fefded]/70 font-medium">{isBn ? 'জেলা বেছে নিন:' : 'Select District:'}</span>
             {[
               { id: 'Thakurgaon', bn: 'ঠাকুরগাঁও', en: 'Thakurgaon' },
               { id: 'Panchagarh', bn: 'পঞ্চগড়', en: 'Panchagarh' },
@@ -133,8 +133,8 @@ export default function HomePage() {
                 onClick={() => setSelectedDistrict(d.id)}
                 className={`rounded-full px-3.5 py-1 font-semibold transition-all cursor-pointer ${
                   selectedDistrict === d.id 
-                    ? 'bg-white text-stone-950 shadow-md font-bold' 
-                    : 'bg-stone-800/80 text-stone-300 hover:bg-stone-700 border border-stone-700'
+                    ? 'bg-[#fefded] text-[#2c7865] shadow-md font-bold' 
+                    : 'bg-[#1e5548]/80 text-[#fefded]/80 hover:bg-[#1e5548] border border-[#38967f]/40'
                 }`}
               >
                 {isBn ? d.bn : d.en}
@@ -262,24 +262,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Mistri Onboarding Callout Banner - Pure Black & White Skeuomorphic */}
+      {/* Mistri Onboarding Callout Banner - #2c7865 & #fefded Skeuomorphic */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="skeuo-surface-dark bg-gradient-to-b from-stone-900 to-black text-white p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl border border-stone-800 rounded-3xl">
+        <div className="skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl border border-[#225f50] rounded-3xl">
           <div className="space-y-2 text-center md:text-left">
-            <Badge variant="neutral" className="skeuo-pill bg-stone-800 text-stone-200 border-stone-700 font-bold text-xs px-3 py-1">
+            <Badge variant="neutral" className="skeuo-pill bg-[#1e5548] text-[#fefded] border-[#38967f] font-bold text-xs px-3 py-1">
               {isBn ? '👷‍♂️ মিস্ত্রীদের জন্য' : '👷‍♂️ For Skilled Workers'}
             </Badge>
-            <h3 className="text-xl sm:text-2xl font-black text-white">
+            <h3 className="text-xl sm:text-2xl font-black text-[#fefded]">
               {isBn ? 'আপনি কি দক্ষ মিস্ত্রী? mistri-তে যোগ দিয়ে আয় বাড়ান!' : 'Are you a skilled worker? Join mistri and grow your earnings!'}
             </h3>
-            <p className="text-xs sm:text-sm text-stone-300 max-w-xl">
+            <p className="text-xs sm:text-sm text-[#fefded]/85 max-w-xl">
               {isBn 
                 ? 'আপনার এনআইডি কার্ড দিয়ে ফ্রিতে রেজিস্ট্রেশন করুন। ভেরিফিকেশন সম্পন্ন হলেই আপনার এলাকার কাস্টমারদের থেকে সরাসরি কাজের অনুরোধ পাবেন।'
                 : 'Register free with your NID card. Get verified by admin to receive job requests directly from nearby customers.'}
             </p>
           </div>
           <Link href="/register?role=mistri">
-            <Button size="lg" className="shrink-0 skeuo-btn-dark bg-stone-900 hover:bg-stone-800 text-white font-bold border border-stone-600 shadow-xl px-6 py-3 rounded-2xl text-xs sm:text-sm">
+            <Button size="lg" className="shrink-0 skeuo-btn-dark text-[#fefded] font-bold shadow-xl px-6 py-3 rounded-2xl text-xs sm:text-sm">
               {isBn ? 'মিস্ত্রী হিসেবে যোগ দিন' : 'Register as a Mistri'}
             </Button>
           </Link>

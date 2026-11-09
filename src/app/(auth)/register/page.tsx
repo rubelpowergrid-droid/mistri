@@ -111,13 +111,13 @@ function RegisterContent() {
   return (
     <Card className="w-full max-w-lg p-6 sm:p-8 space-y-6 skeuo-surface border-stone-300">
       <div className="text-center space-y-2">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-white shadow-xl">
-          <Wrench className="h-7 w-7 text-white" />
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-[#fefded] shadow-xl">
+          <Wrench className="h-7 w-7 text-[#fefded]" />
         </div>
-        <h1 className="text-2xl font-black text-stone-900 tracking-tight">
-          mistri<span className="text-stone-500">.</span> {t('auth.register')}
+        <h1 className="text-2xl font-black text-[#2c7865] tracking-tight">
+          mistri<span className="text-[#1e5548]">.</span> {t('auth.register')}
         </h1>
-        <p className="text-xs sm:text-sm text-stone-600 font-medium">
+        <p className="text-xs sm:text-sm text-[#2c7865]/80 font-medium">
           {isBn ? 'নতুন অ্যাকাউন্ট খুলে সেবা গ্রহণ বা প্রদান শুরু করুন' : 'Create an account to book or provide skilled services'}
         </p>
       </div>
