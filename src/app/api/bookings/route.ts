@@ -13,6 +13,7 @@ const NO_CACHE_HEADERS = {
 
 const createBookingSchema = z.object({
   mistriId: z.string().min(1),
+  mistriName: z.string().optional(),
   subcategory: z.string().min(1),
   workDescription: z.string().min(5),
   jobAddress: z.string().min(5),
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     addBookingToStore({
-      mistriName: 'নির্ধারিত মিস্ত্রী',
+      mistriName: parsed.data.mistriName || 'নির্ধারিত মিস্ত্রী',
       customerName: 'সম্মানিত গ্রাহক',
       customerPhone: parsed.data.contactPhone,
       serviceName: parsed.data.subcategory,

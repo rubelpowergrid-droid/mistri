@@ -1,5 +1,71 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
+export function resolveCategoryFromTitle(title: string = '') {
+  const t = title.toLowerCase()
+  if (t.includes('টিন')) {
+    return {
+      category_slug: 'tin-roofing-services',
+      category_name_bn: 'ঘরের টিনের কাজ',
+      category_name_en: 'Tin Roofing Services',
+      subcategories: ['টিনশেড নির্মাণ', 'টিনের চাল মেরামত ও লিকেজ বন্ধ', 'স্টিল ট্রাস কাজ', 'সাধারণ টিনের কাজ'],
+    }
+  }
+  if (t.includes('কাঠ') || t.includes('ফার্নিচার')) {
+    return {
+      category_slug: 'carpentry-services',
+      category_name_bn: 'কাঠের কাজ',
+      category_name_en: 'Carpentry Services',
+      subcategories: ['দরজা-জানালার ফ্রেম', 'ফার্নিচার মেরামত ও অ্যাসেম্বলি', 'মডুলার ক্যাবিনেট', 'কাঠের পলিশ ও বার্নিশ'],
+    }
+  }
+  if (t.includes('প্লাম্ব') || t.includes('পাইপ') || t.includes('মোটর')) {
+    return {
+      category_slug: 'plumbing-services',
+      category_name_bn: 'প্লাম্বিং সার্ভিস',
+      category_name_en: 'Plumbing Services',
+      subcategories: ['পাইপ ফিটিং ও মেরামত', 'পানির মোটর ও পাম্প মেরামত', 'স্যানিটারি ও বাথরুম ফিটিংস', 'পানির ট্যাংক পরিষ্কার'],
+    }
+  }
+  if (t.includes('রং') || t.includes('পেইন্ট')) {
+    return {
+      category_slug: 'painting-services',
+      category_name_bn: 'রং করার কাজ',
+      category_name_en: 'Painting Services',
+      subcategories: ['ঘরের ভেতরের দেয়াল রং', 'বাইরের দেয়াল ও ওয়েদারকোট', 'কাঠের বার্নিশ ও পলিশ', 'পুটিং ও প্রাইমার কাজ'],
+    }
+  }
+  if (t.includes('রাজ') || t.includes('টাইলস') || t.includes('ঢালাই')) {
+    return {
+      category_slug: 'masonry-services',
+      category_name_bn: 'রাজমিস্ত্রীর কাজ',
+      category_name_en: 'Masonry Services',
+      subcategories: ['ইট গাঁথুনি ও প্লাস্টার', 'টাইলস ও মার্বেল ফিটিংস', 'ছাদ ঢালাই ও কংক্রিট কাজ'],
+    }
+  }
+  if (t.includes('গ্লাস') || t.includes('অ্যালুমিনিয়াম')) {
+    return {
+      category_slug: 'glass-aluminum-services',
+      category_name_bn: 'থাই গ্লাস ও অ্যালুমিনিয়াম',
+      category_name_en: 'Glass & Aluminum',
+      subcategories: ['থাই গ্লাস ফিটিংস', 'অ্যালুমিনিয়াম স্লাইডিং', 'পার্টিশন ও সিলিং'],
+    }
+  }
+  if (t.includes('গ্রিল') || t.includes('ওয়েল্ডিং') || t.includes('এসএস')) {
+    return {
+      category_slug: 'grill-metal-services',
+      category_name_bn: 'এসএস মিস্ত্রী ও গ্রিল',
+      category_name_en: 'SS & Grill Services',
+      subcategories: ['জানালা ও বারান্দার গ্রিল', 'এসএস গেট ও সিঁড়ির রেলিং', 'মেটাল ওয়েল্ডিং'],
+    }
+  }
+  return {
+    category_slug: 'electrical-services',
+    category_name_bn: 'ইলেকট্রিক্যাল কাজ',
+    category_name_en: 'Electrical Services',
+    subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
+  }
+}
+
 export async function saveMistriToSupabase(data: {
   fullName: string
   fatherName?: string
@@ -227,30 +293,33 @@ export async function getApplicantsFromSupabase(statusParam = 'all') {
 
     if (error || !data) return []
 
-    return data.map((row: any) => ({
-      id: row.id,
-      name: row.full_name,
-      phone: row.users?.phone || '017XXXXXXXX',
-      category: row.professional_title || 'ইলেকট্রিক্যাল কাজ',
-      categorySlug: 'electrical-services',
-      subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং'],
-      experienceYears: row.experience_years || 5,
-      district: row.districts?.name_bn || 'ঠাকুরগাঁও',
-      upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
-      streetAddress: row.street_address || '',
-      serviceRadiusKm: 15,
-      chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
-      baseCharge: row.base_charge || 400,
-      bio: row.bio || 'দক্ষ কারিগর। সততার সাথে কাজ করি।',
-      submittedAt: new Date(row.created_at || Date.now()).toLocaleDateString('bn-BD', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      status: (row.approval_status || 'pending') as 'pending' | 'approved' | 'rejected',
-      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-      nidNumber: '1990521934000123',
-    }))
+    return data.map((row: any) => {
+      const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+      return {
+        id: row.id,
+        name: row.full_name,
+        phone: row.users?.phone || '017XXXXXXXX',
+        category: row.professional_title || catInfo.category_name_bn,
+        categorySlug: catInfo.category_slug,
+        subcategories: catInfo.subcategories,
+        experienceYears: row.experience_years || 5,
+        district: row.districts?.name_bn || 'ঠাকুরগাঁও',
+        upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+        streetAddress: row.street_address || '',
+        serviceRadiusKm: 15,
+        chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
+        baseCharge: row.base_charge || 400,
+        bio: row.bio || 'দক্ষ কারিগর। সততার সাথে কাজ করি।',
+        submittedAt: new Date(row.created_at || Date.now()).toLocaleDateString('bn-BD', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        status: (row.approval_status || 'pending') as 'pending' | 'approved' | 'rejected',
+        avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+        nidNumber: '1990521934000123',
+      }
+    })
   } catch (err: any) {
     console.error('getApplicantsFromSupabase exception:', err.message)
     return []
@@ -267,43 +336,46 @@ export async function getApprovedMistrisFromSupabase() {
 
     if (error || !data) return []
 
-    return data.map((row: any) => ({
-      id: row.id,
-      name_bn: row.full_name,
-      name_en: row.full_name,
-      phone: row.users?.phone || '017XXXXXXXX',
-      professional_title: row.professional_title || 'দক্ষ মিস্ত্রী',
-      title: row.professional_title || 'দক্ষ মিস্ত্রী',
-      category: 'ইলেকট্রিক্যাল কাজ',
-      category_slug: 'electrical-services',
-      category_name_bn: 'ইলেকট্রিক্যাল কাজ',
-      category_name_en: 'Electrical Services',
-      subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত'],
-      district: row.districts?.name_en || 'Thakurgaon',
-      district_bn: row.districts?.name_bn || 'ঠাকুরগাঁও',
-      upazila: row.upazilas?.name_en || 'Thakurgaon Sadar',
-      upazila_bn: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
-      experience_years: row.experience_years || 5,
-      experienceYears: row.experience_years || 5,
-      average_rating: row.average_rating || 5.0,
-      rating: row.average_rating || 5.0,
-      reviewsCount: row.total_reviews || 1,
-      total_reviews: row.total_reviews || 1,
-      completedJobs: row.total_completed_jobs || 0,
-      total_completed_jobs: row.total_completed_jobs || 0,
-      base_charge: row.base_charge || 400,
-      charge_type: row.charge_type || 'negotiable',
-      is_available: true,
-      available_today: true,
-      available_tomorrow: true,
-      is_verified: true,
-      distance_km: 1.2,
-      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-      bio: row.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
-      portfolio: [],
-      reviews: [],
-      status: 'approved',
-    }))
+    return data.map((row: any) => {
+      const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+      return {
+        id: row.id,
+        name_bn: row.full_name,
+        name_en: row.full_name,
+        phone: row.users?.phone || '017XXXXXXXX',
+        professional_title: row.professional_title || 'দক্ষ মিস্ত্রী',
+        title: row.professional_title || 'দক্ষ মিস্ত্রী',
+        category: catInfo.category_name_bn,
+        category_slug: catInfo.category_slug,
+        category_name_bn: catInfo.category_name_bn,
+        category_name_en: catInfo.category_name_en,
+        subcategories: catInfo.subcategories,
+        district: row.districts?.name_en || 'Thakurgaon',
+        district_bn: row.districts?.name_bn || 'ঠাকুরগাঁও',
+        upazila: row.upazilas?.name_en || 'Thakurgaon Sadar',
+        upazila_bn: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+        experience_years: row.experience_years || 5,
+        experienceYears: row.experience_years || 5,
+        average_rating: row.average_rating || 5.0,
+        rating: row.average_rating || 5.0,
+        reviewsCount: row.total_reviews || 1,
+        total_reviews: row.total_reviews || 1,
+        completedJobs: row.total_completed_jobs || 0,
+        total_completed_jobs: row.total_completed_jobs || 0,
+        base_charge: row.base_charge || 400,
+        charge_type: row.charge_type || 'negotiable',
+        is_available: true,
+        available_today: true,
+        available_tomorrow: true,
+        is_verified: true,
+        distance_km: 1.2,
+        avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+        bio: row.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
+        portfolio: [],
+        reviews: [],
+        status: 'approved',
+      }
+    })
   } catch (err: any) {
     console.error('getApprovedMistrisFromSupabase error:', err.message)
     return []

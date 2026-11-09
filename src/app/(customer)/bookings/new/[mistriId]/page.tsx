@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Calendar, Clock, MapPin, DollarSign, 
   Upload, Camera, CheckCircle2, Shield, Wrench, 
-  Star, AlertCircle, Phone, X 
+  Star, AlertCircle, Phone, X, Loader2 
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -17,6 +17,7 @@ import { LocationPickerModal } from '@/components/maps/location-picker-modal'
 import { Coordinates } from '@/lib/geo'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
 import { MISTRI_DIRECTORY } from '@/app/api/mistris/search/route'
+import { getStoredUser } from '@/lib/auth-client'
 
 export default function NewBookingPage() {
   const params = useParams()
@@ -25,10 +26,11 @@ export default function NewBookingPage() {
   const isBn = lang === 'bn'
 
   const [mistri, setMistri] = useState<any>(null)
+  const [isLoadingMistri, setIsLoadingMistri] = useState(true)
   const [selectedSubcategory, setSelectedSubcategory] = useState('')
   const [workDescription, setWorkDescription] = useState('')
-  const [contactPhone, setContactPhone] = useState('01712345678')
-  const [preferredDate, setPreferredDate] = useState('2026-11-04')
+  const [contactPhone, setContactPhone] = useState('')
+  const [preferredDate, setPreferredDate] = useState('')
   const [preferredTime, setPreferredTime] = useState('সকাল ১০:০০ - ১২:০০')
   const [estimatedBudget, setEstimatedBudget] = useState<number | ''>(400)
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([])
@@ -45,11 +47,62 @@ export default function NewBookingPage() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    const found = MISTRI_DIRECTORY.find(m => m.id === params.mistriId) || MISTRI_DIRECTORY[0]
-    setMistri(found)
-    if (found && found.subcategories.length > 0) {
-      setSelectedSubcategory(found.subcategories[0])
+    const mistriId = params.mistriId as string
+    if (!mistriId) return
+
+    // Auto-fill logged-in user phone
+    const user = getStoredUser()
+    if (user?.phone) {
+      setContactPhone(user.phone)
+    } else {
+      setContactPhone('017XXXXXXXX')
     }
+
+    // Set today's date dynamically
+    const today = new Date().toISOString().slice(0, 10)
+    setPreferredDate(today)
+
+    // Check demo directory for instant preview if matches
+    const demoFound = MISTRI_DIRECTORY.find((m) => m.id === mistriId)
+    if (demoFound) {
+      setMistri(demoFound)
+      setIsLoadingMistri(false)
+      if (demoFound.subcategories && demoFound.subcategories.length > 0) {
+        setSelectedSubcategory(demoFound.subcategories[0])
+      }
+      if (demoFound.base_charge) {
+        setEstimatedBudget(demoFound.base_charge)
+      }
+    }
+
+    // Always fetch live data from API (covers Supabase UUID, in-memory, live registered)
+    fetch(`/api/mistris/${mistriId}`)
+      .then((res) => res.json())
+      .then((json) => {
+        setIsLoadingMistri(false)
+        if (json.success && json.data) {
+          setMistri(json.data)
+          if (json.data.subcategories && json.data.subcategories.length > 0) {
+            setSelectedSubcategory((prev) => prev || json.data.subcategories[0])
+          }
+          if (json.data.base_charge) {
+            setEstimatedBudget(json.data.base_charge)
+          }
+        } else if (!demoFound) {
+          // If not found in API and not in demo, fallback to first demo
+          setMistri(MISTRI_DIRECTORY[0])
+          if (MISTRI_DIRECTORY[0].subcategories?.length > 0) {
+            setSelectedSubcategory(MISTRI_DIRECTORY[0].subcategories[0])
+          }
+        }
+      })
+      .catch((err) => {
+        setIsLoadingMistri(false)
+        console.error('Error fetching mistri:', err)
+        if (!demoFound) {
+          setMistri(MISTRI_DIRECTORY[0])
+        }
+      })
   }, [params.mistriId])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -110,8 +163,8 @@ export default function NewBookingPage() {
       setErrorMessage(isBn ? 'কাজের সঠিক ঠিকানা দিন' : 'Please provide job address')
       return
     }
-    if (!contactPhone.trim()) {
-      setErrorMessage(isBn ? 'মোবাইল নম্বর দিন' : 'Please provide contact phone')
+    if (!contactPhone.trim() || contactPhone.includes('X')) {
+      setErrorMessage(isBn ? 'অনুগ্রহ করে সঠিক মোবাইল নম্বর দিন' : 'Please provide a valid contact phone')
       return
     }
 
@@ -123,7 +176,8 @@ export default function NewBookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mistriId: mistri.id,
-          subcategory: selectedSubcategory,
+          mistriName: mistri.name_bn || mistri.name,
+          subcategory: selectedSubcategory || 'সাধারণ সেবা',
           workDescription,
           jobAddress,
           latitude: jobCoordinates.latitude,
@@ -148,7 +202,7 @@ export default function NewBookingPage() {
               id: data?.booking?.id || `b-${Date.now()}`,
               bookingNumber: data?.booking?.booking_number || `MST-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
               mistriId: mistri.id,
-              mistriName: mistri.name_bn,
+              mistriName: mistri.name_bn || mistri.name,
               mistriTitle: mistri.professional_title,
               mistriPhone: mistri.phone || contactPhone,
               mistriAvatar: mistri.avatar,
@@ -175,8 +229,17 @@ export default function NewBookingPage() {
     }
   }
 
+  if (isLoadingMistri && !mistri) {
+    return (
+      <div className="mx-auto max-w-3xl p-12 text-center text-xs text-stone-600 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-[#2c7865]" />
+        <span>{isBn ? 'কারিগর তথ্য লোড হচ্ছে...' : 'Loading professional details...'}</span>
+      </div>
+    )
+  }
+
   if (!mistri) {
-    return <div className="p-8 text-center text-xs text-slate-500">লোড হচ্ছে...</div>
+    return <div className="p-8 text-center text-xs text-stone-500">লোড হচ্ছে...</div>
   }
 
   return (
@@ -185,15 +248,15 @@ export default function NewBookingPage() {
       <div>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2"
+          className="flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-900 mb-2 cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>{isBn ? 'প্রোফাইলে ফিরুন' : 'Back to Profile'}</span>
+          <span>{isBn ? 'ফলাফলে ফিরুন' : 'Back to Results'}</span>
         </button>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
           {isBn ? 'বুকিং অনুরোধ ফর্ম' : 'Service Booking Request'}
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-stone-600">
           {isBn 
             ? 'আপনার কাজের বিবরণ দিন এবং মিস্ত্রীর কাছে সরাসরি বুকিং অনুরোধ পাঠান' 
             : 'Fill in job details to send an instant request to this professional'}
@@ -204,30 +267,30 @@ export default function NewBookingPage() {
       <Card className="p-4 sm:p-5 skeuo-surface-dark text-white flex items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <img
-            src={mistri.avatar}
+            src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
             alt={mistri.name_bn}
-            className="h-14 w-14 rounded-2xl object-cover border-2 border-stone-500 shrink-0 shadow-md"
+            className="h-14 w-14 rounded-2xl object-cover border-2 border-[#2c7865] shrink-0 shadow-md"
           />
           <div className="space-y-0.5">
-            <span className="text-[10px] text-stone-300 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-[#fefded]/70 font-bold uppercase tracking-wider block">
               {isBn ? 'নির্বাচিত কারিগর' : 'Selected Professional'}
             </span>
-            <h3 className="text-sm font-bold text-white">{mistri.name_bn}</h3>
-            <p className="text-xs text-stone-300">{mistri.professional_title}</p>
-            <div className="flex items-center gap-2 text-[11px] text-stone-400">
+            <h3 className="text-base font-bold text-white">{mistri.name_bn || mistri.name}</h3>
+            <p className="text-xs text-[#fefded]/80">{mistri.professional_title}</p>
+            <div className="flex items-center gap-2 text-[11px] text-[#fefded]/70">
               <span className="flex items-center gap-0.5 text-amber-300">
                 <Star className="h-3 w-3 fill-amber-300" />
-                {mistri.average_rating}
+                {mistri.average_rating || 5.0}
               </span>
               <span>•</span>
-              <span>{formatDistance(mistri.distance_km, isBn)} দূরে</span>
+              <span>{formatDistance(mistri.distance_km || 1.2, isBn)} দূরে</span>
             </div>
           </div>
         </div>
 
         <div className="text-right shrink-0">
-          <span className="text-[10px] text-stone-400 block font-semibold">{isBn ? 'প্রারম্ভিক ফি' : 'Base Fee'}</span>
-          <span className="text-lg font-black text-white">{formatBDT(mistri.base_charge, isBn)}</span>
+          <span className="text-[10px] text-[#fefded]/70 block font-semibold">{isBn ? 'প্রারম্ভিক ফি' : 'Base Fee'}</span>
+          <span className="text-lg font-black text-white">{formatBDT(mistri.base_charge || 400, isBn)}</span>
         </div>
       </Card>
 
@@ -241,21 +304,24 @@ export default function NewBookingPage() {
       {/* Booking Form */}
       <form onSubmit={handleSubmitBooking} className="space-y-6">
         <Card className="p-6 space-y-5 skeuo-surface">
-          <h2 className="text-sm font-bold text-stone-900 border-b border-stone-200 pb-3">
+          <h2 className="text-sm font-bold text-stone-900 border-b border-stone-200/70 pb-3">
             {isBn ? '১. কাজের ধরন ও বিবরণ' : '1. Work Details'}
           </h2>
 
           {/* Subcategory Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">
+            <label className="text-xs font-semibold text-stone-700">
               {isBn ? 'কাজের সুনির্দিষ্ট ক্যাটাগরি' : 'Specific Work Type'}
             </label>
             <select
               value={selectedSubcategory}
               onChange={(e) => setSelectedSubcategory(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+              className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
             >
-              {mistri.subcategories.map((sub: string, i: number) => (
+              {(mistri.subcategories && mistri.subcategories.length > 0 
+                ? mistri.subcategories 
+                : ['সাধারণ কাজ', 'মেরামত ও ফিটিংস']
+              ).map((sub: string, i: number) => (
                 <option key={i} value={sub}>{sub}</option>
               ))}
             </select>
@@ -263,7 +329,7 @@ export default function NewBookingPage() {
 
           {/* Detailed Problem Description */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">
+            <label className="text-xs font-semibold text-stone-700">
               {t('booking.work_description')} <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -271,27 +337,27 @@ export default function NewBookingPage() {
               value={workDescription}
               onChange={(e) => setWorkDescription(e.target.value)}
               placeholder={t('booking.work_description_placeholder')}
-              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+              className="w-full rounded-xl border border-stone-300 bg-white p-3 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
               required
             />
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-stone-500">
               {isBn ? 'সমস্যার বিস্তারিত বিবরণ দিলে মিস্ত্রী প্রয়োজনীয় টুলস নিয়ে আসতে পারবেন।' : 'Accurate description helps the worker bring the right tools.'}
             </p>
           </div>
 
           {/* Photo Upload (Up to 3) */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-700 block">
+            <label className="text-xs font-semibold text-stone-700 block">
               {t('booking.upload_photos')} ({toBanglaNumber(uploadedPhotos.length)}/৩)
             </label>
             <div className="flex flex-wrap gap-3">
               {uploadedPhotos.map((photo, index) => (
-                <div key={index} className="relative h-20 w-20 rounded-2xl overflow-hidden border border-slate-200 group">
+                <div key={index} className="relative h-20 w-20 rounded-2xl overflow-hidden border border-stone-200 group">
                   <img src={photo} alt="Work issue" className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}
-                    className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-red-600 transition-colors"
+                    className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-red-600 transition-colors cursor-pointer"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -312,7 +378,7 @@ export default function NewBookingPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center h-20 w-20 rounded-2xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 text-slate-400 hover:text-blue-600 transition-colors text-center p-2 cursor-pointer"
+                  className="flex flex-col items-center justify-center h-20 w-20 rounded-2xl border-2 border-dashed border-stone-300 hover:border-[#2c7865] bg-stone-50/50 text-stone-400 hover:text-[#2c7865] transition-colors text-center p-2 cursor-pointer"
                   title={isBn ? 'ক্লিক করে আপনার ফোন বা পিসি থেকে ছবি নির্বাচন করুন' : 'Click to select photo from device'}
                 >
                   <Camera className="h-5 w-5 mb-1" />
@@ -324,21 +390,21 @@ export default function NewBookingPage() {
         </Card>
 
         {/* Location & Time Selection */}
-        <Card className="p-6 space-y-5 border-slate-200">
-          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
+        <Card className="p-6 space-y-5 skeuo-surface">
+          <h2 className="text-sm font-bold text-stone-900 border-b border-stone-200/70 pb-3">
             {isBn ? '২. কাজের অবস্থান ও সময়' : '2. Location & Preferred Schedule'}
           </h2>
 
           {/* Address with Map Picker Launcher */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="text-xs font-semibold text-stone-700">
                 {t('booking.job_address')} <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={() => setIsLocationModalOpen(true)}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-xs font-bold text-[#2c7865] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <MapPin className="h-3.5 w-3.5" />
                 <span>{isBn ? 'ম্যাপে পিন করুন' : 'Pin on Map'}</span>
@@ -351,8 +417,8 @@ export default function NewBookingPage() {
               placeholder="রোড নম্বর, বাড়ি বা ভবনের নাম..."
               required
             />
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <MapPin className="h-3 w-3 text-blue-600" />
+            <div className="flex items-center gap-1.5 text-[11px] text-stone-500">
+              <MapPin className="h-3 w-3 text-[#2c7865]" />
               <span>জিপিএস কোঅর্ডিনেট সংযুক্ত: {jobCoordinates.latitude.toFixed(4)}, {jobCoordinates.longitude.toFixed(4)}</span>
             </div>
           </div>
@@ -368,13 +434,13 @@ export default function NewBookingPage() {
             />
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="text-xs font-semibold text-stone-700">
                 {t('booking.preferred_time')}
               </label>
               <select
                 value={preferredTime}
                 onChange={(e) => setPreferredTime(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
               >
                 <option value="সকাল ৯:০০ - ১১:০০">সকাল ৯:০০ - ১১:০০</option>
                 <option value="সকাল ১১:০০ - দুপুর ১:০০">সকাল ১১:০০ - দুপুর ১:০০</option>
@@ -414,7 +480,7 @@ export default function NewBookingPage() {
         {/* Safety Note */}
         <div className="rounded-2xl skeuo-surface p-4 border border-stone-300 text-xs text-stone-900 space-y-1">
           <span className="font-bold flex items-center gap-1.5 text-stone-900">
-            <Shield className="h-4 w-4 text-stone-900" />
+            <Shield className="h-4 w-4 text-[#2c7865]" />
             {isBn ? 'বুকিং নির্দেশিকা' : 'Booking Policy'}
           </span>
           <p className="text-[11px] leading-relaxed text-stone-600">
@@ -450,4 +516,3 @@ export default function NewBookingPage() {
     </div>
   )
 }
-
