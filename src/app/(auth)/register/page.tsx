@@ -8,6 +8,7 @@ import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 
 function RegisterContent() {
   const router = useRouter()
@@ -20,10 +21,36 @@ function RegisterContent() {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [districtsList, setDistrictsList] = useState<DistrictOption[]>(DEFAULT_DISTRICTS)
   const [district, setDistrict] = useState('Thakurgaon')
   const [upazila, setUpazila] = useState('Thakurgaon Sadar')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  React.useEffect(() => {
+    async function loadLiveLocations() {
+      try {
+        const res = await fetch('/api/admin/locations')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.districts) && data.districts.length > 0) {
+          setDistrictsList(data.districts)
+        }
+      } catch (err) {
+        console.warn('Failed to load live locations:', err)
+      }
+    }
+    loadLiveLocations()
+  }, [])
+
+  const availableUpazilas = getUpazilasForDistrict(district, districtsList)
+
+  const handleDistrictChange = (newDist: string) => {
+    setDistrict(newDist)
+    const newUpList = getUpazilasForDistrict(newDist, districtsList)
+    if (newUpList && newUpList.length > 0) {
+      setUpazila(newUpList[0].name_en || newUpList[0].name_bn)
+    }
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -149,12 +176,14 @@ function RegisterContent() {
             </label>
             <select
               value={district}
-              onChange={(e) => setDistrict(e.target.value)}
+              onChange={(e) => handleDistrictChange(e.target.value)}
               className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
             >
-              <option value="Thakurgaon">{isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon'}</option>
-              <option value="Panchagarh">{isBn ? 'পঞ্চগড়' : 'Panchagarh'}</option>
-              <option value="Dinajpur">{isBn ? 'দিনাজপুর' : 'Dinajpur'}</option>
+              {districtsList.map((d) => (
+                <option key={d.id} value={d.name_en}>
+                  {isBn ? d.name_bn : d.name_en}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -167,11 +196,11 @@ function RegisterContent() {
               onChange={(e) => setUpazila(e.target.value)}
               className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
             >
-              <option value="Thakurgaon Sadar">{isBn ? 'সদর উপজেলা' : 'Sadar'}</option>
-              <option value="Pirganj">{isBn ? 'পীরগঞ্জ' : 'Pirganj'}</option>
-              <option value="Ranisankail">{isBn ? 'রাণীশংকৈল' : 'Ranisankail'}</option>
-              <option value="Boda">{isBn ? 'বোদা' : 'Boda'}</option>
-              <option value="Birganj">{isBn ? 'বীরগঞ্জ' : 'Birganj'}</option>
+              {availableUpazilas.map((u) => (
+                <option key={u.id} value={u.name_en || u.name_bn}>
+                  {isBn ? u.name_bn : u.name_en}
+                </option>
+              ))}
             </select>
           </div>
         </div>

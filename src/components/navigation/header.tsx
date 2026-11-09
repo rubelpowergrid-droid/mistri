@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { MapPin, Globe, Bell, User, Wrench } from 'lucide-react'
+import { MapPin, Globe, Bell, User, Wrench, LogOut, Shield } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { NotificationDrawer } from '@/components/notifications/notification-drawer'
-import { getStoredUser, AUTH_EVENT_NAME, UserSession } from '@/lib/auth-client'
+import { getStoredUser, clearStoredUser, AUTH_EVENT_NAME, UserSession } from '@/lib/auth-client'
 
 export function Header() {
   const { lang, setLanguage, t } = useI18n()
+  const isBn = lang === 'bn'
   const [selectedLocation, setSelectedLocation] = useState('ঠাকুরগাঁও সদর')
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState<number>(2) // initial demo indicator
@@ -117,27 +118,45 @@ export function Header() {
               )}
             </button>
 
-            {/* Auth / Profile Button */}
+            {/* Auth / Profile Button with Quick Logout */}
             {currentUser ? (
-              <Link
-                href={
-                  currentUser.role === 'admin'
-                    ? '/admin/dashboard'
-                    : currentUser.role === 'mistri'
-                    ? '/mistri/profile'
-                    : '/profile'
-                }
-                className="skeuo-btn-dark flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white transition-all"
-              >
-                <User className="h-3.5 w-3.5" />
-                <span className="max-w-[110px] truncate">
-                  {currentUser.role === 'admin'
-                    ? 'এডমিন ড্যাশবোর্ড'
-                    : currentUser.role === 'mistri'
-                    ? 'আমার প্রোফাইল'
-                    : 'আমার প্রোফাইল'}
-                </span>
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={
+                    currentUser.role === 'admin'
+                      ? '/admin/dashboard'
+                      : currentUser.role === 'mistri'
+                      ? '/mistri/profile'
+                      : '/profile'
+                  }
+                  className="skeuo-btn-dark flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white transition-all"
+                >
+                  {currentUser.role === 'admin' ? (
+                    <Shield className="h-3.5 w-3.5 text-amber-400" />
+                  ) : (
+                    <User className="h-3.5 w-3.5" />
+                  )}
+                  <span className="max-w-[110px] truncate">
+                    {currentUser.role === 'admin'
+                      ? 'অ্যাডমিন'
+                      : currentUser.name || 'আমার প্রোফাইল'}
+                  </span>
+                </Link>
+
+                {/* Logout Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearStoredUser()
+                    setCurrentUser(null)
+                  }}
+                  title={isBn ? 'লগআউট করুন' : 'Sign Out'}
+                  className="skeuo-btn-light p-2 text-red-600 hover:text-red-700 hover:bg-red-50 transition-all cursor-pointer"
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ) : (
               <Link
                 href="/login"

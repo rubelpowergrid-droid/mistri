@@ -43,9 +43,15 @@ export async function GET(request: NextRequest) {
       ? combined 
       : combined.filter(a => a.status === statusParam)
 
+    const pendingTotal = combined.filter(a => a.status === 'pending').length
+    const approvedTotal = combined.filter(a => a.status === 'approved').length
+
     return NextResponse.json({
       success: true,
-      count: filtered.length,
+      count: pendingTotal,
+      pendingCount: pendingTotal,
+      approvedCount: approvedTotal,
+      totalCount: combined.length,
       applicants: filtered,
     })
   } catch (err: any) {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, ShieldCheck, Wrench, Users, 
   Layers, MapPin, Calendar, FileText, ArrowLeft,
@@ -10,26 +10,47 @@ import {
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Badge } from '@/components/ui/badge'
+import { getStoredUser, clearStoredUser } from '@/lib/auth-client'
+import { toBanglaNumber } from '@/lib/utils'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { lang, setLanguage } = useI18n()
   const isBn = lang === 'bn'
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [pendingCount, setPendingCount] = useState<number>(3)
+  const [pendingCount, setPendingCount] = useState<number>(0)
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false)
 
+  // Auth Guard: Admin access only
+  React.useEffect(() => {
+    const user = getStoredUser()
+    if (!user || user.role !== 'admin') {
+      router.replace('/login?redirect=' + encodeURIComponent(pathname))
+      return
+    }
+    setIsAuthorized(true)
+  }, [pathname, router])
+
+  // Sync pending count
   React.useEffect(() => {
     async function loadCount() {
       try {
-        const res = await fetch('/api/admin/verification')
+        const res = await fetch('/api/admin/verification?status=all')
         const data = await res.json()
-        if (data.success && typeof data.count === 'number') {
-          setPendingCount(data.count)
+        if (data.success) {
+          const count = typeof data.pendingCount === 'number' ? data.pendingCount : (typeof data.count === 'number' ? data.count : 0)
+          setPendingCount(count)
         }
       } catch {}
     }
     loadCount()
   }, [pathname])
+
+  const handleLogout = () => {
+    clearStoredUser()
+    window.location.href = '/login'
+  }
 
   const navLinks = [
     { href: '/admin/dashboard', label: isBn ? 'ওভারভিউ ড্যাশবোর্ড' : 'Overview Dashboard', icon: LayoutDashboard },
@@ -37,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: '/admin/verification', 
       label: isBn ? 'মিস্ত্রী ভেরিফিকেশন' : 'NID Verification', 
       icon: ShieldCheck, 
-      badge: pendingCount > 0 ? (isBn ? (pendingCount === 3 ? '৩' : String(pendingCount)) : String(pendingCount)) : undefined 
+      badge: pendingCount > 0 ? (isBn ? toBanglaNumber(pendingCount) : String(pendingCount)) : undefined 
     },
     { href: '/admin/mistris', label: isBn ? 'সকল মিস্ত্রী' : 'All Mistris', icon: Wrench },
     { href: '/admin/customers', label: isBn ? 'কাস্টমার তালিকা' : 'Customers', icon: Users },
@@ -146,6 +167,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <ChevronRight className="h-3 w-3 text-slate-500" />
           </Link>
+
+          {/* Admin Sign Out */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-xs font-semibold text-red-300 hover:text-white transition-colors cursor-pointer border border-red-800/40"
+          >
+            <div className="flex items-center gap-2">
+              <LogOut className="h-3.5 w-3.5 text-red-400" />
+              <span>{isBn ? 'অ্যাডমিন লগআউট' : 'Admin Logout'}</span>
+            </div>
+          </button>
         </div>
       </aside>
 
@@ -166,12 +199,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
               {isBn ? 'সুপার অ্যাডমিন সেশন সক্রিয়' : 'Super Admin Active'}
             </span>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full border border-red-200 transition-colors cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5 text-red-600" />
+              <span>{isBn ? 'লগআউট' : 'Logout'}</span>
+            </button>
           </div>
         </div>
 
         {/* Content Body */}
         <div className="p-4 sm:p-6 lg:p-8">
-          {children}
+          {isAuthorized ? (
+            children
+          ) : (
+            <div className="flex h-64 items-center justify-center text-sm font-semibold text-slate-500">
+              {isBn ? 'অ্যাডমিন অ্যাক্সেস যাচাই করা হচ্ছে...' : 'Verifying admin authorization...'}
+            </div>
+          )}
         </div>
       </main>
     </div>

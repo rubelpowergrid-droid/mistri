@@ -97,7 +97,7 @@ export default function VerificationQueuePage() {
               {isBn ? 'মিস্ত্রী এনআইডি ভেরিফিকেশন কিউ' : 'Mistri NID Verification Queue'}
             </h1>
             <Badge variant="warning" className="px-2 py-0.5 text-xs font-bold">
-              {toBanglaNumber(applicants.length)} টি অপেক্ষমাণ
+              {toBanglaNumber(pendingCount)} টি অপেক্ষমাণ
             </Badge>
           </div>
           <p className="text-xs text-slate-500 mt-1">

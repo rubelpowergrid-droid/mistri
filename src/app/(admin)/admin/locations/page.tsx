@@ -31,47 +31,47 @@ export default function AdminLocationsPage() {
 
   const [districts, setDistricts] = useState<DistrictItem[]>([
     {
-      id: 'dist-1',
+      id: '11111111-1111-1111-1111-111111111101',
       name_bn: 'ঠাকুরগাঁও',
       name_en: 'Thakurgaon',
       is_active: true,
       upazilas: [
-        { id: 'up-1', name_bn: 'ঠাকুরগাঁও সদর', name_en: 'Thakurgaon Sadar', is_active: true, areasCount: 14 },
-        { id: 'up-2', name_bn: 'পীরগঞ্জ', name_en: 'Pirganj', is_active: true, areasCount: 10 },
-        { id: 'up-3', name_bn: 'রাণীশংকৈল', name_en: 'Ranisankail', is_active: true, areasCount: 8 },
-        { id: 'up-4', name_bn: 'হরিপুর', name_en: 'Haripur', is_active: true, areasCount: 6 },
-        { id: 'up-5', name_bn: 'বালিয়াডাঙ্গী', name_en: 'Baliadangi', is_active: true, areasCount: 8 },
+        { id: 'e1db003d-c4f1-4462-bba1-4f6822c102bd', name_bn: 'ঠাকুরগাঁও সদর', name_en: 'Thakurgaon Sadar', is_active: true, areasCount: 14 },
+        { id: 'c616ffbf-8e66-4d7a-99ef-c67a7594146b', name_bn: 'পীরগঞ্জ', name_en: 'Pirganj', is_active: true, areasCount: 10 },
+        { id: '5fc1cb75-7731-43bc-bf39-974ac80ba00f', name_bn: 'রাণীশংকৈল', name_en: 'Ranisankail', is_active: true, areasCount: 8 },
+        { id: '74001eb4-1849-4229-90b1-19ef6c11d88a', name_bn: 'হরিপুর', name_en: 'Haripur', is_active: true, areasCount: 6 },
+        { id: '10572976-bb45-4aa2-9fc9-d4990332232a', name_bn: 'বালিয়াডাঙ্গী', name_en: 'Baliadangi', is_active: true, areasCount: 8 },
       ],
     },
     {
-      id: 'dist-2',
+      id: '11111111-1111-1111-1111-111111111102',
       name_bn: 'পঞ্চগড়',
       name_en: 'Panchagarh',
       is_active: true,
       upazilas: [
-        { id: 'up-6', name_bn: 'পঞ্চগড় সদর', name_en: 'Panchagarh Sadar', is_active: true, areasCount: 10 },
-        { id: 'up-7', name_bn: 'বোদা', name_en: 'Boda', is_active: true, areasCount: 10 },
-        { id: 'up-8', name_bn: 'দেবীগঞ্জ', name_en: 'Debiganj', is_active: true, areasCount: 10 },
-        { id: 'up-9', name_bn: 'আটোয়ারী', name_en: 'Atwari', is_active: true, areasCount: 6 },
-        { id: 'up-10', name_bn: 'তেঁতুলিয়া', name_en: 'Tetulia', is_active: true, areasCount: 7 },
+        { id: '52d7c29b-8ce4-421e-a053-675f15bb9aca', name_bn: 'পঞ্চগড় সদর', name_en: 'Panchagarh Sadar', is_active: true, areasCount: 10 },
+        { id: '2d176322-11fe-4506-87e6-da5f8f134892', name_bn: 'বোদা', name_en: 'Boda', is_active: true, areasCount: 10 },
+        { id: '1870be5e-e3b9-4425-bef5-2d89f9b67db4', name_bn: 'দেবীগঞ্জ', name_en: 'Debiganj', is_active: true, areasCount: 10 },
+        { id: '150ccbb6-9aec-41aa-9f58-5151aaceee5b', name_bn: 'আটোয়ারী', name_en: 'Atwari', is_active: true, areasCount: 6 },
+        { id: '89493bf6-e291-4295-96d0-c12d2cbb90c6', name_bn: 'তেঁতুলিয়া', name_en: 'Tetulia', is_active: true, areasCount: 7 },
       ],
     },
     {
-      id: 'dist-3',
+      id: '11111111-1111-1111-1111-111111111103',
       name_bn: 'দিনাজপুর',
       name_en: 'Dinajpur',
       is_active: true,
       upazilas: [
-        { id: 'up-11', name_bn: 'দিনাজপুর সদর', name_en: 'Dinajpur Sadar', is_active: true, areasCount: 14 },
-        { id: 'up-12', name_bn: 'বীরগঞ্জ', name_en: 'Birganj', is_active: true, areasCount: 11 },
-        { id: 'up-13', name_bn: 'কাহারোল', name_en: 'Kaharole', is_active: true, areasCount: 6 },
-        { id: 'up-14', name_bn: 'বোচাগঞ্জ', name_en: 'Bochaganj', is_active: true, areasCount: 6 },
-        { id: 'up-15', name_bn: 'পার্বতীপুর', name_en: 'Parbatipur', is_active: true, areasCount: 10 },
+        { id: '03e165c1-56fe-471c-a34a-98c68544e334', name_bn: 'দিনাজপুর সদর', name_en: 'Dinajpur Sadar', is_active: true, areasCount: 14 },
+        { id: '8d15687b-41b8-4645-ac5f-ebed2f4d8fce', name_bn: 'বীরগঞ্জ', name_en: 'Birganj', is_active: true, areasCount: 11 },
+        { id: '610dee40-6daf-4679-ab80-31b6f04a9716', name_bn: 'কাহারোল', name_en: 'Kaharole', is_active: true, areasCount: 6 },
+        { id: '1cabc744-0c11-4bab-831d-d532edc46f05', name_bn: 'বোচাগঞ্জ', name_en: 'Bochaganj', is_active: true, areasCount: 6 },
+        { id: '12c910d4-1d73-4696-952e-bd6b7e6511e6', name_bn: 'পার্বতীপুর', name_en: 'Parbatipur', is_active: true, areasCount: 10 },
       ],
     },
   ])
 
-  const [selectedDistId, setSelectedDistId] = useState<string>('dist-1')
+  const [selectedDistId, setSelectedDistId] = useState<string>('11111111-1111-1111-1111-111111111101')
   const [isAddDistModalOpen, setIsAddDistModalOpen] = useState(false)
   const [newDistBn, setNewDistBn] = useState('')
   const [newDistEn, setNewDistEn] = useState('')
@@ -79,6 +79,27 @@ export default function AdminLocationsPage() {
   const [isAddUpazilaModalOpen, setIsAddUpazilaModalOpen] = useState(false)
   const [newUpBn, setNewUpBn] = useState('')
   const [newUpEn, setNewUpEn] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+
+  // Load live locations from Supabase database
+  React.useEffect(() => {
+    async function loadLocations() {
+      try {
+        const res = await fetch('/api/admin/locations')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.districts) && data.districts.length > 0) {
+          setDistricts(data.districts)
+          if (!data.districts.some((d: any) => d.id === selectedDistId)) {
+            setSelectedDistId(data.districts[0].id)
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load locations:', e)
+      }
+    }
+    loadLocations()
+  }, [])
 
   const activeDistrict = districts.find(d => d.id === selectedDistId) || districts[0]
 
@@ -100,44 +121,92 @@ export default function AdminLocationsPage() {
     )
   }
 
-  const handleAddDistrict = (e: React.FormEvent) => {
+  const handleAddDistrict = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newDistBn || !newDistEn) return
-    const newDist: DistrictItem = {
-      id: 'dist-' + Date.now(),
-      name_bn: newDistBn,
-      name_en: newDistEn,
-      is_active: true,
-      upazilas: [],
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'district',
+          name_bn: newDistBn,
+          name_en: newDistEn,
+        }),
+      })
+      const data = await res.json()
+      const newDist: DistrictItem = data.data || {
+        id: 'dist-' + Date.now(),
+        name_bn: newDistBn,
+        name_en: newDistEn,
+        is_active: true,
+        upazilas: [],
+      }
+      setDistricts(prev => [...prev, newDist])
+      setSelectedDistId(newDist.id)
+      setNewDistBn('')
+      setNewDistEn('')
+      setIsAddDistModalOpen(false)
+      setFeedbackMessage(isBn ? '✓ নতুন জেলা সফলভাবে যুক্ত হয়েছে!' : 'District added successfully!')
+      setTimeout(() => setFeedbackMessage(''), 3000)
+    } catch {
+      alert('জেলা যুক্ত করতে সমস্যা হয়েছে')
+    } finally {
+      setIsSubmitting(false)
     }
-    setDistricts(prev => [...prev, newDist])
-    setSelectedDistId(newDist.id)
-    setNewDistBn('')
-    setNewDistEn('')
-    setIsAddDistModalOpen(false)
   }
 
-  const handleAddUpazila = (e: React.FormEvent) => {
+  const handleAddUpazila = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newUpBn || !newUpEn) return
-    const newUp: UpazilaItem = {
-      id: 'up-' + Date.now(),
-      name_bn: newUpBn,
-      name_en: newUpEn,
-      is_active: true,
-      areasCount: 0,
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'upazila',
+          parent_id: selectedDistId,
+          name_bn: newUpBn,
+          name_en: newUpEn,
+        }),
+      })
+      const data = await res.json()
+      const newUp: UpazilaItem = data.data || {
+        id: 'up-' + Date.now(),
+        name_bn: newUpBn,
+        name_en: newUpEn,
+        is_active: true,
+        areasCount: 0,
+      }
+      setDistricts(prev =>
+        prev.map(d => d.id === selectedDistId ? { ...d, upazilas: [...d.upazilas, newUp] } : d)
+      )
+      setNewUpBn('')
+      setNewUpEn('')
+      setIsAddUpazilaModalOpen(false)
+      setFeedbackMessage(isBn ? '✓ নতুন উপজেলা সফলভাবে যুক্ত হয়েছে!' : 'Upazila added successfully!')
+      setTimeout(() => setFeedbackMessage(''), 3000)
+    } catch {
+      alert('উপজেলা যুক্ত করতে সমস্যা হয়েছে')
+    } finally {
+      setIsSubmitting(false)
     }
-    setDistricts(prev =>
-      prev.map(d => d.id === selectedDistId ? { ...d, upazilas: [...d.upazilas, newUp] } : d)
-    )
-    setNewUpBn('')
-    setNewUpEn('')
-    setIsAddUpazilaModalOpen(false)
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
+      {feedbackMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center justify-between animate-fadeIn">
+          <span>{feedbackMessage}</span>
+          <button onClick={() => setFeedbackMessage('')} className="text-emerald-600 hover:text-emerald-900">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -299,7 +368,7 @@ export default function AdminLocationsPage() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsAddDistModalOpen(false)}>
                   {isBn ? 'বাতিল' : 'Cancel'}
                 </Button>
-                <Button size="sm" type="submit">
+                <Button size="sm" type="submit" isLoading={isSubmitting}>
                   {isBn ? 'সংরক্ষণ করুন' : 'Save'}
                 </Button>
               </div>
@@ -336,7 +405,7 @@ export default function AdminLocationsPage() {
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsAddUpazilaModalOpen(false)}>
                   {isBn ? 'বাতিল' : 'Cancel'}
                 </Button>
-                <Button size="sm" type="submit">
+                <Button size="sm" type="submit" isLoading={isSubmitting}>
                   {isBn ? 'সংরক্ষণ করুন' : 'Save'}
                 </Button>
               </div>

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toBanglaNumber } from '@/lib/utils'
+import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 
 export default function MistriOnboardingPage() {
   const router = useRouter()
@@ -84,11 +85,37 @@ export default function MistriOnboardingPage() {
   )
 
   // Step 3: Location
+  const [districtsList, setDistrictsList] = useState<DistrictOption[]>(DEFAULT_DISTRICTS)
   const [district, setDistrict] = useState('Thakurgaon')
   const [upazila, setUpazila] = useState('Thakurgaon Sadar')
   const [area, setArea] = useState('বাসস্ট্যান্ড এলাকা')
   const [streetAddress, setStreetAddress] = useState('রোড নং ৩, পূর্ব হাজীপাড়া, ঠাকুরগাঁও')
   const [maxRadiusKm, setMaxRadiusKm] = useState(15)
+
+  React.useEffect(() => {
+    async function loadLiveLocations() {
+      try {
+        const res = await fetch('/api/admin/locations')
+        const data = await res.json()
+        if (data.success && Array.isArray(data.districts) && data.districts.length > 0) {
+          setDistrictsList(data.districts)
+        }
+      } catch (err) {
+        console.warn('Failed to load live locations in onboarding:', err)
+      }
+    }
+    loadLiveLocations()
+  }, [])
+
+  const availableUpazilas = getUpazilasForDistrict(district, districtsList)
+
+  const handleDistrictChange = (newDist: string) => {
+    setDistrict(newDist)
+    const newUpList = getUpazilasForDistrict(newDist, districtsList)
+    if (newUpList && newUpList.length > 0) {
+      setUpazila(newUpList[0].name_en || newUpList[0].name_bn)
+    }
+  }
 
   // Step 4: Skills & Pricing
   const [selectedCategory, setSelectedCategory] = useState('electrical-services')
@@ -593,12 +620,14 @@ export default function MistriOnboardingPage() {
                 </label>
                 <select
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
                 >
-                  <option value="Thakurgaon">{isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon'}</option>
-                  <option value="Panchagarh">{isBn ? 'পঞ্চগড়' : 'Panchagarh'}</option>
-                  <option value="Dinajpur">{isBn ? 'দিনাজপুর' : 'Dinajpur'}</option>
+                  {districtsList.map((d) => (
+                    <option key={d.id} value={d.name_en}>
+                      {isBn ? d.name_bn : d.name_en}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -611,11 +640,11 @@ export default function MistriOnboardingPage() {
                   onChange={(e) => setUpazila(e.target.value)}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 px-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
                 >
-                  <option value="Thakurgaon Sadar">{isBn ? 'ঠাকুরগাঁও সদর' : 'Thakurgaon Sadar'}</option>
-                  <option value="Pirganj">{isBn ? 'পীরগঞ্জ' : 'Pirganj'}</option>
-                  <option value="Ranisankail">{isBn ? 'রাণীশংকৈল' : 'Ranisankail'}</option>
-                  <option value="Baliadangi">{isBn ? 'বালিয়াডাঙ্গী' : 'Baliadangi'}</option>
-                  <option value="Boda">{isBn ? 'বোদা' : 'Boda'}</option>
+                  {availableUpazilas.map((u) => (
+                    <option key={u.id} value={u.name_en || u.name_bn}>
+                      {isBn ? u.name_bn : u.name_en}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
