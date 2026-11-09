@@ -228,3 +228,4 @@ export function getSubcategoriesForCategory(
 
   return found ? (found.subcategories || []) : []
 }
+

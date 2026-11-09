@@ -11,7 +11,7 @@ const OsmMapView = dynamic(
     ssr: false,
     loading: () => (
       <div className="h-96 w-full rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-xs text-slate-400 gap-2">
-        <div className="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         <span>ওপেনস্ট্রিটম্যাপ লোড হচ্ছে...</span>
       </div>
     ),
@@ -220,16 +220,16 @@ function SearchPageContent() {
             onClick={() => setIsFilterDrawerOpen(true)}
             className="sm:hidden text-xs font-semibold"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-blue-600" />
+            <SlidersHorizontal className="h-3.5 w-3.5 mr-1 text-stone-900" />
             <span>{isBn ? 'ফিল্টার' : 'Filters'} ({toBanglaNumber(activeFiltersCount)})</span>
           </Button>
 
           {/* List vs Map View Switcher */}
-          <div className="flex rounded-xl bg-slate-100 p-0.5 text-xs font-semibold">
+          <div className="flex rounded-xl bg-stone-100 p-0.5 text-xs font-semibold border border-stone-200">
             <button
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                viewMode === 'list' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
+                viewMode === 'list' ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-600'
               }`}
             >
               <List className="h-3.5 w-3.5" />
@@ -238,7 +238,7 @@ function SearchPageContent() {
             <button
               onClick={() => setViewMode('map')}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                viewMode === 'map' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
+                viewMode === 'map' ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-600'
               }`}
             >
               <MapIcon className="h-3.5 w-3.5" />
@@ -251,7 +251,7 @@ function SearchPageContent() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 focus:border-blue-600 focus:outline-none"
+              className="rounded-xl border border-stone-300 bg-white py-1.5 px-3 text-xs font-semibold text-stone-800 focus:border-black focus:outline-none"
             >
               <option value="nearest">{isBn ? 'সবচেয়ে কাছে (Nearest)' : 'Nearest First'}</option>
               <option value="highest_rated">{isBn ? 'সেরা রেটিং (Top Rated)' : 'Highest Rated'}</option>
@@ -272,7 +272,7 @@ function SearchPageContent() {
             {toBanglaNumber(compareIds.length)} {isBn ? 'জন নির্বাচিত' : 'selected to compare'}
           </span>
           <Link href={`/compare?ids=${compareIds.join(',')}`}>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-xs font-bold py-1 px-3">
+            <Button size="sm" className="skeuo-btn-dark bg-stone-900 hover:bg-black text-xs font-bold py-1 px-3">
               <span>{isBn ? 'তুলনা করুন' : 'Compare Now'}</span>
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
@@ -287,16 +287,16 @@ function SearchPageContent() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* DESKTOP FILTER SIDEBAR */}
         <aside className="hidden lg:block space-y-5">
-          <Card className="p-5 space-y-5 border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <Card className="p-5 space-y-5 border-stone-300 skeuo-surface">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-900">{isBn ? 'ফিল্টার সমূহ' : 'Filters'}</h3>
+                <SlidersHorizontal className="h-4 w-4 text-stone-900" />
+                <h3 className="text-sm font-bold text-stone-900">{isBn ? 'ফিল্টার সমূহ' : 'Filters'}</h3>
               </div>
               {activeFiltersCount > 0 && (
                 <button
                   onClick={clearAllFilters}
-                  className="text-[11px] font-bold text-red-600 hover:text-red-700"
+                  className="text-[11px] font-bold text-stone-900 hover:underline cursor-pointer"
                 >
                   {isBn ? 'রিসেট' : 'Reset'}
                 </button>
@@ -305,13 +305,13 @@ function SearchPageContent() {
 
             {/* Service Category */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">
+              <label className="text-xs font-bold text-stone-700 block">
                 {isBn ? 'সার্ভিস ক্যাটাগরি' : 'Category'}
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2 px-3 text-xs text-stone-800 focus:border-black focus:outline-none"
               >
                 {categories.map((c) => (
                   <option key={c.slug} value={c.slug}>
@@ -323,13 +323,13 @@ function SearchPageContent() {
 
             {/* District Selector */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">
+              <label className="text-xs font-bold text-stone-700 block">
                 {isBn ? 'জেলা' : 'District'}
               </label>
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-blue-600 focus:outline-none"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2 px-3 text-xs text-stone-800 focus:border-black focus:outline-none"
               >
                 <option value="all">{isBn ? 'সকল জেলা' : 'All Districts'}</option>
                 <option value="Thakurgaon">{isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon'}</option>
@@ -339,10 +339,10 @@ function SearchPageContent() {
             </div>
 
             {/* Distance Slider */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="space-y-2 pt-2 border-t border-stone-200">
               <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-700">{isBn ? 'দূরত্ব ব্যাসার্ধ' : 'Distance Radius'}</span>
-                <span className="text-blue-600 font-bold">
+                <span className="text-stone-700">{isBn ? 'দূরত্ব ব্যাসার্ধ' : 'Distance Radius'}</span>
+                <span className="text-stone-900 font-bold bg-stone-100 px-2 py-0.5 rounded border border-stone-300">
                   {maxDistance >= 50 ? (isBn ? 'পুরো জেলা' : 'Entire District') : `${toBanglaNumber(maxDistance)} কিমি`}
                 </span>
               </div>
@@ -352,13 +352,13 @@ function SearchPageContent() {
                 max={50}
                 value={maxDistance}
                 onChange={(e) => setMaxDistance(Number(e.target.value))}
-                className="w-full accent-blue-600 cursor-pointer"
+                className="w-full accent-stone-900 cursor-pointer"
               />
             </div>
 
             {/* Rating Filter (Daraz-style) */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <label className="text-xs font-bold text-slate-700 block">
+            <div className="space-y-2 pt-2 border-t border-stone-200">
+              <label className="text-xs font-bold text-stone-700 block">
                 {isBn ? 'গ্রাহক রেটিং' : 'Rating'}
               </label>
               <div className="space-y-1.5">
@@ -366,8 +366,8 @@ function SearchPageContent() {
                   <button
                     key={stars}
                     onClick={() => setSelectedRating(selectedRating === stars ? 0 : stars)}
-                    className={`flex items-center justify-between w-full p-2 rounded-xl text-xs transition-colors ${
-                      selectedRating === stars ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'hover:bg-slate-50 text-slate-700'
+                    className={`flex items-center justify-between w-full p-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                      selectedRating === stars ? 'bg-stone-900 text-white font-bold border border-black' : 'hover:bg-stone-50 text-stone-700'
                     }`}
                   >
                     <div className="flex items-center gap-1">
@@ -375,21 +375,21 @@ function SearchPageContent() {
                         <Star
                           key={i}
                           className={`h-3.5 w-3.5 ${
-                            i < stars ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                            i < stars ? (selectedRating === stars ? 'fill-white text-white' : 'fill-stone-900 text-stone-900') : 'text-stone-300'
                           }`}
                         />
                       ))}
                       <span className="ml-1 text-[11px] font-semibold">{toBanglaNumber(stars)} {isBn ? 'স্টার ও উপরে' : '★ & above'}</span>
                     </div>
-                    {selectedRating === stars && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                    {selectedRating === stars && <Check className="h-3.5 w-3.5 text-white" />}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Experience Filter */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <label className="text-xs font-bold text-slate-700 block">
+            <div className="space-y-2 pt-2 border-t border-stone-200">
+              <label className="text-xs font-bold text-stone-700 block">
                 {isBn ? 'কাজের অভিজ্ঞতা' : 'Experience'}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
@@ -397,10 +397,10 @@ function SearchPageContent() {
                   <button
                     key={exp}
                     onClick={() => setSelectedExp(selectedExp === exp ? 0 : exp)}
-                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       selectedExp === exp 
-                        ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'border-black bg-stone-900 text-white' 
+                        : 'border-stone-300 text-stone-700 hover:bg-stone-100'
                     }`}
                   >
                     {toBanglaNumber(exp)}+ {isBn ? 'বছর' : 'Years'}
@@ -410,8 +410,8 @@ function SearchPageContent() {
             </div>
 
             {/* Completed Jobs */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <label className="text-xs font-bold text-slate-700 block">
+            <div className="space-y-2 pt-2 border-t border-stone-200">
+              <label className="text-xs font-bold text-stone-700 block">
                 {isBn ? 'সম্পন্ন করা কাজের সংখ্যা' : 'Completed Jobs'}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
@@ -419,10 +419,10 @@ function SearchPageContent() {
                   <button
                     key={jobs}
                     onClick={() => setSelectedJobs(selectedJobs === jobs ? 0 : jobs)}
-                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all text-center ${
+                    className={`py-1.5 px-2 rounded-xl text-xs font-semibold border transition-all text-center cursor-pointer ${
                       selectedJobs === jobs 
-                        ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'border-black bg-stone-900 text-white' 
+                        : 'border-stone-300 text-stone-700 hover:bg-stone-100'
                     }`}
                   >
                     {toBanglaNumber(jobs)}+ {isBn ? 'কাজ' : 'Jobs'}
@@ -432,23 +432,23 @@ function SearchPageContent() {
             </div>
 
             {/* Toggles: Verified & Today */}
-            <div className="space-y-2.5 pt-2 border-t border-slate-100">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+            <div className="space-y-2.5 pt-2 border-t border-stone-200">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800">
                 <input
                   type="checkbox"
                   checked={verifiedOnly}
                   onChange={(e) => setVerifiedOnly(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                  className="rounded text-stone-900 focus:ring-black h-4 w-4 accent-stone-900"
                 />
                 <span>{isBn ? 'অ্যাডমিন ভেরিফাইড কারিগর' : 'Admin Verified Only'}</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800">
                 <input
                   type="checkbox"
                   checked={availableToday}
                   onChange={(e) => setAvailableToday(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                  className="rounded text-stone-900 focus:ring-black h-4 w-4 accent-stone-900"
                 />
                 <span>{isBn ? 'আজকেই উপলব্ধ (Available Today)' : 'Available Today'}</span>
               </label>
@@ -577,59 +577,59 @@ function SearchPageContent() {
                           <img
                             src={mistri.avatar}
                             alt={mistri.name_bn}
-                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-slate-200"
+                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-stone-300"
                           />
-                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white shadow-xs" title="Admin Verified">
+                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">
                             <ShieldCheck className="h-3.5 w-3.5" />
                           </span>
                         </div>
 
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="primary" className="text-[10px] px-2 py-0.5">
+                            <Badge variant="neutral" className="skeuo-pill bg-stone-900 text-white border-stone-800 text-[10px] px-2 py-0.5">
                               {isBn ? mistri.category_name_bn : mistri.category_name_en}
                             </Badge>
-                            <span className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span className="flex items-center gap-1 text-xs font-semibold text-stone-800">
+                              <Star className="h-3.5 w-3.5 fill-stone-900 text-stone-900" />
                               {mistri.average_rating} ({toBanglaNumber(mistri.total_reviews)})
                             </span>
                             {mistri.available_today ? (
-                              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <span className="text-[10px] font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-300">
                                 {isBn ? 'আজকে উপলব্ধ' : 'Available Today'}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <span className="text-[10px] text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">
                                 {isBn ? 'কালকে উপলব্ধ' : 'Available Tomorrow'}
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-base font-bold text-slate-900 hover:text-blue-600 transition-colors">
+                          <h3 className="text-base font-bold text-stone-900 hover:underline transition-colors">
                             <Link href={`/mistri/${mistri.id}`}>{mistri.name_bn}</Link>
                           </h3>
 
-                          <p className="text-xs text-slate-500 font-medium">{mistri.professional_title}</p>
+                          <p className="text-xs text-stone-600 font-medium">{mistri.professional_title}</p>
 
                           {/* Subcategory skill tags */}
                           <div className="flex flex-wrap gap-1 pt-0.5">
                             {mistri.subcategories.slice(0, 3).map((sub, i) => (
-                              <span key={i} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
+                              <span key={i} className="text-[10px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-medium border border-stone-200">
                                 {sub}
                               </span>
                             ))}
                             {mistri.subcategories.length > 3 && (
-                              <span className="text-[10px] text-slate-400">+{mistri.subcategories.length - 3}</span>
+                              <span className="text-[10px] text-stone-400">+{mistri.subcategories.length - 3}</span>
                             )}
                           </div>
 
                           {/* Distance & Experience metrics */}
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 pt-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600 pt-1">
                             <span className="flex items-center gap-0.5">
-                              <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                              <MapPin className="h-3.5 w-3.5 text-stone-700" />
                               {mistri.upazila_bn}, {mistri.district_bn}
                             </span>
                             <span>•</span>
-                            <span className="font-bold text-emerald-600">
+                            <span className="font-bold text-stone-900 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200">
                               {formatDistance(mistri.distance_km, isBn)}
                             </span>
                             <span>•</span>
@@ -745,7 +745,7 @@ function SearchPageContent() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-semibold">
                 <span>{isBn ? 'দূরত্ব ব্যাসার্ধ' : 'Distance'}</span>
-                <span className="font-bold text-blue-600">{toBanglaNumber(maxDistance)} কিমি</span>
+                <span className="font-bold text-stone-900">{toBanglaNumber(maxDistance)} কিমি</span>
               </div>
               <input
                 type="range"
@@ -753,20 +753,20 @@ function SearchPageContent() {
                 max={50}
                 value={maxDistance}
                 onChange={(e) => setMaxDistance(Number(e.target.value))}
-                className="w-full accent-blue-600"
+                className="w-full accent-stone-900 cursor-pointer"
               />
             </div>
 
             {/* Rating */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">{isBn ? 'ন্যূনতম রেটিং' : 'Rating'}</label>
+              <label className="text-xs font-bold text-stone-700">{isBn ? 'ন্যূনতম রেটিং' : 'Rating'}</label>
               <div className="flex gap-2">
                 {[3, 4, 5].map((stars) => (
                   <button
                     key={stars}
                     onClick={() => setSelectedRating(selectedRating === stars ? 0 : stars)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                      selectedRating === stars ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200'
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                      selectedRating === stars ? 'bg-stone-900 text-white border-black' : 'border-stone-300 text-stone-700 hover:bg-stone-100'
                     }`}
                   >
                     {toBanglaNumber(stars)}★+
