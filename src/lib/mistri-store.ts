@@ -225,6 +225,36 @@ export function getCustomersStore(): CustomerRecord[] {
   return global.__CUSTOMERS_STORE__
 }
 
+export function addCustomerToStore(cust: {
+  name: string
+  phone: string
+  district?: string
+  upazila?: string
+  address?: string
+}): CustomerRecord {
+  const store = getCustomersStore()
+  const cleanPhone = cust.phone.replace(/[^0-9]/g, '')
+  const existing = store.find((c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone)
+  if (existing) {
+    existing.name = cust.name
+    return existing
+  }
+  const newCust: CustomerRecord = {
+    id: `cust-${Date.now()}`,
+    name: cust.name,
+    phone: cleanPhone,
+    district: cust.district || 'ঠাকুরগাঁও',
+    upazila: cust.upazila || 'ঠাকুরগাঁও সদর',
+    address: cust.address || `${cust.upazila || 'ঠাকুরগাঁও সদর'}, ${cust.district || 'ঠাকুরগাঁও'}`,
+    totalBookings: 0,
+    lastBookingDate: 'আজকে',
+    status: 'active',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+  }
+  store.unshift(newCust)
+  return newCust
+}
+
 export function getBookingsStore(): BookingRecord[] {
   if (!global.__BOOKINGS_STORE__) {
     global.__BOOKINGS_STORE__ = [...INITIAL_BOOKINGS]

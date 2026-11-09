@@ -526,22 +526,22 @@ export default function MistriProfilePage() {
       )}
 
       {/* SECTION 1: NON-EDITABLE / LOCKED NID INFO */}
-      <Card className="p-5 sm:p-6 space-y-4 border-slate-200 shadow-xs bg-slate-50/50">
-        <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+      <Card className="p-5 sm:p-6 space-y-4 border-stone-300 skeuo-surface">
+        <div className="flex items-start justify-between gap-3 border-b border-stone-200 pb-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-slate-600" />
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              <Lock className="h-4 w-4 text-stone-700" />
+              <h2 className="text-sm sm:text-base font-bold text-stone-900">
                 {isBn ? 'জাতীয় পরিচয়পত্র ও ব্যক্তিগত তথ্য (স্থায়ী ও ভেরিফাইড)' : 'Verified NID & Personal Details (Locked)'}
               </h2>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-stone-600">
               {isBn 
                 ? 'নিরাপত্তা ও গ্রাহক সুরক্ষার স্বার্থে এনআইডি এবং পরিচয় সংক্রান্ত তথ্য অ্যাডমিন দ্বারা অনুমোদিত হওয়ায় সরাসরি পরিবর্তনযোগ্য নয়।'
                 : 'For security and fraud prevention, verified identity credentials cannot be modified.'}
             </p>
           </div>
-          <Badge variant="neutral" className="text-[10px] bg-slate-200 text-slate-700 shrink-0">
+          <Badge variant="neutral" className="text-[10px] bg-stone-200 text-stone-800 border-stone-400 shrink-0">
             🔒 অপরিবর্তনযোগ্য
           </Badge>
         </div>
@@ -549,54 +549,54 @@ export default function MistriProfilePage() {
         {/* Locked Fields Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+            <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
               <span>পূর্ণ নাম (এনআইডি অনুযায়ী)</span>
-              <Lock className="h-3 w-3 text-slate-400" />
+              <Lock className="h-3 w-3 text-stone-400" />
             </label>
             <input
               type="text"
               value={profile.fullName}
               disabled
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2 px-3 text-xs text-slate-700 font-bold cursor-not-allowed select-none"
+              className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 font-bold cursor-not-allowed select-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+            <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
               <span>পিতার নাম / অভিভাবক</span>
-              <Lock className="h-3 w-3 text-slate-400" />
+              <Lock className="h-3 w-3 text-stone-400" />
             </label>
             <input
               type="text"
               value={profile.fatherName || (isBn ? 'প্রযোজ্য নয়' : 'N/A')}
               disabled
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2 px-3 text-xs text-slate-700 cursor-not-allowed select-none"
+              className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 cursor-not-allowed select-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+            <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
               <span>জন্ম তারিখ</span>
-              <Lock className="h-3 w-3 text-slate-400" />
+              <Lock className="h-3 w-3 text-stone-400" />
             </label>
             <input
               type="text"
               value={profile.dateOfBirth}
               disabled
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2 px-3 text-xs text-slate-700 cursor-not-allowed select-none"
+              className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 cursor-not-allowed select-none"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+            <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
               <span>১০ বা ১৭ সংখ্যার এনআইডি নম্বর</span>
-              <Lock className="h-3 w-3 text-slate-400" />
+              <Lock className="h-3 w-3 text-stone-400" />
             </label>
             <input
               type="text"
               value={profile.nidNumber}
               disabled
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2 px-3 text-xs text-slate-700 font-mono font-bold cursor-not-allowed select-none"
+              className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 font-mono font-bold cursor-not-allowed select-none"
             />
           </div>
         </div>

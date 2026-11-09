@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useRef, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
   Upload, ArrowRight, ArrowLeft, Camera,
@@ -15,9 +15,17 @@ import { Badge } from '@/components/ui/badge'
 import { toBanglaNumber } from '@/lib/utils'
 import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 import { DEFAULT_CATEGORIES, CategoryOption, SubcategoryOption, getSubcategoriesForCategory } from '@/lib/categories'
+import { getStoredUser } from '@/lib/auth-client'
 
-export default function MistriOnboardingPage() {
+function MistriOnboardingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const paramPhone = searchParams.get('phone') || ''
+  const paramName = searchParams.get('name') || ''
+  const paramFather = searchParams.get('fatherName') || ''
+  const paramDistrict = searchParams.get('district') || ''
+  const paramUpazila = searchParams.get('upazila') || ''
+
   const { lang, t } = useI18n()
   const isBn = lang === 'bn'
 
@@ -49,16 +57,28 @@ export default function MistriOnboardingPage() {
     e.target.value = ''
   }
 
-  // Form States
+  // Form States initialized with query params or clean defaults
   // Step 1: Personal Info
-  const [fullName, setFullName] = useState('মোঃ রফিকুল ইসলাম')
-  const [fatherName, setFatherName] = useState('')
-  const [phone, setPhone] = useState('01712345678')
+  const [fullName, setFullName] = useState(paramName || '')
+  const [fatherName, setFatherName] = useState(paramFather || '')
+  const [phone, setPhone] = useState(paramPhone || '')
   const [dateOfBirth, setDateOfBirth] = useState('1990-05-15')
   const [gender, setGender] = useState('male')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80'
   )
+
+  // Synchronize state if URL query params arrive or from stored user
+  useEffect(() => {
+    const stored = getStoredUser()
+    const activePhone = paramPhone || (stored?.role === 'mistri' ? stored.phone : '')
+    const activeName = paramName || (stored?.role === 'mistri' ? stored.name : '')
+    if (activePhone && !phone) setPhone(activePhone)
+    if (activeName && !fullName) setFullName(activeName)
+    if (paramFather && !fatherName) setFatherName(paramFather)
+    if (paramDistrict) setDistrict(paramDistrict)
+    if (paramUpazila) setUpazila(paramUpazila)
+  }, [paramPhone, paramName, paramFather, paramDistrict, paramUpazila])
 
   // Input Sanitizers for English Digits Only
   const handlePhoneInput = (val: string) => {
@@ -84,10 +104,10 @@ export default function MistriOnboardingPage() {
 
   // Step 3: Location
   const [districtsList, setDistrictsList] = useState<DistrictOption[]>(DEFAULT_DISTRICTS)
-  const [district, setDistrict] = useState('Thakurgaon')
-  const [upazila, setUpazila] = useState('Thakurgaon Sadar')
+  const [district, setDistrict] = useState(paramDistrict || 'Thakurgaon')
+  const [upazila, setUpazila] = useState(paramUpazila || 'Thakurgaon Sadar')
   const [area, setArea] = useState('বাসস্ট্যান্ড এলাকা')
-  const [streetAddress, setStreetAddress] = useState('রোড নং ৩, পূর্ব হাজীপাড়া, ঠাকুরগাঁও')
+  const [streetAddress, setStreetAddress] = useState('রোড নং ৩, পূর্ব হাজীপাড়া')
   const [maxRadiusKm, setMaxRadiusKm] = useState(15)
 
   useEffect(() => {
@@ -319,6 +339,7 @@ export default function MistriOnboardingPage() {
               status: 'pending',
             })
           )
+          window.dispatchEvent(new Event('mistri_auth_changed'))
         }
         router.push('/onboarding/status?id=' + (data.applicant?.id || ''))
       } else {
@@ -1054,5 +1075,13 @@ export default function MistriOnboardingPage() {
         </div>
       </Card>
     </div>
+  )
+}
+
+export default function MistriOnboardingPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm font-semibold text-stone-600">অনবোর্ডিং লোড হচ্ছে...</div>}>
+      <MistriOnboardingContent />
+    </Suspense>
   )
 }

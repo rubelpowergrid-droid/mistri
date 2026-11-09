@@ -41,12 +41,16 @@ function VerifyOtpContent() {
       setIsLoading(false)
 
       if (data.success) {
+        if (typeof window !== 'undefined' && data.user) {
+          localStorage.setItem('mistri_user', JSON.stringify(data.user))
+          window.dispatchEvent(new Event('mistri_auth_changed'))
+        }
         if (data.user?.role === 'admin') {
           router.push('/admin/dashboard')
         } else if (data.user?.role === 'mistri') {
-          router.push('/mistri/bookings')
+          router.push(data.redirectUrl || '/mistri/profile')
         } else {
-          router.push('/')
+          router.push(data.redirectUrl || '/')
         }
       } else {
         setError(data.error || 'ভুল ওটিপি কোড! আবার চেষ্টা করুন')

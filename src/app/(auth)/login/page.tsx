@@ -45,11 +45,9 @@ export default function LoginPage() {
         if (data.success) {
           if (typeof window !== 'undefined' && data.user) {
             localStorage.setItem('mistri_user', JSON.stringify(data.user))
+            window.dispatchEvent(new Event('mistri_auth_changed'))
           }
-          if (data.message) {
-            alert(data.message)
-          }
-          router.push(data.redirectUrl || '/')
+          router.push(data.redirectUrl || (data.user?.role === 'mistri' ? '/mistri/profile' : '/'))
         } else {
           setError(data.error || (isBn ? 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' : 'Invalid credentials'))
         }
@@ -232,7 +230,7 @@ export default function LoginPage() {
 
         <div className="pt-2 text-center text-xs text-stone-600">
           <span>{isBn ? 'নতুন মিস্ত্রী হিসেবে যুক্ত হতে চান? ' : 'Are you a skilled professional? '}</span>
-          <Link href="/onboarding" className="font-bold text-stone-900 hover:text-black underline underline-offset-4">
+          <Link href="/register?role=mistri" className="font-bold text-stone-900 hover:text-black underline underline-offset-4">
             {isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Register as Mistri'}
           </Link>
         </div>

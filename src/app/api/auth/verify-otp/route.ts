@@ -86,26 +86,46 @@ export async function POST(request: NextRequest) {
           status = storeMistri.status || 'pending'
           userId = storeMistri.id
         } else {
-          const storeCustomer = getCustomersStore().find(
-            (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone
+          const { INITIAL_APPROVED_MISTRIS } = await import('@/lib/mistri-store')
+          const initialMistri = INITIAL_APPROVED_MISTRIS.find(
+            (m) => m.phone.replace(/[^0-9]/g, '') === cleanPhone
           )
-          if (storeCustomer) {
-            name = storeCustomer.name
-            userId = storeCustomer.id
+          if (initialMistri) {
+            role = 'mistri'
+            name = initialMistri.name_bn
+            status = 'approved'
+            userId = initialMistri.id
+          } else {
+            const storeCustomer = getCustomersStore().find(
+              (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone
+            )
+            if (storeCustomer) {
+              name = storeCustomer.name
+              userId = storeCustomer.id
+            }
           }
         }
       }
     }
 
+    const redirectUrl =
+      role === 'admin'
+        ? '/admin/dashboard'
+        : role === 'mistri'
+        ? '/mistri/profile'
+        : '/'
+
     return NextResponse.json({
       success: true,
       message: 'ওটিপি সফলভাবে যাচাই করা হয়েছে',
+      redirectUrl,
       user: {
         id: userId,
         phone: cleanPhone,
         name,
         role,
         status,
+        redirectUrl,
       },
     })
   } catch (error: any) {
