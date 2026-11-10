@@ -622,3 +622,312 @@ export async function changeMistriPhoneInDatabase(oldPhone: string, newPhone: st
 
   return { success: true, newPhone: cleanNew }
 }
+
+export async function saveBookingToSupabase(data: {
+  mistriId: string
+  mistriName?: string
+  contactPhone: string
+  customerName?: string
+  subcategory: string
+  workDescription: string
+  jobAddress: string
+  latitude?: number
+  longitude?: number
+  preferredDate: string
+  preferredTime: string
+  estimatedBudget?: number | null
+  workPhotos?: string[]
+}) {
+  try {
+    const supabase = createAdminClient() as any
+    const cleanCustomerPhone = (data.contactPhone || '').replace(/[^0-9]/g, '')
+    
+    // 1. Resolve or create customer user and customer_profile
+    let customerUserId: string | null = null
+    let customerProfileId: string | null = null
+
+    if (cleanCustomerPhone) {
+      const { data: custUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('phone', cleanCustomerPhone)
+        .maybeSingle()
+
+      if (custUser?.id) {
+        customerUserId = custUser.id
+      } else {
+        const { data: newU } = await supabase
+          .from('users')
+          .insert({
+            phone: cleanCustomerPhone,
+            role: 'customer',
+            preferred_language: 'bn',
+          })
+          .select('id')
+          .maybeSingle()
+        customerUserId = newU?.id || null
+      }
+
+      if (customerUserId) {
+        const { data: custProf } = await supabase
+          .from('customer_profiles')
+          .upsert(
+            {
+              user_id: customerUserId,
+              full_name: data.customerName || 'সম্মানিত গ্রাহক',
+              default_address: data.jobAddress,
+            },
+            { onConflict: 'user_id' }
+          )
+          .select('id')
+          .maybeSingle()
+        customerProfileId = custProf?.id || null
+      }
+    }
+
+    // 2. Resolve mistri profile and user_id
+    let mistriProfileId: string | null = null
+    let mistriUserId: string | null = null
+    let mistriPhone: string | null = null
+
+    const cleanMistriId = (data.mistriId || '').replace(/^m-live-/, '')
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanMistriId)
+    if (isUuid) {
+      const { data: mProf } = await supabase
+        .from('mistri_profiles')
+        .select('id, user_id, users(phone)')
+        .eq('id', cleanMistriId)
+        .maybeSingle()
+
+      if (mProf?.id) {
+        mistriProfileId = mProf.id
+        mistriUserId = mProf.user_id
+        mistriPhone = mProf.users?.phone || null
+      }
+    }
+
+    // If not found by UUID, try to find mistri profile by phone or name
+    if (!mistriProfileId) {
+      const { data: mProf2 } = await supabase
+        .from('mistri_profiles')
+        .select('id, user_id, users(phone)')
+        .ilike('full_name', `%${data.mistriName || ''}%`)
+        .limit(1)
+        .maybeSingle()
+
+      if (mProf2?.id) {
+        mistriProfileId = mProf2.id
+        mistriUserId = mProf2.user_id
+        mistriPhone = mProf2.users?.phone || null
+      }
+    }
+
+    // 3. Resolve category and subcategory IDs
+    const { data: cats } = await supabase.from('categories').select('id, slug')
+    const { data: subcats } = await supabase.from('subcategories').select('id, category_id, name_bn')
+
+    const matchedSubcat = subcats?.find((s: any) => s.name_bn === data.subcategory || data.subcategory.includes(s.name_bn))
+    const categoryId = matchedSubcat?.category_id || cats?.[0]?.id || '22222222-2222-2222-2222-222222222201'
+    const subcategoryId = matchedSubcat?.id || subcats?.[0]?.id || '71255d8d-18c2-4e23-a338-bef170c89105'
+
+    let insertedBooking: any = null
+
+    // 4. If both customerProfileId and mistriProfileId exist, insert into public.bookings
+    if (customerProfileId && mistriProfileId) {
+      const bookingNumber = 'MST-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+      const lat = data.latitude || 26.0336
+      const lng = data.longitude || 88.4617
+
+      const { data: bRow, error: bErr } = await supabase
+        .from('bookings')
+        .insert({
+          booking_number: bookingNumber,
+          customer_id: customerProfileId,
+          mistri_id: mistriProfileId,
+          category_id: categoryId,
+          subcategory_id: subcategoryId,
+          status: 'pending',
+          work_description: data.workDescription,
+          job_address: data.jobAddress,
+          job_location_point: `SRID=4326;POINT(${lng} ${lat})`,
+          contact_phone: cleanCustomerPhone,
+          preferred_date: data.preferredDate,
+          preferred_time: data.preferredTime,
+          estimated_budget: data.estimatedBudget || 400,
+          work_photos: data.workPhotos || [],
+        })
+        .select()
+        .maybeSingle()
+
+      if (!bErr && bRow) {
+        insertedBooking = bRow
+      } else if (bErr) {
+        console.warn('Supabase booking insert warning:', bErr.message)
+      }
+    }
+
+    // 5. Create notification for the mistri in Supabase!
+    if (mistriUserId) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: mistriUserId,
+          title: '🔔 নতুন কাজের বুকিং অনুরোধ!',
+          body: `গ্রাহক ${data.customerName || data.contactPhone} আপনার জন্য একটি নতুন কাজের অনুরোধ পাঠিয়েছেন। কাজের ধরন: ${data.subcategory}`,
+          type: 'booking',
+          reference_id: insertedBooking?.id || null,
+          is_read: false,
+        })
+      } catch (nErr: any) {
+        console.warn('Notification insert error:', nErr.message)
+      }
+    }
+
+    return {
+      success: true,
+      booking: insertedBooking,
+      mistriPhone,
+      mistriUserId,
+    }
+  } catch (err: any) {
+    console.error('saveBookingToSupabase exception:', err.message)
+    return { success: false, error: err.message }
+  }
+}
+
+export async function updateBookingStatusInSupabase(
+  id: string,
+  status: string,
+  options: {
+    agreedPrice?: number
+    reason?: string
+    proposedDate?: string
+    proposedTime?: string
+  } = {}
+) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+    const updatePayload: any = {
+      status,
+      updated_at: new Date().toISOString(),
+    }
+    if (options.agreedPrice !== undefined) updatePayload.agreed_price = options.agreedPrice
+    if (options.reason !== undefined) updatePayload.cancellation_reason = options.reason
+    if (options.proposedDate) updatePayload.preferred_date = options.proposedDate
+    if (options.proposedTime) updatePayload.preferred_time = options.proposedTime
+    if (status === 'accepted') updatePayload.accepted_at = new Date().toISOString()
+    if (status === 'completed') updatePayload.completed_at = new Date().toISOString()
+
+    if (isUuid) {
+      const { data: updated, error } = await supabase
+        .from('bookings')
+        .update(updatePayload)
+        .eq('id', id)
+        .select('*, customer_profiles(user_id, full_name), mistri_profiles(full_name)')
+        .maybeSingle()
+
+      if (!error && updated) {
+        const custUserId = updated.customer_profiles?.user_id
+        if (custUserId) {
+          let notifTitle = 'বুকিং আপডেট'
+          let notifBody = ''
+          if (status === 'accepted') {
+            if (options.proposedTime) {
+              notifTitle = 'মিস্ত্রী নতুন সময় প্রস্তাব সহ বুকিং গ্রহণ করেছেন!'
+              notifBody = `মিস্ত্রী আপনার কাজের অনুরোধ গ্রহণ করেছেন এবং নতুন সময় দিয়েছেন: ${options.proposedTime} (${options.proposedDate || 'আজ'})`
+            } else {
+              notifTitle = 'মিস্ত্রী আপনার বুকিং গ্রহণ করেছেন!'
+              notifBody = 'মিস্ত্রী আপনার বুকিং সরাসরি গ্রহণ করেছেন এবং সুবিধাজনক সময়ে কাজ শুরু করবেন।'
+            }
+          } else if (status === 'rejected') {
+            notifTitle = 'মিস্ত্রী বর্তমানে ব্যস্ত আছেন'
+            notifBody = `মিস্ত্রী বর্তমানে অন্য কাজে ব্যস্ত থাকায় অনুরোধটি গ্রহণ করতে পারেননি। কারণ: ${options.reason || 'সময়ের অমিল'}`
+          }
+
+          if (notifBody) {
+            await supabase.from('notifications').insert({
+              user_id: custUserId,
+              title: notifTitle,
+              body: notifBody,
+              type: 'booking',
+              reference_id: updated.id,
+              is_read: false,
+            })
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error('updateBookingStatusInSupabase exception:', err.message)
+  }
+}
+
+export async function getBookingsFromSupabase(filter: {
+  mistriId?: string
+  mistriPhone?: string
+  customerPhone?: string
+  status?: string
+} = {}) {
+  try {
+    const supabase = createAdminClient() as any
+    let query = supabase
+      .from('bookings')
+      .select('*, mistri_profiles(id, full_name, users(phone)), customer_profiles(full_name, users(phone)), categories(name_bn), subcategories(name_bn)')
+      .order('created_at', { ascending: false })
+
+    if (filter.status && filter.status !== 'all') {
+      query = query.eq('status', filter.status)
+    }
+
+    const { data, error } = await query
+    if (error || !data) return []
+
+    return data
+      .filter((row: any) => {
+        if (filter.mistriPhone) {
+          const mPhone = (row.mistri_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
+          const cleanFilterPhone = filter.mistriPhone.replace(/[^0-9]/g, '')
+          if (mPhone !== cleanFilterPhone) return false
+        }
+        if (filter.mistriId) {
+          if (row.mistri_id !== filter.mistriId && row.mistri_profiles?.id !== filter.mistriId) {
+            return false
+          }
+        }
+        if (filter.customerPhone) {
+          const cPhone = (row.contact_phone || row.customer_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
+          const cleanCustPhone = filter.customerPhone.replace(/[^0-9]/g, '')
+          if (cPhone !== cleanCustPhone) return false
+        }
+        return true
+      })
+      .map((row: any) => ({
+        id: row.id,
+        bookingNumber: row.booking_number,
+        mistriId: row.mistri_id,
+        mistriName: row.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী',
+        mistriPhone: row.mistri_profiles?.users?.phone || '',
+        customerName: row.customer_profiles?.full_name || 'সম্মানিত গ্রাহক',
+        customerPhone: row.contact_phone || '',
+        serviceName: row.subcategories?.name_bn || row.categories?.name_bn || 'সাধারণ সেবা',
+        category: row.categories?.name_bn || 'ইলেকট্রিক্যাল কাজ',
+        description: row.work_description || '',
+        jobAddress: row.job_address || '',
+        location: row.job_address || '',
+        amount: Number(row.estimated_budget) || 400,
+        estimatedBudget: Number(row.estimated_budget) || 400,
+        agreedPrice: row.agreed_price ? Number(row.agreed_price) : null,
+        preferredDate: row.preferred_date || '',
+        preferredTime: row.preferred_time || '',
+        status: row.status,
+        date: row.preferred_date || new Date(row.created_at).toISOString().slice(0, 10),
+        workPhotos: row.work_photos || [],
+        cancellationReason: row.cancellation_reason || null,
+        createdAt: row.created_at,
+      }))
+  } catch (err: any) {
+    console.error('getBookingsFromSupabase error:', err.message)
+    return []
+  }
+}

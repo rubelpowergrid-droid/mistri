@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatBDT, toBanglaNumber } from '@/lib/utils'
 import { ReviewModal } from '@/components/reviews/review-modal'
+import { getStoredUser } from '@/lib/auth-client'
 
 interface BookingRecord {
   id: string
@@ -28,7 +29,10 @@ interface BookingRecord {
   jobAddress: string
   preferredDate: string
   preferredTime: string
-  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled'
+  proposedDate?: string | null
+  proposedTime?: string | null
+  cancellationReason?: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'in_progress' | 'completed' | 'cancelled'
   agreedPrice: number | null
   estimatedBudget: number | null
   hasReviewed: boolean
@@ -116,8 +120,9 @@ function BookingsListContent() {
     },
   ])
 
-  // Load any stored bookings from localStorage
+  // Load bookings from localStorage and sync from server in real-time
   useEffect(() => {
+    // 1. Initial local load
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('mistri_customer_bookings')
@@ -130,6 +135,73 @@ function BookingsListContent() {
       } catch (e) {
         console.error(e)
       }
+    }
+
+    // 2. Fetch live updates from server API
+    const syncBookings = async () => {
+      const user = getStoredUser()
+      const cleanPhone = user?.phone ? user.phone.replace(/[^0-9]/g, '') : ''
+      try {
+        const url = cleanPhone 
+          ? `/api/bookings?role=customer&customerPhone=${cleanPhone}`
+          : `/api/bookings?role=customer`
+        const res = await fetch(url, { cache: 'no-store' })
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setBookings(prev => {
+            const mergedMap = new Map<string, any>()
+            // Put server items first
+            for (const item of json.data) {
+              mergedMap.set(item.id, {
+                id: item.id,
+                bookingNumber: item.bookingNumber || item.booking_number,
+                mistriId: item.mistriId,
+                mistriName: item.mistriName,
+                mistriTitle: item.mistriTitle || 'দক্ষ কারিগর',
+                mistriPhone: item.mistriPhone || item.customerPhone,
+                mistriAvatar: item.mistriAvatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+                category: item.category || item.serviceName || 'ইলেকট্রিক্যাল কাজ',
+                workDescription: item.description || item.workDescription,
+                jobAddress: item.jobAddress || item.location,
+                preferredDate: item.preferredDate || item.date,
+                preferredTime: item.preferredTime,
+                proposedDate: item.proposedDate,
+                proposedTime: item.proposedTime,
+                status: item.status,
+                agreedPrice: item.agreedPrice,
+                estimatedBudget: item.estimatedBudget || item.amount,
+                cancellationReason: item.cancellationReason,
+                hasReviewed: false,
+              })
+            }
+            // Merge existing local items
+            for (const l of prev) {
+              if (!mergedMap.has(l.id)) {
+                mergedMap.set(l.id, l)
+              } else {
+                const s = mergedMap.get(l.id)
+                mergedMap.set(l.id, { ...l, ...s })
+              }
+            }
+            const finalArr = Array.from(mergedMap.values())
+            try {
+              localStorage.setItem('mistri_customer_bookings', JSON.stringify(finalArr))
+            } catch {}
+            return finalArr
+          })
+        }
+      } catch (err) {
+        console.error('Failed to sync bookings:', err)
+      }
+    }
+
+    syncBookings()
+    const interval = setInterval(syncBookings, 4000)
+    window.addEventListener('focus', syncBookings)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', syncBookings)
     }
   }, [])
 
@@ -285,16 +357,20 @@ function BookingsListContent() {
                     b.status === 'completed' ? 'neutral' :
                     b.status === 'accepted' ? 'neutral' :
                     b.status === 'in_progress' ? 'neutral' :
+                    b.status === 'rejected' ? 'danger' :
                     b.status === 'cancelled' ? 'danger' : 'neutral'
                   }
                   className={`text-[11px] font-bold skeuo-pill px-2.5 py-0.5 ${
                     b.status === 'pending' ? 'bg-amber-100 text-amber-900 border-amber-300' :
-                    b.status === 'accepted' ? 'bg-stone-900 text-white' :
+                    b.status === 'accepted' ? 'bg-[#2c7865] text-[#fefded]' :
                     b.status === 'completed' ? 'bg-stone-200 text-stone-900' :
+                    b.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-300' :
                     b.status === 'cancelled' ? 'bg-red-100 text-red-800 border-red-300' : ''
                   }`}
                 >
-                  {isBn ? t(`booking.status.${b.status}`) : b.status}
+                  {b.status === 'rejected' 
+                    ? (isBn ? 'মিস্ত্রী ব্যস্ত / বাতিল' : 'Declined (Busy)')
+                    : isBn ? t(`booking.status.${b.status}`) : b.status}
                 </Badge>
               </div>
 
@@ -339,15 +415,36 @@ function BookingsListContent() {
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-200">
                 <div>
                   {b.status === 'accepted' && (
-                    <span className="text-[11px] font-semibold text-stone-900 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>{isBn ? 'মিস্ত্রী অনুরোধ গ্রহণ করেছেন ও প্রস্তত' : 'Request Accepted by Mistri'}</span>
-                    </span>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-[#2c7865] flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-[#2c7865]" />
+                        <span>{isBn ? 'মিস্ত্রী অনুরোধ গ্রহণ করেছেন ও প্রস্তুত' : 'Request Accepted by Mistri'}</span>
+                      </span>
+                      {(b.proposedTime || b.proposedDate) && (
+                        <span className="text-[11px] font-bold text-[#2c7865] flex items-center gap-1 bg-[#2c7865]/10 px-2 py-0.5 rounded-lg border border-[#2c7865]/20">
+                          <Clock className="h-3.5 w-3.5 text-[#2c7865]" />
+                          <span>
+                            {isBn 
+                              ? `মিস্ত্রী প্রস্তাবিত সময়ে কাজ করতে সম্মত: ${b.proposedDate || ''} (${b.proposedTime || ''})` 
+                              : `Worker proposed schedule: ${b.proposedDate} (${b.proposedTime})`}
+                          </span>
+                        </span>
+                      )}
+                    </div>
                   )}
                   {b.status === 'pending' && (
                     <span className="text-[11px] font-bold text-amber-800 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
                       <Clock className="h-3.5 w-3.5 text-amber-600" />
                       <span>{isBn ? 'মিস্ত্রীর অনুমোদনের অপেক্ষায় রয়েছে' : 'Awaiting worker confirmation'}</span>
+                    </span>
+                  )}
+                  {b.status === 'rejected' && (
+                    <span className="text-[11px] font-bold text-red-700 flex items-center gap-1 bg-red-50 px-2.5 py-1 rounded-xl border border-red-200">
+                      <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                      <span>
+                        {isBn ? 'মিস্ত্রী বর্তমানে ব্যস্ত থাকায় অনুরোধটি গ্রহণ করতে পারেননি' : 'Declined: Worker is busy'}
+                        {b.cancellationReason ? ` (কারণ: ${b.cancellationReason})` : ''}
+                      </span>
                     </span>
                   )}
                   {b.status === 'cancelled' && (

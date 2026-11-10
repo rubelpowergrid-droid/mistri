@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Phone, ShieldCheck, Wrench, Lock, CheckCircle2, 
   MapPin, Clock, Star, AlertCircle, Save, ArrowLeft, 
-  Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X, Printer
+  Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X, Printer,
+  Inbox, Bell
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -60,6 +61,7 @@ export default function MistriProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccessMessage, setSaveSuccessMessage] = useState('')
   const [saveErrorMessage, setSaveErrorMessage] = useState('')
+  const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0)
 
   // Mistri profile data
   const [profile, setProfile] = useState<any>({
@@ -128,6 +130,14 @@ export default function MistriProfilePage() {
         const data = await res.json()
         if (data.success && data.profile) {
           setProfile(data.profile)
+        }
+
+        // Real-time pending requests count check
+        const cleanPhone = phoneToLoad.replace(/[^0-9]/g, '')
+        const reqRes = await fetch(`/api/bookings?role=mistri&mistriPhone=${cleanPhone}&status=pending`, { cache: 'no-store' })
+        const reqJson = await reqRes.json()
+        if (reqJson.success && Array.isArray(reqJson.data)) {
+          setPendingRequestsCount(reqJson.data.length)
         }
       } catch (err) {
         console.error('Failed to load profile:', err)
@@ -409,6 +419,18 @@ export default function MistriProfilePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 no-print">
+          <Link href="/requests">
+            <Button size="sm" className="skeuo-btn-dark text-xs font-bold relative cursor-pointer">
+              <Inbox className="h-3.5 w-3.5 mr-1 text-[#fefded]" />
+              <span>{isBn ? 'কাজের অনুরোধ' : 'Requests'}</span>
+              {pendingRequestsCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-red-600 text-[10px] text-white font-black animate-pulse">
+                  {toBanglaNumber(pendingRequestsCount)}
+                </span>
+              )}
+            </Button>
+          </Link>
+
           <Link href={`/mistri/${profile.id || 'm-jewel-rana'}`} target="_blank">
             <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold text-[#2c7865] cursor-pointer">
               <ExternalLink className="h-3.5 w-3.5 mr-1" />
@@ -551,6 +573,39 @@ export default function MistriProfilePage() {
           </div>
         </div>
       </Card>
+
+      {/* Incoming Requests Alert Banner */}
+      {pendingRequestsCount > 0 && (
+        <Card className="p-4 sm:p-5 skeuo-surface border-2 border-[#2c7865] rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md bg-[#fefded]">
+          <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="p-3 bg-[#2c7865] text-[#fefded] rounded-2xl shadow-xs shrink-0">
+              <Bell className="h-6 w-6 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h3 className="text-sm font-bold text-stone-900">
+                  {isBn ? 'নতুন কাজের বুকিং অনুরোধ এসেছে!' : 'New Booking Requests Received!'}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-red-600 text-[#fefded] text-[10px] font-black animate-pulse">
+                  {toBanglaNumber(pendingRequestsCount)} টি অপেক্ষমান
+                </span>
+              </div>
+              <p className="text-xs text-stone-600 mt-0.5">
+                {isBn 
+                  ? 'গ্রাহক আপনার জন্য কাজের অনুরোধ পাঠিয়েছেন। এখনই গ্রহণ করুন, ব্যস্ত থাকলে বাতিল করুন বা সুবিধাজনক সময় প্রস্তাব দিন।'
+                  : 'Customers have sent you job requests. Review and accept now.'}
+              </p>
+            </div>
+          </div>
+
+          <Link href="/requests" className="shrink-0 w-full sm:w-auto">
+            <Button size="sm" className="w-full skeuo-btn-dark text-xs font-bold px-4 py-2.5 cursor-pointer">
+              <Inbox className="h-4 w-4 mr-1.5" />
+              <span>{isBn ? 'অনুরোধ পর্যালোচনা করুন' : 'Review Requests'}</span>
+            </Button>
+          </Link>
+        </Card>
+      )}
 
       {/* Success / Error Banners */}
       {saveSuccessMessage && (

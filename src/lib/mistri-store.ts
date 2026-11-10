@@ -44,14 +44,31 @@ export interface CustomerRecord {
 export interface BookingRecord {
   id: string
   bookingNumber: string
+  mistriId?: string
   mistriName: string
+  mistriPhone?: string
+  mistriAvatar?: string
   customerName: string
   customerPhone: string
   serviceName: string
+  category?: string
+  description?: string
+  jobAddress?: string
   location: string
+  latitude?: number
+  longitude?: number
   amount: number
-  status: 'completed' | 'in_progress' | 'pending'
+  estimatedBudget?: number | null
+  agreedPrice?: number | null
+  preferredDate?: string
+  preferredTime?: string
+  proposedDate?: string | null
+  proposedTime?: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'disputed'
   date: string
+  workPhotos?: string[]
+  cancellationReason?: string | null
+  createdAt?: string
 }
 
 // Initial pending applicants - empty by default so Supabase PostgreSQL is authoritative
@@ -262,29 +279,74 @@ export function getBookingsStore(): BookingRecord[] {
   return global.__BOOKINGS_STORE__
 }
 
-export function addBookingToStore(booking: {
-  mistriName?: string
-  customerName?: string
-  customerPhone?: string
-  serviceName?: string
-  location?: string
-  amount?: number
-}): BookingRecord {
+export function addBookingToStore(booking: Partial<BookingRecord>): BookingRecord {
   const store = getBookingsStore()
+  const now = new Date()
   const newBooking: BookingRecord = {
-    id: `b-${Date.now()}`,
-    bookingNumber: 'MST-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+    id: booking.id || `b-${Date.now()}`,
+    bookingNumber:
+      booking.bookingNumber ||
+      'MST-' +
+        now.toISOString().slice(2, 10).replace(/-/g, '') +
+        '-' +
+        Math.random().toString(36).substring(2, 6).toUpperCase(),
+    mistriId: booking.mistriId || '',
     mistriName: booking.mistriName || 'দক্ষ কারিগর',
+    mistriPhone: booking.mistriPhone || '',
+    mistriAvatar: booking.mistriAvatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
     customerName: booking.customerName || 'সম্মানিত গ্রাহক',
     customerPhone: booking.customerPhone || '017XXXXXXXX',
     serviceName: booking.serviceName || 'সাধারণ সেবা',
-    location: booking.location || 'ঠাকুরগাঁও সদর',
-    amount: booking.amount || 400,
-    status: 'completed',
-    date: new Date().toISOString().slice(0, 10),
+    category: booking.category || 'ইলেকট্রিক্যাল কাজ',
+    description: booking.description || '',
+    jobAddress: booking.jobAddress || booking.location || 'ঠাকুরগাঁও সদর',
+    location: booking.location || booking.jobAddress || 'ঠাকুরগাঁও সদর',
+    latitude: booking.latitude,
+    longitude: booking.longitude,
+    amount: booking.amount || booking.estimatedBudget || 400,
+    estimatedBudget: booking.estimatedBudget || booking.amount || 400,
+    agreedPrice: booking.agreedPrice || null,
+    preferredDate: booking.preferredDate || now.toISOString().slice(0, 10),
+    preferredTime: booking.preferredTime || 'সকাল ১০:০০ - ১২:০০',
+    proposedDate: booking.proposedDate || null,
+    proposedTime: booking.proposedTime || null,
+    status: booking.status || 'pending',
+    date: booking.date || now.toISOString().slice(0, 10),
+    workPhotos: booking.workPhotos || [],
+    cancellationReason: booking.cancellationReason || null,
+    createdAt: booking.createdAt || now.toISOString(),
   }
   store.unshift(newBooking)
   return newBooking
+}
+
+export function updateBookingInStore(
+  id: string,
+  updates: Partial<BookingRecord>
+): BookingRecord | null {
+  const store = getBookingsStore()
+  const index = store.findIndex((b) => b.id === id || b.bookingNumber === id)
+  if (index === -1) return null
+  store[index] = { ...store[index], ...updates }
+  return store[index]
+}
+
+export function getBookingsForMistri(mistriIdOrPhone: string): BookingRecord[] {
+  const store = getBookingsStore()
+  const cleanPhone = (mistriIdOrPhone || '').replace(/[^0-9]/g, '')
+  return store.filter((b) => {
+    if (!mistriIdOrPhone) return false
+    if (b.mistriId && b.mistriId === mistriIdOrPhone) return true
+    if (b.mistriPhone && cleanPhone && b.mistriPhone.replace(/[^0-9]/g, '') === cleanPhone) return true
+    return false
+  })
+}
+
+export function getBookingsForCustomer(customerPhone: string): BookingRecord[] {
+  const store = getBookingsStore()
+  const cleanPhone = (customerPhone || '').replace(/[^0-9]/g, '')
+  if (!cleanPhone) return []
+  return store.filter((b) => (b.customerPhone || '').replace(/[^0-9]/g, '') === cleanPhone)
 }
 
 export function addApplicantToQueue(applicant: Omit<ApplicantRecord, 'id' | 'status' | 'submittedAt'>): ApplicantRecord {

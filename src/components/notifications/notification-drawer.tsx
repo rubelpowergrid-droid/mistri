@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { useI18n } from '@/locales'
+import { getStoredUser } from '@/lib/auth-client'
 
 export interface NotificationItem {
   id: string
@@ -44,7 +45,9 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
   const fetchNotifications = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch('/api/notifications')
+      const user = getStoredUser()
+      const query = user?.phone ? `?phone=${user.phone}` : ''
+      const res = await fetch(`/api/notifications${query}`, { cache: 'no-store' })
       const data = await res.json()
       if (data.notifications) {
         setNotifications(data.notifications)
@@ -156,7 +159,11 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
   }
 
   const getTargetLink = (item: NotificationItem) => {
+    const user = getStoredUser()
     if (item.type === 'booking') {
+      if (user?.role === 'mistri') {
+        return '/requests'
+      }
       return item.reference_id ? `/bookings/${item.reference_id}` : '/bookings'
     }
     if (item.type === 'verification') {
