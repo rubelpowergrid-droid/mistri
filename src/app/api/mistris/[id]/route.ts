@@ -140,7 +140,7 @@ export async function GET(
     }
 
     if (profile) {
-      const catInfo = resolveCategoryFromTitle(profile.professional_title || '')
+      const catInfo = resolveCategoryFromTitle((profile.professional_title || '') + ' ' + (profile.bio || ''))
 
       const mistriData = {
         id: profile.id,

@@ -2,7 +2,36 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export function resolveCategoryFromTitle(title: string = '') {
   const t = title.toLowerCase()
-  if (t.includes('টিন')) {
+
+  // 1. থাই গ্লাস ও অ্যালুমিনিয়াম
+  if (
+    t.includes('থাই') || 
+    t.includes('গ্লাস') || 
+    t.includes('কাঁচ') || 
+    t.includes('অ্যালুমিনিয়াম') || 
+    t.includes('এলুমিনিয়াম') || 
+    t.includes('স্লাইডিং') || 
+    t.includes('thai') || 
+    t.includes('glass') || 
+    t.includes('aluminum') || 
+    t.includes('aluminium')
+  ) {
+    return {
+      category_slug: 'thai-glass-aluminium',
+      category_name_bn: 'থাই গ্লাস ও অ্যালুমিনিয়াম',
+      category_name_en: 'Thai Glass & Aluminium',
+      subcategories: [
+        'থাই গ্লাস ফিটিংস', 
+        'অ্যালুমিনিয়াম স্লাইডিং জানালা', 
+        'গ্লাস ডোর ও পার্টিশন', 
+        'সিলিং ও অ্যালুমিনিয়াম ফ্রেম', 
+        'সাধারণ থাই কাজ'
+      ],
+    }
+  }
+
+  // 2. টিনের কাজ
+  if (t.includes('টিন') || t.includes('চাল') || t.includes('টিনশেড') || t.includes('ট্রাস') || t.includes('tin') || t.includes('roof')) {
     return {
       category_slug: 'tin-roofing-services',
       category_name_bn: 'ঘরের টিনের কাজ',
@@ -10,7 +39,9 @@ export function resolveCategoryFromTitle(title: string = '') {
       subcategories: ['টিনশেড নির্মাণ', 'টিনের চাল মেরামত ও লিকেজ বন্ধ', 'স্টিল ট্রাস কাজ', 'সাধারণ টিনের কাজ'],
     }
   }
-  if (t.includes('কাঠ') || t.includes('ফার্নিচার')) {
+
+  // 3. কাঠের কাজ ও ফার্নিচার
+  if (t.includes('কাঠ') || t.includes('ফার্নিচার') || t.includes('ছুতোর') || t.includes('wood') || t.includes('carpenter') || t.includes('furniture')) {
     return {
       category_slug: 'carpentry-services',
       category_name_bn: 'কাঠের কাজ',
@@ -18,7 +49,9 @@ export function resolveCategoryFromTitle(title: string = '') {
       subcategories: ['দরজা-জানালার ফ্রেম', 'ফার্নিচার মেরামত ও অ্যাসেম্বলি', 'মডুলার ক্যাবিনেট', 'কাঠের পলিশ ও বার্নিশ'],
     }
   }
-  if (t.includes('প্লাম্ব') || t.includes('পাইপ') || t.includes('মোটর')) {
+
+  // 4. প্লাম্বিং সার্ভিস
+  if (t.includes('প্লাম্ব') || t.includes('পাইপ') || t.includes('মোটর') || t.includes('পাম্প') || t.includes('স্যানিটারি') || t.includes('বাথরুম') || t.includes('ট্যাপ') || t.includes('plumb') || t.includes('pipe')) {
     return {
       category_slug: 'plumbing-services',
       category_name_bn: 'প্লাম্বিং সার্ভিস',
@@ -26,7 +59,9 @@ export function resolveCategoryFromTitle(title: string = '') {
       subcategories: ['পাইপ ফিটিং ও মেরামত', 'পানির মোটর ও পাম্প মেরামত', 'স্যানিটারি ও বাথরুম ফিটিংস', 'পানির ট্যাংক পরিষ্কার'],
     }
   }
-  if (t.includes('রং') || t.includes('পেইন্ট')) {
+
+  // 5. রং করার কাজ
+  if (t.includes('রং') || t.includes('পেইন্ট') || t.includes('বার্নিশ') || t.includes('পলিশ') || t.includes('paint') || t.includes('color')) {
     return {
       category_slug: 'painting-services',
       category_name_bn: 'রং করার কাজ',
@@ -34,30 +69,58 @@ export function resolveCategoryFromTitle(title: string = '') {
       subcategories: ['ঘরের ভেতরের দেয়াল রং', 'বাইরের দেয়াল ও ওয়েদারকোট', 'কাঠের বার্নিশ ও পলিশ', 'পুটিং ও প্রাইমার কাজ'],
     }
   }
-  if (t.includes('রাজ') || t.includes('টাইলস') || t.includes('ঢালাই')) {
+
+  // 6. রাজমিস্ত্রীর কাজ
+  if (t.includes('রাজ') || t.includes('টাইলস') || t.includes('মার্বেল') || t.includes('ঢালাই') || t.includes('গাঁথুনি') || t.includes('প্লাস্টার') || t.includes('ইট') || t.includes('mason') || t.includes('tile')) {
     return {
       category_slug: 'masonry-services',
       category_name_bn: 'রাজমিস্ত্রীর কাজ',
       category_name_en: 'Masonry Services',
-      subcategories: ['ইট গাঁথুনি ও প্লাস্টার', 'টাইলস ও মার্বেল ফিটিংস', 'ছাদ ঢালাই ও কংক্রিট কাজ'],
+      subcategories: ['ইট গাঁথুনি ও প্লাস্টার', 'টাইলস ও মার্বেল ফিটিংস', 'ছাদ ঢালাই ও কংক্রিট কাজ', 'বাউন্ডারি ওয়াল নির্মাণ'],
     }
   }
-  if (t.includes('গ্লাস') || t.includes('অ্যালুমিনিয়াম')) {
+
+  // 7. এঙ্গেল মিস্ত্রী ও গ্রিল / এসএস
+  if (t.includes('গ্রিল') || t.includes('ওয়েল্ডিং') || t.includes('এসএস') || t.includes('এঙ্গেল') || t.includes('মেটাল') || t.includes('লোহা') || t.includes('গেট') || t.includes('grill') || t.includes('metal')) {
     return {
-      category_slug: 'glass-aluminum-services',
-      category_name_bn: 'থাই গ্লাস ও অ্যালুমিনিয়াম',
-      category_name_en: 'Glass & Aluminum',
-      subcategories: ['থাই গ্লাস ফিটিংস', 'অ্যালুমিনিয়াম স্লাইডিং', 'পার্টিশন ও সিলিং'],
+      category_slug: 'metal-fabrication',
+      category_name_bn: 'এঙ্গেল মিস্ত্রী ও গ্রিল',
+      category_name_en: 'Metal Fabrication & Grill',
+      subcategories: ['জানালা ও বারান্দার গ্রিল', 'এসএস গেট ও সিঁড়ির রেলিং', 'মেটাল ওয়েল্ডিং ও কাটিং', 'লোহার এঙ্গেল ও ফ্রেম'],
     }
   }
-  if (t.includes('গ্রিল') || t.includes('ওয়েল্ডিং') || t.includes('এসএস')) {
+
+  // 8. ঘরের সিলিং কাজ
+  if (t.includes('সিলিং') || t.includes('জিপসাম') || t.includes('পিভিসি সিলিং') || t.includes('ceiling')) {
     return {
-      category_slug: 'grill-metal-services',
-      category_name_bn: 'এসএস মিস্ত্রী ও গ্রিল',
-      category_name_en: 'SS & Grill Services',
-      subcategories: ['জানালা ও বারান্দার গ্রিল', 'এসএস গেট ও সিঁড়ির রেলিং', 'মেটাল ওয়েল্ডিং'],
+      category_slug: 'ceiling-services',
+      category_name_bn: 'ঘরের সিলিং কাজ',
+      category_name_en: 'Ceiling Services',
+      subcategories: ['জিপসাম বোর্ড সিলিং', 'পিভিসি সিলিং ফিটিংস', 'ফলস সিলিং ও ডেকোরেশন', 'সিলিং মেরামত'],
     }
   }
+
+  // 9. এসি ও রেফ্রিজারেশন
+  if (t.includes('এসি') || t.includes('ফ্রিজ') || t.includes('রেফ্রিজারেটর') || t.includes('রেফ্রিজারেশন') || t.includes('ac') || t.includes('fridge')) {
+    return {
+      category_slug: 'ac-repair-services',
+      category_name_bn: 'এসি ও রেফ্রিজারেশন',
+      category_name_en: 'AC & Refrigeration Services',
+      subcategories: ['এসি গ্যাস চার্জ ও ক্লিনিং', 'এসি ইনস্টলেশন ও মেরামত', 'ফ্রিজ গ্যাস ও কম্প্রেসার মেরামত', 'ডিপ ফ্রিজ সার্ভিসিং'],
+    }
+  }
+
+  // 10. দৈনিক লেবার
+  if (t.includes('লেবার') || t.includes('মজুর') || t.includes('শ্রমিক') || t.includes('মাটি কাটা') || t.includes('labour') || t.includes('labor')) {
+    return {
+      category_slug: 'daily-labour',
+      category_name_bn: 'দৈনিক লেবার',
+      category_name_en: 'Daily Labour Services',
+      subcategories: ['মাটি কাটা ও লোডিং', 'বাসা বদল ও মালামাল স্থানান্তর', 'কনস্ট্রাকশন দৈনিক শ্রমিক', 'সাধারণ সাহায্যকারী'],
+    }
+  }
+
+  // 11. ইলেকট্রিক্যাল কাজ (Default for electrician/wiring or general)
   return {
     category_slug: 'electrical-services',
     category_name_bn: 'ইলেকট্রিক্যাল কাজ',

@@ -6,8 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Calendar, Clock, MapPin, DollarSign, 
   Upload, Camera, CheckCircle2, Shield, Wrench, 
-  Star, AlertCircle, Phone, X, Loader2,
-  MessageCircle, KeyRound, RefreshCw, Smartphone, ShieldCheck, ArrowRight
+  Star, AlertCircle, Phone, X, Loader2
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -47,25 +46,7 @@ export default function NewBookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  // WhatsApp OTP One-Time Booking states
-  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
-  const [isSendingOtp, setIsSendingOtp] = useState(false)
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
-  const [otpError, setOtpError] = useState('')
-  const [previewOtp, setPreviewOtp] = useState('')
-  const [countdown, setCountdown] = useState(60)
-
-  useEffect(() => {
-    let timer: any
-    if (isOtpModalOpen && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((c) => c - 1)
-      }, 1000)
-    }
-    return () => clearInterval(timer)
-  }, [isOtpModalOpen, countdown])
-
+  // Booking form state
   useEffect(() => {
     const mistriId = params.mistriId as string
     if (!mistriId) return
@@ -90,7 +71,7 @@ export default function NewBookingPage() {
         if (json.success && json.data) {
           setMistri(json.data)
           if (json.data.subcategories && json.data.subcategories.length > 0) {
-            setSelectedSubcategory((prev) => prev || json.data.subcategories[0])
+            setSelectedSubcategory(json.data.subcategories[0])
           }
           if (json.data.base_charge) {
             setEstimatedBudget(json.data.base_charge)
@@ -213,133 +194,6 @@ export default function NewBookingPage() {
     }
   }
 
-  // Trigger WhatsApp OTP for One-Time fast booking
-  const handleStartWhatsAppOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    setErrorMessage('')
-
-    if (!workDescription.trim()) {
-      setErrorMessage(isBn ? 'অনুগ্রহ করে কাজের বিবরণ লিখুন' : 'Please provide work description')
-      return
-    }
-    if (!jobAddress.trim()) {
-      setErrorMessage(isBn ? 'কাজের সঠিক ঠিকানা দিন' : 'Please provide job address')
-      return
-    }
-    const cleanPhone = contactPhone.replace(/[^0-9]/g, '')
-    if (!cleanPhone || cleanPhone.length < 11) {
-      setErrorMessage(isBn ? 'অনুগ্রহ করে সঠিক ১১-সংখ্যার WhatsApp মোবাইল নম্বর দিন' : 'Please provide a valid 11-digit phone number')
-      return
-    }
-
-    setIsSendingOtp(true)
-    setOtpError('')
-    setOtpCode('')
-
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, channel: 'whatsapp' }),
-      })
-      const data = await res.json()
-      setIsSendingOtp(false)
-      if (data.previewCode) {
-        setPreviewOtp(data.previewCode)
-      } else {
-        setPreviewOtp('1234')
-      }
-      setIsOtpModalOpen(true)
-      setCountdown(60)
-    } catch {
-      setIsSendingOtp(false)
-      setPreviewOtp('1234')
-      setIsOtpModalOpen(true)
-      setCountdown(60)
-    }
-  }
-
-  const handleResendOtp = async () => {
-    const cleanPhone = contactPhone.replace(/[^0-9]/g, '')
-    if (!cleanPhone || cleanPhone.length < 11) return
-    setIsSendingOtp(true)
-    setOtpError('')
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, channel: 'whatsapp' }),
-      })
-      const data = await res.json()
-      setIsSendingOtp(false)
-      if (data.previewCode) setPreviewOtp(data.previewCode)
-      setCountdown(60)
-    } catch {
-      setIsSendingOtp(false)
-      setCountdown(60)
-    }
-  }
-
-  // Verify OTP and complete booking in 1 seamless action
-  const handleVerifyOtpAndBook = async () => {
-    setOtpError('')
-    const cleanPhone = contactPhone.replace(/[^0-9]/g, '')
-    const code = otpCode.trim()
-
-    if (!code || code.length < 4) {
-      setOtpError(isBn ? '৪-সংখ্যার ওটিপি কোড লিখুন' : 'Enter 4-digit OTP code')
-      return
-    }
-
-    setIsVerifyingOtp(true)
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, code }),
-      })
-      const data = await res.json()
-
-      if (data.success || code === '1234' || (previewOtp && code === previewOtp)) {
-        // Set customer session in localStorage
-        const customerUser = data.user || {
-          id: `cust-${Date.now()}`,
-          phone: cleanPhone,
-          name: 'সম্মানিত গ্রাহক',
-          role: 'customer',
-        }
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mistri_user', JSON.stringify(customerUser))
-          window.dispatchEvent(new Event('mistri_auth_changed'))
-        }
-
-        setIsOtpModalOpen(false)
-        await executeBookingSubmit(cleanPhone)
-      } else {
-        setIsVerifyingOtp(false)
-        setOtpError(data.error || (isBn ? 'ভুল ওটিপি কোড! আবার চেষ্টা করুন' : 'Invalid OTP code'))
-      }
-    } catch {
-      if (code === '1234' || (previewOtp && code === previewOtp)) {
-        const customerUser = {
-          id: `cust-${Date.now()}`,
-          phone: cleanPhone,
-          name: 'সম্মানিত গ্রাহক',
-          role: 'customer',
-        }
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('mistri_user', JSON.stringify(customerUser))
-          window.dispatchEvent(new Event('mistri_auth_changed'))
-        }
-        setIsOtpModalOpen(false)
-        await executeBookingSubmit(cleanPhone)
-      } else {
-        setIsVerifyingOtp(false)
-        setOtpError(isBn ? 'ওটিপি যাচাই করা যায়নি। টেস্ট কোড: 1234' : 'Verification failed. Test code: 1234')
-      }
-    }
-  }
-
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage('')
@@ -358,14 +212,22 @@ export default function NewBookingPage() {
       return
     }
 
-    // Check if user is already logged in as customer
+    // Auto-create customer session if not already logged in
     const user = getStoredUser()
-    if (user?.phone && user?.role === 'customer') {
-      await executeBookingSubmit(user.phone)
-    } else {
-      // Prompt WhatsApp OTP for instant one-time verification
-      await handleStartWhatsAppOtp()
+    if (!user || !user.phone) {
+      const customerUser = {
+        id: `cust-${Date.now()}`,
+        phone: cleanPhone,
+        name: 'সম্মানিত গ্রাহক',
+        role: 'customer',
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mistri_user', JSON.stringify(customerUser))
+        window.dispatchEvent(new Event('mistri_auth_changed'))
+      }
     }
+
+    await executeBookingSubmit(cleanPhone)
   }
 
   if (isLoadingMistri && !mistri) {
@@ -608,8 +470,8 @@ export default function NewBookingPage() {
                 required
               />
               <p className="text-[10px] text-stone-500 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-[#25D366]"></span>
-                <span>{isBn ? 'এই নম্বরে WhatsApp OTP যাচাই করে One-Time দ্রুত বুকিং করা যাবে' : 'Use this number for 1-click WhatsApp OTP booking'}</span>
+                <Phone className="h-3 w-3 text-[#2c7865]" />
+                <span>{isBn ? 'মিস্ত্রী এই নম্বরে আপনার সাথে কাজের বিষয়ে সরাসরি যোগাযোগ করবেন' : 'The professional will contact you at this number'}</span>
               </p>
             </div>
 
@@ -622,41 +484,6 @@ export default function NewBookingPage() {
             />
           </div>
         </Card>
-
-        {/* WhatsApp OTP One-Time Fast Booking Feature Card */}
-        <div className="rounded-2xl p-4 sm:p-5 border-2 border-[#2c7865]/40 bg-[#fefded] shadow-sm space-y-3.5">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-              <MessageCircle className="h-6 w-6" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-stone-900">
-                  {isBn ? 'WhatsApp OTP দিয়ে One-Time তাৎক্ষণিক বুকিং' : 'Instant One-Time WhatsApp OTP Booking'}
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#25D366]/15 text-[#1b7a3e] border border-[#25D366]/30">
-                  {isBn ? 'পাসওয়ার্ড মুক্ত' : 'No Password'}
-                </span>
-              </div>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                {isBn 
-                  ? 'কোনো লম্বা অ্যাকাউন্ট রেজিস্ট্রেশন বা পাসওয়ার্ড ছাড়া কেবল WhatsApp ওটিপি দিয়ে এক ক্লিকে মিস্ত্রী বুক করুন।' 
-                  : 'Skip account creation. Confirm your booking instantly with a 4-digit code sent to your WhatsApp.'}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            onClick={handleStartWhatsAppOtp}
-            isLoading={isSendingOtp}
-            className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white py-3.5 text-xs sm:text-sm font-bold rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all border border-emerald-600"
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span>{isBn ? '🟢 WhatsApp OTP দিয়ে এক ক্লিকে বুক করুন' : 'Book Instantly with WhatsApp OTP'}</span>
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
 
         {/* Safety Note */}
         <div className="rounded-2xl skeuo-surface p-4 border border-stone-300 text-xs text-stone-900 space-y-1">
@@ -682,107 +509,6 @@ export default function NewBookingPage() {
           <span>{isBn ? 'বুকিং অনুরোধ পাঠান (Send Request)' : 'Submit Booking Request'}</span>
         </Button>
       </form>
-
-      {/* WhatsApp OTP Verification Modal */}
-      {isOtpModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <Card className="w-full max-w-md p-6 space-y-5 skeuo-surface border-2 border-[#2c7865]/40 shadow-2xl relative">
-            <button
-              onClick={() => setIsOtpModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl hover:bg-stone-200/60 text-stone-500 hover:text-stone-900 transition-colors cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="text-center space-y-2">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-lg">
-                <MessageCircle className="h-7 w-7" />
-              </div>
-              <h3 className="text-lg font-black text-stone-900 tracking-tight">
-                {isBn ? 'WhatsApp OTP দিয়ে One-Time বুকিং' : 'WhatsApp OTP One-Time Booking'}
-              </h3>
-              <p className="text-xs text-stone-600">
-                {isBn 
-                  ? `আপনার WhatsApp নম্বর (${contactPhone})-এ ৪-সংখ্যার ওটিপি কোড পাঠানো হয়েছে:` 
-                  : `A 4-digit verification code has been dispatched to ${contactPhone}:`}
-              </p>
-            </div>
-
-            {/* OTP Input Field */}
-            <div className="space-y-2">
-              <div className="flex justify-center">
-                <input
-                  type="text"
-                  maxLength={4}
-                  autoFocus
-                  value={otpCode}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
-                    setOtpCode(val)
-                    if (otpError) setOtpError('')
-                  }}
-                  placeholder="• • • •"
-                  className="w-48 text-center text-2xl font-black tracking-[0.5em] py-3 rounded-2xl border-2 border-[#2c7865] bg-white text-stone-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#2c7865]/40"
-                />
-              </div>
-
-              {previewOtp && (
-                <div className="text-center">
-                  <span className="inline-block text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    {isBn ? `💡 টেস্ট কোড: ${previewOtp}` : `💡 Demo Code: ${previewOtp}`}
-                  </span>
-                </div>
-              )}
-
-              {otpError && (
-                <p className="text-center text-xs font-semibold text-red-600 bg-red-50 p-2 rounded-xl border border-red-200">
-                  {otpError}
-                </p>
-              )}
-            </div>
-
-            {/* Countdown / Resend */}
-            <div className="text-center text-xs text-stone-600">
-              {countdown > 0 ? (
-                <span>
-                  {isBn ? `নতুন কোড পাঠানোর সময় বাকি: ${toBanglaNumber(countdown)} সেকেন্ড` : `Resend in: ${countdown}s`}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={isSendingOtp}
-                  className="font-bold text-[#2c7865] hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isSendingOtp ? 'animate-spin' : ''}`} />
-                  <span>{isBn ? 'পুনরায় WhatsApp কোড পাঠান' : 'Resend WhatsApp Code'}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
-              <Button
-                type="button"
-                onClick={handleVerifyOtpAndBook}
-                isLoading={isVerifyingOtp}
-                className="w-full bg-[#2c7865] hover:bg-[#236051] text-[#fefded] py-3.5 text-xs sm:text-sm font-bold rounded-xl shadow-lg cursor-pointer transition-all"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                <span>{isBn ? 'যাচাই করুন ও বুকিং নিশ্চিত করুন' : 'Verify & Confirm Booking'}</span>
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => setIsOtpModalOpen(false)}
-                className="w-full text-center text-xs font-semibold text-stone-600 hover:text-stone-900 py-1 cursor-pointer"
-              >
-                {isBn ? 'বাতিল' : 'Cancel'}
-              </button>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Location Picker Modal */}
       <LocationPickerModal
