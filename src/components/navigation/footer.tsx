@@ -51,7 +51,7 @@ export function Footer() {
                   {isBn ? 'প্রধান কার্যালয়:' : 'Head Office:'}
                 </p>
                 <p className="text-[#fefded]/85 leading-relaxed">
-                  {isBn ? 'হাজীপাড়া রোড, ঠাকুরগাঁও সদর' : 'Hajipara Road, Thakurgaon Sadar'}
+                  {isBn ? 'কলেজপাড়া, ঠাকুরগাঁও সদর' : 'Collegepara, Thakurgaon Sadar'}
                 </p>
                 <p className="text-[#fefded]/75 text-[11px]">
                   {isBn ? 'ঠাকুরগাঁও - ৫১০০, বাংলাদেশ' : 'Thakurgaon - 5100, Bangladesh'}
@@ -90,10 +90,10 @@ export function Footer() {
                     {isBn ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}
                   </span>
                   <a
-                    href="mailto:support@mistri.app"
+                    href="mailto:rubelinnovator@gmail.com"
                     className="font-medium text-[#fefded] hover:underline"
                   >
-                    support@mistri.app
+                    rubelinnovator@gmail.com
                   </a>
                 </div>
               </div>
