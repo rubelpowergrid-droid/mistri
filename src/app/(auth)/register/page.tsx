@@ -29,6 +29,15 @@ function RegisterContent() {
   const [error, setError] = useState('')
 
   React.useEffect(() => {
+    const roleParam = searchParams.get('role')
+    if (roleParam === 'mistri') {
+      setRole('mistri')
+    } else if (roleParam === 'customer') {
+      setRole('customer')
+    }
+  }, [searchParams])
+
+  React.useEffect(() => {
     async function loadLiveLocations() {
       try {
         const res = await fetch('/api/admin/locations')

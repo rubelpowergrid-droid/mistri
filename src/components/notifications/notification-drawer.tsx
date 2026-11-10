@@ -161,10 +161,41 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
   const getTargetLink = (item: NotificationItem) => {
     const user = getStoredUser()
     if (item.type === 'booking') {
-      if (user?.role === 'mistri') {
+      const title = item.title || ''
+      const body = item.body || ''
+
+      // Customer notifications: booking accepted, rejected, proposed new time, etc.
+      const isCustomerBookingUpdate =
+        title.includes('আপনার বুকিং') ||
+        title.includes('বুকিং গ্রহণ') ||
+        title.includes('বুকিং গৃহীত') ||
+        title.includes('ব্যস্ত আছেন') ||
+        title.includes('নতুন সময় প্রস্তাব') ||
+        title.includes('বাতিল') ||
+        body.includes('আপনার বুকিং') ||
+        body.includes('আপনার কাজের অনুরোধ গ্রহণ')
+
+      if (isCustomerBookingUpdate) {
+        return '/bookings'
+      }
+
+      // Mistri incoming job requests:
+      const isMistriIncomingRequest =
+        title.includes('অনুরোধ') ||
+        title.includes('নতুন কাজ') ||
+        body.includes('বুকিং অনুরোধ পাঠিয়েছেন') ||
+        body.includes('নতুন বুকিং অনুরোধ')
+
+      if (isMistriIncomingRequest) {
         return '/requests'
       }
-      return item.reference_id ? `/bookings/${item.reference_id}` : '/bookings'
+
+      // If mistri role, default to mistri bookings
+      if (user?.role === 'mistri') {
+        return '/mistri/bookings'
+      }
+
+      return '/bookings'
     }
     if (item.type === 'verification') {
       return '/onboarding/status'

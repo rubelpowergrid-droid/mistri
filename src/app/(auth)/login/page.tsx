@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Phone, Lock, Wrench, ArrowRight, ShieldCheck, MessageCircle, MessageSquare } from 'lucide-react'
+import { Phone, Lock, Wrench, ArrowRight, ShieldCheck, MessageCircle, MessageSquare, User } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -228,10 +228,20 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="pt-2 text-center text-xs text-stone-600">
-          <span>{isBn ? 'নতুন মিস্ত্রী হিসেবে যুক্ত হতে চান? ' : 'Are you a skilled professional? '}</span>
-          <Link href="/register?role=mistri" className="font-bold text-stone-900 hover:text-black underline underline-offset-4">
-            {isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Register as Mistri'}
+        <div className="pt-4 border-t border-[#2c7865]/20 flex items-center justify-between gap-3 text-xs">
+          <Link
+            href="/register?role=mistri"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#2c7865]/30 bg-[#fefded] text-[#2c7865] hover:bg-[#2c7865] hover:text-[#fefded] font-bold transition-all shadow-xs text-center"
+          >
+            <Wrench className="h-4 w-4 shrink-0" />
+            <span>{isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Mistri Register'}</span>
+          </Link>
+          <Link
+            href="/register?role=customer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#2c7865]/30 bg-[#fefded] text-[#2c7865] hover:bg-[#2c7865] hover:text-[#fefded] font-bold transition-all shadow-xs text-center"
+          >
+            <User className="h-4 w-4 shrink-0" />
+            <span>{isBn ? 'কাস্টোমার রেজিস্ট্রেশন' : 'Customer Register'}</span>
           </Link>
         </div>
       </Card>
