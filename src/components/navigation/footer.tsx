@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Wrench, MapPin, Mail, Phone, ShieldCheck, Clock, FileText, Shield } from 'lucide-react'
+import { Wrench, MapPin, Mail, Phone, ShieldCheck, Clock } from 'lucide-react'
 import { useI18n } from '@/locales'
 
 export function Footer() {
@@ -10,8 +10,8 @@ export function Footer() {
   const isBn = lang === 'bn'
 
   return (
-    <footer className="w-full bg-[#1e5548] text-[#fefded] border-t-2 border-[#2c7865] mt-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+    <footer className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full mt-6 sm:mt-8 mb-8 sm:mb-12">
+      <div className="skeuo-surface-dark bg-gradient-to-b from-[#286f5c] via-[#1e5548] to-[#164237] text-[#fefded] p-6 sm:p-10 rounded-3xl border border-[#225f50] shadow-2xl space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-10">
           {/* 1. Company Information */}
           <div className="space-y-3.5">
@@ -106,30 +106,21 @@ export function Footer() {
             </div>
           </div>
 
-          {/* 4. Quick Links / Areas */}
+          {/* 4. Service Areas */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-[#fefded] uppercase tracking-wider border-b border-[#2c7865] pb-1.5">
-              {isBn ? 'সেবা অঞ্চল ও লিংক' : 'Service Areas & Links'}
+              {isBn ? 'সেবা অঞ্চল' : 'Service Areas'}
             </h4>
             <ul className="space-y-1.5 text-xs text-[#fefded]/80">
               <li>{isBn ? '• ঠাকুরগাঁও সদর, পীরগঞ্জ, রাণীশংকৈল' : '• Thakurgaon Sadar, Pirganj, Ranisankail'}</li>
               <li>{isBn ? '• পঞ্চগড় সদর, বোদা, তেঁতুলিয়া' : '• Panchagarh Sadar, Boda, Tetulia'}</li>
               <li>{isBn ? '• দিনাজপুর সদর, বীরগঞ্জ, কাহারোল' : '• Dinajpur Sadar, Birganj, Kaharole'}</li>
             </ul>
-            <div className="pt-2">
-              <Link
-                href="/register?role=mistri"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#fefded] border border-[#fefded]/30 bg-[#2c7865] px-3.5 py-2 rounded-xl hover:bg-[#378b75] transition-all shadow-xs"
-              >
-                <Wrench className="h-3.5 w-3.5 text-[#fefded]" />
-                <span>{isBn ? 'মিস্ত্রী হিসেবে নিবন্ধন করুন' : 'Register as Mistri'}</span>
-              </Link>
-            </div>
           </div>
         </div>
 
         {/* Bottom Copyright & Legal Strip */}
-        <div className="mt-10 pt-6 border-t border-[#2c7865] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#fefded]/70">
+        <div className="pt-6 border-t border-[#2c7865] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#fefded]/70">
           <p>© ২০২৬ mistri. সর্বস্বত্ব সংরক্ষিত।</p>
           <div className="flex items-center gap-4 text-[11px]">
             <Link href="/privacy" className="hover:text-[#fefded] transition-colors">

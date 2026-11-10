@@ -83,7 +83,7 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-12">
+    <div className="space-y-6 sm:space-y-8 pb-2 sm:pb-4">
       {/* Hero Section - Aligned with Header & Main Content in max-w-7xl */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
         <div className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] py-8 sm:py-12 px-4 sm:px-8 rounded-3xl border border-[#225f50] shadow-xl">
