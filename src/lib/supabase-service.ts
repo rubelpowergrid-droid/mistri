@@ -946,7 +946,7 @@ export async function getPersistentAccountState(): Promise<PersistentAccountStat
   const defaultState: PersistentAccountState = {
     trashedMistriIds: [],
     deletedMistriIds: [],
-    suspendedMistriIds: ['m-4'],
+    suspendedMistriIds: [],
   }
 
   try {
@@ -963,7 +963,7 @@ export async function getPersistentAccountState(): Promise<PersistentAccountStat
         return {
           trashedMistriIds: Array.isArray(parsed.trashedMistriIds) ? parsed.trashedMistriIds : [],
           deletedMistriIds: Array.isArray(parsed.deletedMistriIds) ? parsed.deletedMistriIds : [],
-          suspendedMistriIds: Array.isArray(parsed.suspendedMistriIds) ? parsed.suspendedMistriIds : ['m-4'],
+          suspendedMistriIds: Array.isArray(parsed.suspendedMistriIds) ? parsed.suspendedMistriIds : [],
           updatedAt: parsed.updatedAt,
         }
       } catch (parseErr) {

@@ -239,7 +239,7 @@ export function getTrashedMistriIds(): Set<string> {
 
 export function getSuspendedMistriIds(): Set<string> {
   if (!global.__SUSPENDED_MISTRI_IDS__) {
-    global.__SUSPENDED_MISTRI_IDS__ = new Set<string>(['m-4'])
+    global.__SUSPENDED_MISTRI_IDS__ = new Set<string>()
   }
   return global.__SUSPENDED_MISTRI_IDS__
 }
