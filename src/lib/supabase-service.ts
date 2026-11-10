@@ -493,7 +493,7 @@ export async function getMistriProfileByPhone(phone: string) {
           category: 'ইলেকট্রিক্যাল কাজ',
           categorySlug: 'electrical-services',
           subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
-          avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+          avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
           nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
           nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
           rating: Number(profile.average_rating) || 5.0,
@@ -592,6 +592,7 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
   if (typeof updates.isAvailable === 'boolean') safeUpdates.is_available = updates.isAvailable
   if (updates.chargeType !== undefined) safeUpdates.charge_type = updates.chargeType
   if (updates.baseCharge !== undefined) safeUpdates.base_charge = Number(updates.baseCharge)
+  if (updates.avatar !== undefined) safeUpdates.avatar_url = updates.avatar
 
   try {
     const supabase = createAdminClient() as any

@@ -208,10 +208,38 @@ export default function MistriProfilePage() {
     }
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const result = event.target?.result as string
-      if (result) {
-        setProfile((prev: any) => ({ ...prev, avatar: result }))
+      if (!result) return
+
+      // Update UI instantly
+      setProfile((prev: any) => ({ ...prev, avatar: result }))
+
+      // Immediately save to database
+      try {
+        await fetch('/api/mistri/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: profile.phone,
+            avatar: result,
+            professionalTitle: profile.professionalTitle,
+            category: profile.category,
+            categorySlug: profile.categorySlug,
+            subcategories: profile.subcategories,
+            experienceYears: profile.experienceYears,
+            district: profile.district,
+            upazila: profile.upazila,
+            streetAddress: profile.streetAddress,
+            serviceRadiusKm: profile.serviceRadiusKm,
+            chargeType: profile.chargeType,
+            baseCharge: profile.baseCharge,
+            bio: profile.bio,
+            isAvailable: profile.isAvailable,
+          }),
+        })
+      } catch (err) {
+        console.error('ছবি সেভ ব্যর্থ হয়েছে:', err)
       }
     }
     reader.readAsDataURL(file)
