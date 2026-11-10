@@ -109,9 +109,12 @@ export default function MistriProfilePage() {
   const [session, setSession] = useState<UserSession | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false)
 
-  // Load profile on mount with real-time reactive sync
+  const [isAvailabilityToggling, setIsAvailabilityToggling] = useState(false)
+
+  // Load profile on mount — only poll for notification count, never overwrite local edits
   useEffect(() => {
     let isInitial = true
+
     async function loadData() {
       if (isInitial) setIsLoading(true)
       const user = getStoredUser()
@@ -126,13 +129,16 @@ export default function MistriProfilePage() {
       const phoneToLoad = user.phone || '01722159830'
 
       try {
-        const res = await fetch(`/api/mistri/profile?phone=${phoneToLoad}`, { cache: 'no-store' })
-        const data = await res.json()
-        if (data.success && data.profile) {
-          setProfile(data.profile)
+        // Only load full profile on first mount — not on every poll
+        if (isInitial) {
+          const res = await fetch(`/api/mistri/profile?phone=${phoneToLoad}`, { cache: 'no-store' })
+          const data = await res.json()
+          if (data.success && data.profile) {
+            setProfile(data.profile)
+          }
         }
 
-        // Real-time pending requests count check
+        // Real-time pending requests count check (safe to poll — doesn't overwrite form)
         const cleanPhone = phoneToLoad.replace(/[^0-9]/g, '')
         const reqRes = await fetch(`/api/bookings?role=mistri&mistriPhone=${cleanPhone}&status=pending`, { cache: 'no-store' })
         const reqJson = await reqRes.json()
@@ -151,16 +157,26 @@ export default function MistriProfilePage() {
 
     loadData()
 
-    // 4-second real-time polling + window focus & storage listener
-    const interval = setInterval(loadData, 4000)
+    // Poll only for notifications (not full profile), every 8 seconds
+    const interval = setInterval(async () => {
+      const user = getStoredUser()
+      if (!user?.phone) return
+      try {
+        const cleanPhone = user.phone.replace(/[^0-9]/g, '')
+        const reqRes = await fetch(`/api/bookings?role=mistri&mistriPhone=${cleanPhone}&status=pending`, { cache: 'no-store' })
+        const reqJson = await reqRes.json()
+        if (reqJson.success && Array.isArray(reqJson.data)) {
+          setPendingRequestsCount(reqJson.data.length)
+        }
+      } catch {}
+    }, 8000)
+
     window.addEventListener('focus', loadData)
-    window.addEventListener('storage', loadData)
     window.addEventListener('mistri_profile_updated', loadData)
 
     return () => {
       clearInterval(interval)
       window.removeEventListener('focus', loadData)
-      window.removeEventListener('storage', loadData)
       window.removeEventListener('mistri_profile_updated', loadData)
     }
   }, [])
@@ -199,6 +215,40 @@ export default function MistriProfilePage() {
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  // Immediately toggle availability and save to API
+  const handleToggleAvailability = async () => {
+    const newVal = !profile.isAvailable
+    setProfile((p: any) => ({ ...p, isAvailable: newVal }))
+    setIsAvailabilityToggling(true)
+    try {
+      await fetch('/api/mistri/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: profile.phone,
+          isAvailable: newVal,
+          professionalTitle: profile.professionalTitle,
+          category: profile.category,
+          categorySlug: profile.categorySlug,
+          subcategories: profile.subcategories,
+          experienceYears: profile.experienceYears,
+          district: profile.district,
+          upazila: profile.upazila,
+          streetAddress: profile.streetAddress,
+          serviceRadiusKm: profile.serviceRadiusKm,
+          chargeType: profile.chargeType,
+          baseCharge: profile.baseCharge,
+          bio: profile.bio,
+          avatar: profile.avatar,
+        }),
+      })
+    } catch {
+      // silently ignore — UI already updated
+    } finally {
+      setIsAvailabilityToggling(false)
+    }
   }
 
   // Save editable profile changes
@@ -538,12 +588,13 @@ export default function MistriProfilePage() {
             <span className="text-xs font-bold text-[#fefded] block">কাজের প্রাপ্যতা:</span>
             <button
               type="button"
-              onClick={() => setProfile((p: any) => ({ ...p, isAvailable: !p.isAvailable }))}
+              onClick={handleToggleAvailability}
+              disabled={isAvailabilityToggling}
               className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-3 cursor-pointer ${
                 profile.isAvailable
                   ? 'bg-[#fefded] text-[#2c7865] border border-[#fefded]'
                   : 'bg-[#14382f] text-[#fefded]/60 border border-[#225f50]'
-              }`}
+              } ${isAvailabilityToggling ? 'opacity-60' : ''}`}
             >
               <span className="flex items-center gap-1.5">
                 <span className={`h-2.5 w-2.5 rounded-full ${profile.isAvailable ? 'bg-[#2c7865]' : 'bg-[#fefded]/40'}`} />
