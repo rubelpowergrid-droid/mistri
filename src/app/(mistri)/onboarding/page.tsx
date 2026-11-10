@@ -364,7 +364,7 @@ function MistriOnboardingContent() {
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
         <Badge variant="neutral" className="skeuo-pill bg-[#2c7865] text-[#fefded] border-[#225f50] text-xs px-3 py-1">
-          {isBn ? '👷‍♂️ মিস্ত্রী ভেরিফিকেশন অনবোর্ডিং' : '👷‍♂️ Professional Verification Onboarding'}
+          {isBn ? 'মিস্ত্রী ভেরিফিকেশন অনবোর্ডিং' : 'Professional Verification Onboarding'}
         </Badge>
         <h1 className="text-2xl sm:text-3xl font-black text-[#2c7865] tracking-tight">
           {isBn ? 'আপনার প্রফেশনাল প্রোফাইল তৈরি করুন' : 'Build Your Professional Profile'}

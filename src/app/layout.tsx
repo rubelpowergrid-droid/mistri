@@ -3,6 +3,7 @@ import { Tiro_Bangla } from 'next/font/google'
 import './globals.css'
 import { I18nProvider } from '@/locales'
 import { Header } from '@/components/navigation/header'
+import { Footer } from '@/components/navigation/footer'
 import { CustomerBottomNav } from '@/components/navigation/customer-bottom-nav'
 import { PwaRegistrar } from '@/components/pwa-registrar'
 
@@ -42,6 +43,7 @@ export default function RootLayout({
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
+            <Footer />
             <CustomerBottomNav />
           </div>
         </I18nProvider>

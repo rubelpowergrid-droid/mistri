@@ -89,7 +89,7 @@ export default function HomePage() {
         <div className="relative overflow-hidden skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] py-8 sm:py-12 px-4 sm:px-8 rounded-3xl border border-[#225f50] shadow-xl">
           <div className="mx-auto max-w-4xl text-center space-y-4">
             <Badge variant="neutral" className="skeuo-pill bg-[#1e5548]/90 text-[#fefded] border-[#38967f] px-3 py-1 text-xs shadow-xs font-semibold">
-              {isBn ? '📍 ঠাকুরগাঁও • পঞ্চগড় • দিনাজপুর' : '📍 Thakurgaon • Panchagarh • Dinajpur'}
+              {isBn ? 'ঠাকুরগাঁও • পঞ্চগড় • দিনাজপুর' : 'Thakurgaon • Panchagarh • Dinajpur'}
             </Badge>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#fefded]">
               {isBn ? 'আপনার এলাকার দক্ষ মিস্ত্রী, এখন হাতের মুঠোয়' : 'Find Trusted Local Professionals In Your Area'}
@@ -269,7 +269,7 @@ export default function HomePage() {
         <div className="skeuo-surface-dark bg-gradient-to-b from-[#378b75] via-[#2c7865] to-[#1c5245] text-[#fefded] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl border border-[#225f50] rounded-3xl">
           <div className="space-y-2 text-center md:text-left">
             <Badge variant="neutral" className="skeuo-pill bg-[#1e5548] text-[#fefded] border-[#38967f] font-bold text-xs px-3 py-1">
-              {isBn ? '👷‍♂️ মিস্ত্রীদের জন্য' : '👷‍♂️ For Skilled Workers'}
+              {isBn ? 'মিস্ত্রীদের জন্য' : 'For Skilled Workers'}
             </Badge>
             <h3 className="text-xl sm:text-2xl font-black text-[#fefded]">
               {isBn ? 'আপনি কি দক্ষ মিস্ত্রী? mistri-তে যোগ দিয়ে আয় বাড়ান!' : 'Are you a skilled worker? Join mistri and grow your earnings!'}
