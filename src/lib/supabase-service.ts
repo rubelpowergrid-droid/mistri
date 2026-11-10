@@ -932,20 +932,113 @@ export async function getBookingsFromSupabase(filter: {
   }
 }
 
+export interface PersistentAccountState {
+  trashedMistriIds: string[]
+  deletedMistriIds: string[]
+  suspendedMistriIds: string[]
+  updatedAt?: string
+}
+
+const SYSTEM_STATE_USER_ID = '1c847986-9051-490d-b225-d73a545bfdc9'
+const SYSTEM_STATE_EMAIL = 'system_admin_state@mistri.internal'
+
+export async function getPersistentAccountState(): Promise<PersistentAccountState> {
+  const defaultState: PersistentAccountState = {
+    trashedMistriIds: [],
+    deletedMistriIds: [],
+    suspendedMistriIds: ['m-4'],
+  }
+
+  try {
+    const supabase = createAdminClient() as any
+    const { data, error } = await supabase
+      .from('users')
+      .select('avatar_url')
+      .eq('email', SYSTEM_STATE_EMAIL)
+      .maybeSingle()
+
+    if (!error && data?.avatar_url) {
+      try {
+        const parsed = JSON.parse(data.avatar_url)
+        return {
+          trashedMistriIds: Array.isArray(parsed.trashedMistriIds) ? parsed.trashedMistriIds : [],
+          deletedMistriIds: Array.isArray(parsed.deletedMistriIds) ? parsed.deletedMistriIds : [],
+          suspendedMistriIds: Array.isArray(parsed.suspendedMistriIds) ? parsed.suspendedMistriIds : ['m-4'],
+          updatedAt: parsed.updatedAt,
+        }
+      } catch (parseErr) {
+        console.warn('Failed to parse persistent account state json:', parseErr)
+      }
+    }
+  } catch (err: any) {
+    console.error('getPersistentAccountState error:', err.message)
+  }
+
+  return defaultState
+}
+
+export async function savePersistentAccountState(state: PersistentAccountState): Promise<boolean> {
+  try {
+    const supabase = createAdminClient() as any
+    const payload = JSON.stringify({
+      trashedMistriIds: Array.from(new Set(state.trashedMistriIds || [])),
+      deletedMistriIds: Array.from(new Set(state.deletedMistriIds || [])),
+      suspendedMistriIds: Array.from(new Set(state.suspendedMistriIds || [])),
+      updatedAt: new Date().toISOString(),
+    })
+
+    const { error } = await supabase.from('users').upsert({
+      id: SYSTEM_STATE_USER_ID,
+      email: SYSTEM_STATE_EMAIL,
+      phone: '00000000000',
+      role: 'admin',
+      preferred_language: 'bn',
+      avatar_url: payload,
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+
+    if (error) {
+      console.error('savePersistentAccountState error:', error.message)
+      return false
+    }
+    return true
+  } catch (err: any) {
+    console.error('savePersistentAccountState exception:', err.message)
+    return false
+  }
+}
+
 export async function softDeleteMistriInSupabase(id: string) {
   try {
     const supabase = createAdminClient() as any
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-    if (!isUuid) return true
+    if (isUuid) {
+      await supabase
+        .from('mistri_profiles')
+        .update({
+          deleted_at: new Date().toISOString(),
+          approval_status: 'suspended',
+          is_available: false,
+        })
+        .eq('id', id)
+    }
 
-    await supabase
-      .from('mistri_profiles')
-      .update({
-        deleted_at: new Date().toISOString(),
-        approval_status: 'suspended',
-        is_available: false,
-      })
-      .eq('id', id)
+    // Persist in Supabase PostgreSQL state so demo and real accounts persist across cold starts and refreshes!
+    const state = await getPersistentAccountState()
+    const trashed = new Set(state.trashedMistriIds)
+    trashed.add(id)
+    const suspended = new Set(state.suspendedMistriIds)
+    suspended.delete(id)
+    const deleted = new Set(state.deletedMistriIds)
+    deleted.delete(id)
+
+    await savePersistentAccountState({
+      trashedMistriIds: Array.from(trashed),
+      deletedMistriIds: Array.from(deleted),
+      suspendedMistriIds: Array.from(suspended),
+    })
+
     return true
   } catch (err: any) {
     console.error('softDeleteMistriInSupabase error:', err.message)
@@ -957,16 +1050,29 @@ export async function restoreMistriInSupabase(id: string) {
   try {
     const supabase = createAdminClient() as any
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-    if (!isUuid) return true
+    if (isUuid) {
+      await supabase
+        .from('mistri_profiles')
+        .update({
+          deleted_at: null,
+          approval_status: 'approved',
+          is_available: true,
+        })
+        .eq('id', id)
+    }
 
-    await supabase
-      .from('mistri_profiles')
-      .update({
-        deleted_at: null,
-        approval_status: 'approved',
-        is_available: true,
-      })
-      .eq('id', id)
+    const state = await getPersistentAccountState()
+    const trashed = new Set(state.trashedMistriIds)
+    trashed.delete(id)
+    const deleted = new Set(state.deletedMistriIds)
+    deleted.delete(id)
+
+    await savePersistentAccountState({
+      trashedMistriIds: Array.from(trashed),
+      deletedMistriIds: Array.from(deleted),
+      suspendedMistriIds: state.suspendedMistriIds,
+    })
+
     return true
   } catch (err: any) {
     console.error('restoreMistriInSupabase error:', err.message)
@@ -978,15 +1084,30 @@ export async function setMistriSuspendedInSupabase(id: string, suspended: boolea
   try {
     const supabase = createAdminClient() as any
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-    if (!isUuid) return true
+    if (isUuid) {
+      await supabase
+        .from('mistri_profiles')
+        .update({
+          approval_status: suspended ? 'suspended' : 'approved',
+          is_available: !suspended,
+        })
+        .eq('id', id)
+    }
 
-    await supabase
-      .from('mistri_profiles')
-      .update({
-        approval_status: suspended ? 'suspended' : 'approved',
-        is_available: !suspended,
-      })
-      .eq('id', id)
+    const state = await getPersistentAccountState()
+    const suspendedSet = new Set(state.suspendedMistriIds)
+    if (suspended) {
+      suspendedSet.add(id)
+    } else {
+      suspendedSet.delete(id)
+    }
+
+    await savePersistentAccountState({
+      trashedMistriIds: state.trashedMistriIds,
+      deletedMistriIds: state.deletedMistriIds,
+      suspendedMistriIds: Array.from(suspendedSet),
+    })
+
     return true
   } catch (err: any) {
     console.error('setMistriSuspendedInSupabase error:', err.message)
@@ -998,18 +1119,38 @@ export async function permanentDeleteMistriFromSupabase(id: string) {
   try {
     const supabase = createAdminClient() as any
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-    if (!isUuid) return true
+    if (isUuid) {
+      const { data: profile } = await supabase
+        .from('mistri_profiles')
+        .select('user_id')
+        .eq('id', id)
+        .maybeSingle()
 
-    const { data: profile } = await supabase
-      .from('mistri_profiles')
-      .select('user_id')
-      .eq('id', id)
-      .maybeSingle()
-
-    await supabase.from('mistri_profiles').delete().eq('id', id)
-    if (profile?.user_id) {
-      await supabase.from('users').delete().eq('id', profile.user_id)
+      await supabase.from('mistri_profiles').delete().eq('id', id)
+      if (profile?.user_id) {
+        await supabase.from('users').delete().eq('id', profile.user_id)
+        try {
+          await supabase.auth.admin.deleteUser(profile.user_id)
+        } catch {}
+      }
     }
+
+    // Crucial: Add ID to permanent deleted blacklist in Supabase PostgreSQL
+    // so that neither demo mistris nor deleted real mistris ever reappear!
+    const state = await getPersistentAccountState()
+    const deleted = new Set(state.deletedMistriIds)
+    deleted.add(id)
+    const trashed = new Set(state.trashedMistriIds)
+    trashed.delete(id)
+    const suspended = new Set(state.suspendedMistriIds)
+    suspended.delete(id)
+
+    await savePersistentAccountState({
+      trashedMistriIds: Array.from(trashed),
+      deletedMistriIds: Array.from(deleted),
+      suspendedMistriIds: Array.from(suspended),
+    })
+
     return true
   } catch (err: any) {
     console.error('permanentDeleteMistriFromSupabase error:', err.message)

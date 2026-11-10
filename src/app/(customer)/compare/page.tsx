@@ -33,16 +33,22 @@ function CompareContent() {
       } catch {}
     }
 
-    // If no IDs provided, default to top 2 for demonstration
     if (idList.length === 0) {
-      idList = ['m-1', 'm-2', 'm-3']
+      setComparedMistris([])
+      return
     }
 
-    const matched = idList
-      .map(id => MISTRI_DIRECTORY.find(m => m.id === id))
-      .filter(Boolean)
-
-    setComparedMistris(matched)
+    fetch('/api/mistris/search')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          const matched = idList
+            .map((id) => data.data.find((m: any) => m.id === id))
+            .filter(Boolean)
+          setComparedMistris(matched)
+        }
+      })
+      .catch(() => {})
   }, [searchParams])
 
   const removeMistri = (id: string) => {

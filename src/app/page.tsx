@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Search, Zap, Wrench, Paintbrush, Hammer, Home as HomeIcon, 
@@ -34,53 +34,35 @@ export default function HomePage() {
     { id: '12', name_bn: 'অন্যান্য সেবা', name_en: 'Other Services', icon: MoreHorizontal, slug: 'other-services' },
   ]
 
-  const featuredMistris = [
-    {
-      id: 'm-1',
-      name: isBn ? 'মোঃ রফিকুল ইসলাম' : 'Md. Rafiqul Islam',
-      title: isBn ? 'সিনিয়র ইলেকট্রিশিয়ান' : 'Senior Electrician',
-      rating: 4.9,
-      reviewsCount: 38,
-      completedJobs: 142,
-      experienceYears: 8,
-      distanceKm: 1.4,
-      upazila: isBn ? 'ঠাকুরগাঁও সদর' : 'Thakurgaon Sadar',
-      baseCharge: 500,
-      chargeType: 'negotiable',
-      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-      category: isBn ? 'ইলেকট্রিক্যাল কাজ' : 'Electrical',
-    },
-    {
-      id: 'm-2',
-      name: isBn ? 'আব্দুল করিম' : 'Abdul Karim',
-      title: isBn ? 'দক্ষ প্লাম্বিং কারিগর' : 'Expert Plumber',
-      rating: 4.8,
-      reviewsCount: 29,
-      completedJobs: 98,
-      experienceYears: 6,
-      distanceKm: 2.1,
-      upazila: isBn ? 'পীরগঞ্জ' : 'Pirganj',
-      baseCharge: 400,
-      chargeType: 'negotiable',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      category: isBn ? 'প্লাম্বিং সার্ভিস' : 'Plumbing',
-    },
-    {
-      id: 'm-3',
-      name: isBn ? 'তরিকুল হাসান' : 'Tariqul Hasan',
-      title: isBn ? 'রাজমিস্ত্রী ও টাইলস স্পেশালিস্ট' : 'Mason & Tiles Specialist',
-      rating: 5.0,
-      reviewsCount: 52,
-      completedJobs: 210,
-      experienceYears: 12,
-      distanceKm: 3.5,
-      upazila: isBn ? 'বোদা, পঞ্চগড়' : 'Boda, Panchagarh',
-      baseCharge: 800,
-      chargeType: 'negotiable',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      category: isBn ? 'রাজমিস্ত্রীর কাজ' : 'Masonry',
-    },
-  ]
+  const [featuredMistris, setFeaturedMistris] = useState<any[]>([])
+  const [loadingMistris, setLoadingMistris] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/mistris/search')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          const mapped = data.data.slice(0, 3).map((m: any) => ({
+            id: m.id,
+            name: isBn ? m.name_bn : (m.name_en || m.name_bn),
+            title: m.professional_title || m.title || (isBn ? 'দক্ষ কারিগর' : 'Skilled Worker'),
+            rating: m.average_rating || m.rating || 5.0,
+            reviewsCount: m.total_reviews || m.reviewsCount || 1,
+            completedJobs: m.total_completed_jobs || m.completedJobs || 0,
+            experienceYears: m.experience_years || m.experienceYears || 5,
+            distanceKm: m.distance_km || 1.4,
+            upazila: isBn ? (m.upazila_bn || m.upazila) : (m.upazila || m.upazila_bn),
+            baseCharge: m.base_charge || 400,
+            chargeType: m.charge_type || 'negotiable',
+            avatar: m.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+            category: isBn ? (m.category_name_bn || m.category) : (m.category_name_en || m.category),
+          }))
+          setFeaturedMistris(mapped)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMistris(false))
+  }, [isBn])
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-2 sm:pb-4">
@@ -203,64 +185,76 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {featuredMistris.map((mistri) => (
-            <Card key={mistri.id} className="flex flex-col justify-between p-4 skeuo-surface border-stone-300 hover:border-stone-400 hover:shadow-md transition-all">
-              <div className="flex items-start gap-3.5">
-                <div className="relative shrink-0">
-                  <img
-                    src={mistri.avatar}
-                    alt={mistri.name}
-                    className="h-16 w-16 rounded-2xl object-cover border border-stone-300"
-                  />
-                  <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                  </span>
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="neutral" className="skeuo-pill bg-stone-900 text-white border-stone-800 text-[10px] px-2 py-0.5">
-                      {mistri.category}
-                    </Badge>
-                    <span className="flex items-center gap-1 text-xs font-bold text-stone-900">
-                      <Star className="h-3.5 w-3.5 fill-stone-900 text-stone-900" />
-                      {mistri.rating} ({toBanglaNumber(mistri.reviewsCount)})
+          {loadingMistris ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="p-4 skeuo-surface border-stone-300 animate-pulse h-36 flex items-center justify-center">
+                <span className="text-xs text-stone-400">{isBn ? 'লোড হচ্ছে...' : 'Loading...'}</span>
+              </Card>
+            ))
+          ) : featuredMistris.length > 0 ? (
+            featuredMistris.map((mistri) => (
+              <Card key={mistri.id} className="flex flex-col justify-between p-4 skeuo-surface border-stone-300 hover:border-stone-400 hover:shadow-md transition-all">
+                <div className="flex items-start gap-3.5">
+                  <div className="relative shrink-0">
+                    <img
+                      src={mistri.avatar}
+                      alt={mistri.name}
+                      className="h-16 w-16 rounded-2xl object-cover border border-stone-300"
+                    />
+                    <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">
+                      <ShieldCheck className="h-3.5 w-3.5" />
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-stone-900 truncate">{mistri.name}</h3>
-                  <p className="text-xs text-stone-600 truncate">{mistri.title}</p>
-                  <div className="flex items-center gap-2 text-[11px] text-stone-600 pt-0.5">
-                    <span className="flex items-center gap-0.5 font-medium">
-                      <MapPin className="h-3 w-3 text-stone-700" />
-                      {mistri.upazila}
-                    </span>
-                    <span>•</span>
-                    <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-300">
-                      {formatDistance(mistri.distanceKm, isBn)}
-                    </span>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="neutral" className="skeuo-pill bg-stone-900 text-white border-stone-800 text-[10px] px-2 py-0.5">
+                        {mistri.category}
+                      </Badge>
+                      <span className="flex items-center gap-1 text-xs font-bold text-stone-900">
+                        <Star className="h-3.5 w-3.5 fill-stone-900 text-stone-900" />
+                        {mistri.rating} ({toBanglaNumber(mistri.reviewsCount)})
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-stone-900 truncate">{mistri.name}</h3>
+                    <p className="text-xs text-stone-600 truncate">{mistri.title}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-stone-600 pt-0.5">
+                      <span className="flex items-center gap-0.5 font-medium">
+                        <MapPin className="h-3 w-3 text-stone-700" />
+                        {mistri.upazila}
+                      </span>
+                      <span>•</span>
+                      <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-300">
+                        {formatDistance(mistri.distanceKm, isBn)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-stone-200 flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-stone-500 text-[10px] block">{isBn ? 'মজুরি / পারিশ্রমিক' : 'Estimated Charge'}</span>
-                  <span className="font-black text-stone-900 text-sm">{formatBDT(mistri.baseCharge, isBn)}</span>
+                <div className="mt-4 pt-3 border-t border-stone-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-stone-500 text-[10px] block">{isBn ? 'মজুরি / পারিশ্রমিক' : 'Estimated Charge'}</span>
+                    <span className="font-black text-stone-900 text-sm">{formatBDT(mistri.baseCharge, isBn)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/mistri/${mistri.id}`}>
+                      <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold">
+                        {t('common.view_details')}
+                      </Button>
+                    </Link>
+                    <Link href={`/bookings/new/${mistri.id}`}>
+                      <Button size="sm" className="skeuo-btn-dark text-xs font-bold">
+                        {t('booking.book_now')}
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Link href={`/mistri/${mistri.id}`}>
-                    <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold">
-                      {t('common.view_details')}
-                    </Button>
-                  </Link>
-                  <Link href={`/bookings/new/${mistri.id}`}>
-                    <Button size="sm" className="skeuo-btn-dark text-xs font-bold">
-                      {t('booking.book_now')}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full py-8 text-center text-xs text-stone-500">
+              {isBn ? 'বর্তমানে কোনো সক্রিয় কারিগর তালিকাভুক্ত নেই।' : 'No active professionals listed.'}
+            </div>
+          )}
         </div>
       </section>
 

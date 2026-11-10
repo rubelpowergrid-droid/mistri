@@ -21,9 +21,16 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400, headers: NO_CACHE_HEADERS })
   }
 
-  // If mistri is in Trash, do not allow public profile viewing!
+  // If mistri is permanently deleted or in Trash, do not allow public profile viewing!
   const { getTrashedMistriIds } = await import('@/lib/mistri-store')
-  if (getTrashedMistriIds().has(id)) {
+  const { getPersistentAccountState } = await import('@/lib/supabase-service')
+  const persistentState = await getPersistentAccountState()
+
+  if (
+    persistentState.deletedMistriIds.includes(id) ||
+    persistentState.trashedMistriIds.includes(id) ||
+    getTrashedMistriIds().has(id)
+  ) {
     return NextResponse.json({ success: false, error: 'কারিগর পাওয়া যায়নি' }, { status: 404, headers: NO_CACHE_HEADERS })
   }
 

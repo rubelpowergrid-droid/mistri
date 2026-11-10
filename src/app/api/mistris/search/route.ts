@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+}
+
 // Sample comprehensive seed data for live search and filtering
 export const MISTRI_DIRECTORY = [
   {
@@ -226,14 +235,19 @@ export async function GET(request: NextRequest) {
   }
 
   const { INITIAL_APPROVED_MISTRIS, getTrashedMistriIds, getSuspendedMistriIds } = await import('@/lib/mistri-store')
+  const { getPersistentAccountState } = await import('@/lib/supabase-service')
+  const persistentState = await getPersistentAccountState()
+
   const liveMemory = (global as any).__APPROVED_MISTRIS__ || INITIAL_APPROVED_MISTRIS
-  const trashedSet = getTrashedMistriIds()
-  const suspendedSet = getSuspendedMistriIds()
+  const trashedSet = new Set([...Array.from(getTrashedMistriIds()), ...persistentState.trashedMistriIds])
+  const suspendedSet = new Set([...Array.from(getSuspendedMistriIds()), ...persistentState.suspendedMistriIds])
+  const deletedSet = new Set(persistentState.deletedMistriIds)
 
   const rawList = [...supabaseMistris, ...liveMemory, ...MISTRI_DIRECTORY]
   const seen = new Set<string>()
   const allMistris: any[] = []
   for (const m of rawList) {
+    if (deletedSet.has(m.id)) continue // permanently deleted!
     const key = (m.phone || '').replace(/[^0-9]/g, '') || m.id
     if (!seen.has(key)) {
       seen.add(key)
@@ -241,7 +255,8 @@ export async function GET(request: NextRequest) {
     }
   }
   let filtered = allMistris.filter((m) => {
-    // Hide trashed or suspended accounts from public view!
+    // Hide permanently deleted, trashed, or suspended accounts from public view!
+    if (deletedSet.has(m.id)) return false
     if (trashedSet.has(m.id) || m.status === 'trash' || m.deleted_at) return false
     if (suspendedSet.has(m.id) || m.status === 'suspended') return false
 
@@ -300,6 +315,6 @@ export async function GET(request: NextRequest) {
     success: true,
     total: filtered.length,
     data: filtered,
-  })
+  }, { headers: NO_CACHE_HEADERS })
 }
 

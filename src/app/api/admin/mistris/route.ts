@@ -14,11 +14,19 @@ import {
   restoreMistriInSupabase, 
   setMistriSuspendedInSupabase, 
   permanentDeleteMistriFromSupabase,
+  getPersistentAccountState,
   resolveCategoryFromTitle 
 } from '@/lib/supabase-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  Pragma: 'no-cache',
+  Expires: '0',
+}
 
 export const DEMO_ADMIN_MISTRIS = [
   {
@@ -115,8 +123,14 @@ export const DEMO_ADMIN_MISTRIS = [
 
 export async function GET(request: NextRequest) {
   try {
-    const trashedIds = getTrashedMistriIds()
-    const suspendedIds = getSuspendedMistriIds()
+    const memoryTrashed = getTrashedMistriIds()
+    const memorySuspended = getSuspendedMistriIds()
+
+    // 0. Persistent state from Supabase PostgreSQL
+    const persistentState = await getPersistentAccountState()
+    const trashedIds = new Set([...Array.from(memoryTrashed), ...persistentState.trashedMistriIds])
+    const suspendedIds = new Set([...Array.from(memorySuspended), ...persistentState.suspendedMistriIds])
+    const deletedIds = new Set(persistentState.deletedMistriIds)
 
     // 1. Fetch from Supabase (all, including trashed and suspended)
     let supabaseMistris: any[] = []
@@ -127,31 +141,33 @@ export async function GET(request: NextRequest) {
         .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
       
       if (data && Array.isArray(data)) {
-        supabaseMistris = data.map((row: any) => {
-          const catInfo = resolveCategoryFromTitle(row.professional_title || '')
-          let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
-          if (row.deleted_at || trashedIds.has(row.id)) {
-            computedStatus = 'trash'
-          } else if (row.approval_status === 'suspended' || suspendedIds.has(row.id)) {
-            computedStatus = 'suspended'
-          }
+        supabaseMistris = data
+          .filter((row: any) => !deletedIds.has(row.id))
+          .map((row: any) => {
+            const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+            let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
+            if (row.deleted_at || trashedIds.has(row.id)) {
+              computedStatus = 'trash'
+            } else if (row.approval_status === 'suspended' || suspendedIds.has(row.id)) {
+              computedStatus = 'suspended'
+            }
 
-          return {
-            id: row.id,
-            name: row.full_name,
-            phone: row.users?.phone || '017XXXXXXXX',
-            title: row.professional_title || 'দক্ষ মিস্ত্রী',
-            category: catInfo.category_name_bn,
-            district: row.districts?.name_bn || 'ঠাকুরগাঁও',
-            upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
-            experienceYears: row.experience_years || 5,
-            rating: row.average_rating || 5.0,
-            reviewsCount: row.total_reviews || 1,
-            completedJobs: row.total_completed_jobs || 0,
-            status: computedStatus,
-            avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-          }
-        })
+            return {
+              id: row.id,
+              name: row.full_name,
+              phone: row.users?.phone || '017XXXXXXXX',
+              title: row.professional_title || 'দক্ষ মিস্ত্রী',
+              category: catInfo.category_name_bn,
+              district: row.districts?.name_bn || 'ঠাকুরগাঁও',
+              upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+              experienceYears: row.experience_years || 5,
+              rating: row.average_rating || 5.0,
+              reviewsCount: row.total_reviews || 1,
+              completedJobs: row.total_completed_jobs || 0,
+              status: computedStatus,
+              avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+            }
+          })
       }
     } catch (e) {
       console.error('Failed to get mistris from Supabase:', e)
@@ -159,7 +175,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Fetch from applicants store
     const store = getApplicantsStore()
-    const approvedApplicants = store.filter((a) => a.status === 'approved')
+    const approvedApplicants = store.filter((a) => a.status === 'approved' && !deletedIds.has(a.id))
 
     // 3. Collect from global.__APPROVED_MISTRIS__
     const liveApproved = (global as any).__APPROVED_MISTRIS__ || INITIAL_APPROVED_MISTRIS
@@ -169,6 +185,7 @@ export async function GET(request: NextRequest) {
 
     // Priority 1: Supabase mistris
     for (const sm of supabaseMistris) {
+      if (deletedIds.has(sm.id)) continue
       const cleanPhone = (sm.phone || '').replace(/[^0-9]/g, '')
       if (cleanPhone && !seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
@@ -178,6 +195,7 @@ export async function GET(request: NextRequest) {
 
     // Priority 2: In-memory live approved (e.g. Jewel Rana)
     for (const lm of liveApproved) {
+      if (deletedIds.has(lm.id)) continue
       const cleanPhone = (lm.phone || '').replace(/[^0-9]/g, '')
       if (cleanPhone && !seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
@@ -208,6 +226,7 @@ export async function GET(request: NextRequest) {
 
     // Priority 3: Approved applicants from store
     for (const app of approvedApplicants) {
+      if (deletedIds.has(app.id)) continue
       const cleanPhone = app.phone.replace(/[^0-9]/g, '')
       if (!seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
@@ -236,8 +255,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Priority 4: Seed demo mistris
+    // Priority 4: Seed demo mistris (filter out permanently deleted ones!)
     for (const dm of DEMO_ADMIN_MISTRIS) {
+      if (deletedIds.has(dm.id)) continue
       const cleanPhone = dm.phone.replace(/[^0-9]/g, '')
       if (!seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
@@ -266,9 +286,9 @@ export async function GET(request: NextRequest) {
       trashCount: trashList.length,
       suspendedCount: suspendedList.length,
       mistris: combined,
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS })
   }
 }
 
@@ -278,7 +298,7 @@ export async function PATCH(request: NextRequest) {
     const { id, action } = body
 
     if (!id || !action) {
-      return NextResponse.json({ success: false, error: 'ID and action required' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'ID and action required' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
 
     if (action === 'trash') {
@@ -287,7 +307,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'অ্যাকাউন্টটি Trash ফোল্ডারে পাঠানো হয়েছে এবং পাবলিক ভিউ থেকে সরানো হয়েছে।',
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
 
     if (action === 'restore') {
@@ -296,7 +316,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'অ্যাকাউন্টটি Trash ফোল্ডার থেকে সফলভাবে পুনরুদ্ধার করা হয়েছে।',
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
 
     if (action === 'suspend') {
@@ -305,7 +325,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'অ্যাকাউন্টটি সাময়িকভাবে স্থগিত করা হয়েছে।',
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
 
     if (action === 'reactivate') {
@@ -314,12 +334,12 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'অ্যাকাউন্টের স্থগিতাদেশ সফলভাবে প্রত্যাহার করা হয়েছে।',
-      })
+      }, { headers: NO_CACHE_HEADERS })
     }
 
-    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400, headers: NO_CACHE_HEADERS })
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS })
   }
 }
 
@@ -333,7 +353,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!targetId) {
-      return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400, headers: NO_CACHE_HEADERS })
     }
 
     permanentDeleteMistriFromMemory(targetId)
@@ -342,8 +362,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'অ্যাকাউন্টটি Trash থেকে স্থায়ীভাবে সম্পূর্ণ মুছে ফেলা হয়েছে।',
-    })
+    }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: NO_CACHE_HEADERS })
   }
 }

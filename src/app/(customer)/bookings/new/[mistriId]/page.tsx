@@ -82,20 +82,7 @@ export default function NewBookingPage() {
     const today = new Date().toISOString().slice(0, 10)
     setPreferredDate(today)
 
-    // Check demo directory for instant preview if matches
-    const demoFound = MISTRI_DIRECTORY.find((m) => m.id === mistriId)
-    if (demoFound) {
-      setMistri(demoFound)
-      setIsLoadingMistri(false)
-      if (demoFound.subcategories && demoFound.subcategories.length > 0) {
-        setSelectedSubcategory(demoFound.subcategories[0])
-      }
-      if (demoFound.base_charge) {
-        setEstimatedBudget(demoFound.base_charge)
-      }
-    }
-
-    // Always fetch live data from API (covers Supabase UUID, in-memory, live registered)
+    // Always fetch live data from API (respects trashed and permanently deleted states)
     fetch(`/api/mistris/${mistriId}`)
       .then((res) => res.json())
       .then((json) => {
@@ -108,20 +95,14 @@ export default function NewBookingPage() {
           if (json.data.base_charge) {
             setEstimatedBudget(json.data.base_charge)
           }
-        } else if (!demoFound) {
-          // If not found in API and not in demo, fallback to first demo
-          setMistri(MISTRI_DIRECTORY[0])
-          if (MISTRI_DIRECTORY[0].subcategories?.length > 0) {
-            setSelectedSubcategory(MISTRI_DIRECTORY[0].subcategories[0])
-          }
+        } else {
+          setMistri(null)
         }
       })
       .catch((err) => {
         setIsLoadingMistri(false)
         console.error('Error fetching mistri:', err)
-        if (!demoFound) {
-          setMistri(MISTRI_DIRECTORY[0])
-        }
+        setMistri(null)
       })
   }, [params.mistriId])
 

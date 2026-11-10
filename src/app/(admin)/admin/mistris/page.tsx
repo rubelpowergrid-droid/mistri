@@ -51,83 +51,7 @@ function AdminMistrisContent() {
   const [selectedMistriForPermanentDelete, setSelectedMistriForPermanentDelete] = useState<MistriWorker | null>(null)
   const [isProcessingAction, setIsProcessingAction] = useState(false)
 
-  const [mistris, setMistris] = useState<MistriWorker[]>([
-    {
-      id: 'm-jewel-rana',
-      name: isBn ? 'মোঃ জুয়েল রানা' : 'Md. Jewel Rana',
-      phone: '01722159830',
-      title: isBn ? 'সিনিয়র ইলেকট্রিশিয়ান ও টেকনিশিয়ান' : 'Senior Electrician & Technician',
-      category: isBn ? 'ইলেকট্রিক্যাল কাজ' : 'Electrical',
-      district: isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon',
-      upazila: isBn ? 'ঠাকুরগাঁও সদর' : 'Thakurgaon Sadar',
-      experienceYears: 6,
-      rating: 5.0,
-      reviewsCount: 1,
-      completedJobs: 14,
-      status: 'approved',
-      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'm-1',
-      name: isBn ? 'মোঃ রফিকুল ইসলাম' : 'Md. Rafiqul Islam',
-      phone: '01712345678',
-      title: isBn ? 'সিনিয়র ইলেকট্রিশিয়ান' : 'Senior Electrician',
-      category: isBn ? 'ইলেকট্রিক্যাল কাজ' : 'Electrical',
-      district: isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon',
-      upazila: isBn ? 'ঠাকুরগাঁও সদর' : 'Thakurgaon Sadar',
-      experienceYears: 8,
-      rating: 4.9,
-      reviewsCount: 38,
-      completedJobs: 142,
-      status: 'approved',
-      avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'm-2',
-      name: isBn ? 'আব্দুল করিম' : 'Abdul Karim',
-      phone: '01898765432',
-      title: isBn ? 'দক্ষ প্লাম্বিং কারিগর' : 'Expert Plumber',
-      category: isBn ? 'প্লাম্বিং সার্ভিস' : 'Plumbing',
-      district: isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon',
-      upazila: isBn ? 'পীরগঞ্জ' : 'Pirganj',
-      experienceYears: 6,
-      rating: 4.8,
-      reviewsCount: 29,
-      completedJobs: 98,
-      status: 'approved',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'm-3',
-      name: isBn ? 'তরিকুল হাসান' : 'Tariqul Hasan',
-      phone: '01911223344',
-      title: isBn ? 'রাজমিস্ত্রী ও টাইলস স্পেশালিস্ট' : 'Masonry Specialist',
-      category: isBn ? 'রাজমিস্ত্রীর কাজ' : 'Masonry',
-      district: isBn ? 'পঞ্চগড়' : 'Panchagarh',
-      upazila: isBn ? 'বোদা' : 'Boda',
-      experienceYears: 12,
-      rating: 5.0,
-      reviewsCount: 52,
-      completedJobs: 210,
-      status: 'approved',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'm-4',
-      name: isBn ? 'নুরুল হুদা' : 'Nurul Huda',
-      phone: '01755667788',
-      title: isBn ? 'কাঠের ফার্নিচার মিস্ত্রী' : 'Carpenter',
-      category: isBn ? 'কাঠের কাজ' : 'Carpentry',
-      district: isBn ? 'দিনাজপুর' : 'Dinajpur',
-      upazila: isBn ? 'দিনাজপুর সদর' : 'Dinajpur Sadar',
-      experienceYears: 5,
-      rating: 3.8,
-      reviewsCount: 11,
-      completedJobs: 34,
-      status: 'suspended',
-      avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
-    },
-  ])
+  const [mistris, setMistris] = useState<MistriWorker[]>([])
 
   // Sync tab with URL search parameter
   useEffect(() => {
@@ -142,9 +66,9 @@ function AdminMistrisContent() {
   const fetchMistris = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/admin/mistris')
+      const res = await fetch('/api/admin/mistris', { cache: 'no-store' })
       const data = await res.json()
-      if (data.success && data.mistris && data.mistris.length > 0) {
+      if (data.success && Array.isArray(data.mistris)) {
         setMistris(data.mistris)
       }
     } catch (err) {

@@ -19,12 +19,21 @@ export default function FavoritesPage() {
   useEffect(() => {
     try {
       const savedIds = JSON.parse(localStorage.getItem('mistri_favs') || '[]')
-      // If empty in dev, default to top 2 so user sees working UI
-      const effectiveIds = savedIds.length > 0 ? savedIds : ['m-1', 'm-2']
-      const matched = effectiveIds
-        .map((id: string) => MISTRI_DIRECTORY.find(m => m.id === id))
-        .filter(Boolean)
-      setFavorites(matched)
+      if (savedIds.length === 0) {
+        setFavorites([])
+        return
+      }
+      fetch('/api/mistris/search')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.data)) {
+            const matched = savedIds
+              .map((id: string) => data.data.find((m: any) => m.id === id))
+              .filter(Boolean)
+            setFavorites(matched)
+          }
+        })
+        .catch(() => {})
     } catch {}
   }, [])
 
