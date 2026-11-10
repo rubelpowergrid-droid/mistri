@@ -228,6 +228,12 @@ declare global {
   var __BOOKINGS_STORE__: BookingRecord[] | undefined
 }
 
+export function clearMemoryStores(options: { bookings?: boolean; customers?: boolean; applicants?: boolean } = {}) {
+  if (options.bookings) global.__BOOKINGS_STORE__ = []
+  if (options.customers) global.__CUSTOMERS_STORE__ = []
+  if (options.applicants) global.__MISTRI_APPLICANTS__ = []
+}
+
 export function getApplicantsStore(): ApplicantRecord[] {
   if (!global.__MISTRI_APPLICANTS__) {
     global.__MISTRI_APPLICANTS__ = [...PENDING_APPLICANTS]

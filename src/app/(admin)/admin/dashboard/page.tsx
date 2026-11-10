@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Users, Wrench, ShieldCheck, Calendar,
-  Layers, MapPin, ArrowRight
+  Layers, MapPin, ArrowRight, Trash2, AlertTriangle, RefreshCw
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -53,6 +53,52 @@ export default function AdminDashboardPage() {
       { name_bn: 'রাজমিস্ত্রীর কাজ', name_en: 'Masonry Services', count: 1, share: '১৫%' },
     ],
   })
+
+  const [isCleaning, setIsCleaning] = useState(false)
+  const [cleanFeedback, setCleanFeedback] = useState('')
+
+  const handleCleanup = async (target: 'bookings' | 'customers' | 'all') => {
+    const confirmMsg =
+      target === 'all'
+        ? isBn
+          ? 'আপনি কি নিশ্চিত যে সকল টেস্ট বুকিং, কাস্টমার ও ডেমো ডাটা মুছে ফ্রেশ করতে চান?'
+          : 'Are you sure you want to wipe all test bookings and customers?'
+        : isBn
+        ? 'আপনি কি নিশ্চিত যে এটি মুছে ফেলতে চান?'
+        : 'Are you sure you want to proceed?'
+
+    if (!window.confirm(confirmMsg)) return
+
+    setIsCleaning(true)
+    setCleanFeedback('')
+
+    try {
+      const res = await fetch('/api/admin/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target }),
+      })
+      const data = await res.json()
+      setIsCleaning(false)
+
+      if (data.success) {
+        if (typeof window !== 'undefined') {
+          if (target === 'bookings' || target === 'all') {
+            localStorage.removeItem('mistri_customer_bookings')
+          }
+        }
+        setCleanFeedback(data.message || 'ডাটা সফলভাবে মুছে ফেলা হয়েছে')
+        setTimeout(() => {
+          window.location.reload()
+        }, 1200)
+      } else {
+        setCleanFeedback(data.error || 'সমস্যা হয়েছে')
+      }
+    } catch {
+      setIsCleaning(false)
+      setCleanFeedback('সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি')
+    }
+  }
 
   useEffect(() => {
     async function loadStats() {
@@ -278,6 +324,66 @@ export default function AdminDashboardPage() {
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </Link>
+      </Card>
+
+      {/* Test / Demo Data Management Card */}
+      <Card className="p-5 skeuo-surface border-2 border-stone-200/80 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-stone-900">
+                {isBn ? 'ডেটাবেজ ও ডেমো ডাটা রিসেট ম্যানেজমেন্ট' : 'Database & Demo Data Clean-up'}
+              </h3>
+              <p className="text-xs text-stone-500">
+                {isBn ? 'টেস্টিংয়ের সময় জমা হওয়া ডেমো বুকিং ও টেস্ট অ্যাকাউন্টগুলো এক ক্লিকে মুছে ফ্রেশ করুন' : 'Clear test bookings and demo accounts accumulated during testing'}
+              </p>
+            </div>
+          </div>
+
+          {cleanFeedback && (
+            <span className="text-xs font-bold text-[#2c7865] bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 animate-in fade-in">
+              {cleanFeedback}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isCleaning}
+            onClick={() => handleCleanup('bookings')}
+            className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-stone-700 hover:text-red-700 hover:border-red-300 cursor-pointer"
+          >
+            <Trash2 className="h-4 w-4 text-rose-600" />
+            <span>{isBn ? '🗑️ সকল টেস্ট বুকিং মুছুন' : 'Clear All Bookings'}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isCleaning}
+            onClick={() => handleCleanup('customers')}
+            className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-stone-700 hover:text-red-700 hover:border-red-300 cursor-pointer"
+          >
+            <Users className="h-4 w-4 text-blue-600" />
+            <span>{isBn ? '🗑️ টেস্ট কাস্টমার মুছুন' : 'Clear Test Customers'}</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isCleaning}
+            onClick={() => handleCleanup('all')}
+            className="flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-red-700 bg-red-50/50 hover:bg-red-100 border-red-300 cursor-pointer"
+          >
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <span>{isBn ? '⚠️ সম্পূর্ণ টেস্ট ডাটা রিসেট' : 'Full Test Data Reset'}</span>
+          </Button>
+        </div>
       </Card>
     </div>
   )
