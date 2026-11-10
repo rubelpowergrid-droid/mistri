@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { 
   Navigation, Phone, ShieldCheck, ArrowLeft, Clock, 
   MapPin, Wrench, ExternalLink, AlertCircle, Compass,
-  CheckCircle2, XCircle, AlertTriangle, X, Play
+  CheckCircle2, XCircle, AlertTriangle, X, Play, Loader2
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -23,11 +23,14 @@ import { formatDistance, toBanglaNumber } from '@/lib/utils'
 
 const CANCELLATION_REASONS = [
   'ভুলবশত বুক করেছি',
-  'মিস্ত্রী সাড়া দিতে দেরি করছে',
-  'অন্য মিস্ত্রী পেয়ে গেছি',
-  'সমস্যা ইতিমধ্যে সমাধান হয়ে গেছে',
+  'মিস্ত্রী সাড়া দিতে দেরি করছে',
+  'অন্য মিস্ত্রী পেয়ে গেছি',
+  'সমস্যা ইতিমধ্যে সমাধান হয়ে গেছে',
   'অন্যান্য কারণ',
 ]
+
+const DEFAULT_CUSTOMER_LOCATION: Coordinates = { latitude: 26.0336, longitude: 88.4617 }
+const DEFAULT_MISTRI_START: Coordinates = { latitude: 26.0425, longitude: 88.4550 }
 
 function CustomerLiveTrackContent() {
   const params = useParams()
@@ -36,30 +39,29 @@ function CustomerLiveTrackContent() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
+  const bookingId = params.id as string
   const initialStatus = searchParams.get('status') || 'pending'
 
-  // Booking counterpart details
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [isLoadingBooking, setIsLoadingBooking] = useState(true)
   const [booking, setBooking] = useState({
-    id: params.id || 'MST-261108-PK99',
+    id: bookingId,
     status: initialStatus as 'pending' | 'accepted' | 'in_progress' | 'cancelled',
     customerAddress: 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
-    customerLocation: { latitude: 26.0336, longitude: 88.4617 },
-    mistriName: 'মোঃ রফিকুল ইসলাম',
-    mistriTitle: 'সিনিয়র ইলেকট্রিশিয়ান',
-    mistriPhone: '01712345678',
-    category: 'ইলেকট্রিক্যাল কাজ',
-    mistriAvatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+    customerLocation: DEFAULT_CUSTOMER_LOCATION,
+    mistriName: '',
+    mistriTitle: '',
+    mistriPhone: '',
+    category: '',
+    mistriAvatar: '',
   })
 
-  // Simulated live moving coordinates of the Mistri (starts 1.2km away when en-route)
-  const [mistriLocation, setMistriLocation] = useState<Coordinates>({
-    latitude: 26.0425,
-    longitude: 88.4550,
-  })
-
+  const [mistriLocation, setMistriLocation] = useState<Coordinates>(DEFAULT_MISTRI_START)
   const [distanceMeters, setDistanceMeters] = useState(1200)
   const [etaMinutes, setEtaMinutes] = useState(5)
-  const [isSessionActive, setIsSessionActive] = useState(initialStatus === 'in_progress' || initialStatus === 'accepted')
+  const [isSessionActive, setIsSessionActive] = useState(
+    initialStatus === 'in_progress' || initialStatus === 'accepted'
+  )
 
   // Cancel Modal state
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
@@ -67,7 +69,69 @@ function CustomerLiveTrackContent() {
   const [cancelNotes, setCancelNotes] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
-  // Realtime position animation simulator (approaching customer only when active)
+  // ── Load real booking data from localStorage + API ─────────────────────────
+  useEffect(() => {
+    if (!bookingId) return
+
+    let found = false
+
+    // 1. First try localStorage (fastest, works offline)
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('mistri_customer_bookings')
+        if (stored) {
+          const list = JSON.parse(stored) as any[]
+          const match = list.find((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
+          if (match) {
+            setBooking((prev) => ({
+              ...prev,
+              id: match.id || bookingId,
+              status: (match.status as any) || initialStatus,
+              customerAddress: match.jobAddress || prev.customerAddress,
+              mistriName: match.mistriName || '',
+              mistriTitle: match.mistriTitle || '',
+              mistriPhone: match.mistriPhone || '',
+              category: match.category || '',
+              mistriAvatar: match.mistriAvatar || '',
+            }))
+            found = true
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Also fetch from API to get the latest status and mistri info
+    const fetchFromApi = async () => {
+      try {
+        const res = await fetch(`/api/bookings?role=customer`, { cache: 'no-store' })
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data)) {
+          const match = json.data.find(
+            (b: any) => b.id === bookingId || b.bookingNumber === bookingId
+          )
+          if (match) {
+            setBooking((prev) => ({
+              ...prev,
+              id: match.id || bookingId,
+              status: (match.status as any) || prev.status,
+              customerAddress: match.jobAddress || prev.customerAddress,
+              mistriName: match.mistriName || prev.mistriName,
+              mistriTitle: match.mistriTitle || prev.mistriTitle,
+              mistriPhone: match.mistriPhone || prev.mistriPhone,
+              category: match.category || match.serviceName || prev.category,
+              mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
+            }))
+          }
+        }
+      } catch {}
+      setIsLoadingBooking(false)
+    }
+
+    fetchFromApi()
+    if (found) setIsLoadingBooking(false)
+  }, [bookingId, initialStatus])
+
+  // ── Realtime GPS animation ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isSessionActive || booking.status === 'pending' || booking.status === 'cancelled') return
 
@@ -75,17 +139,14 @@ function CustomerLiveTrackContent() {
       setMistriLocation((prev) => {
         const dLat = (booking.customerLocation.latitude - prev.latitude) * 0.08
         const dLng = (booking.customerLocation.longitude - prev.longitude) * 0.08
-
         const nextLat = prev.latitude + dLat
         const nextLng = prev.longitude + dLng
-
         const dist = calculateHaversineDistance(
           { latitude: nextLat, longitude: nextLng },
           booking.customerLocation
         )
         setDistanceMeters(Math.round(dist))
         setEtaMinutes(estimateTravelTimeMinutes(dist))
-
         return { latitude: nextLat, longitude: nextLng }
       })
     }, 4000)
@@ -93,8 +154,9 @@ function CustomerLiveTrackContent() {
     return () => clearInterval(interval)
   }, [isSessionActive, booking.customerLocation, booking.status])
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSimulateAccept = () => {
-    setBooking(prev => ({ ...prev, status: 'in_progress' }))
+    setBooking((prev) => ({ ...prev, status: 'in_progress' }))
     setIsSessionActive(true)
   }
 
@@ -109,22 +171,40 @@ function CustomerLiveTrackContent() {
           reason: cancelReason + (cancelNotes ? `: ${cancelNotes}` : ''),
         }),
       })
-    } catch {
-      // Local fallback
-    }
+      // Also update localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('mistri_customer_bookings')
+          if (stored) {
+            const list = JSON.parse(stored) as any[]
+            const updated = list.map((b: any) =>
+              b.id === booking.id ? { ...b, status: 'cancelled' } : b
+            )
+            localStorage.setItem('mistri_customer_bookings', JSON.stringify(updated))
+          }
+        } catch {}
+      }
+    } catch {}
 
-    setBooking(prev => ({ ...prev, status: 'cancelled' }))
+    setBooking((prev) => ({ ...prev, status: 'cancelled' }))
     setIsSessionActive(false)
     setIsCancelling(false)
     setIsCancelModalOpen(false)
-    setTimeout(() => {
-      router.push('/bookings')
-    }, 1200)
+    setTimeout(() => router.push('/bookings'), 1200)
   }
 
   const googleMapsUrl = generateGoogleMapsDirectionUrl(mistriLocation, booking.customerLocation)
-
   const isEnRoute = booking.status === 'in_progress' || booking.status === 'accepted'
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  if (isLoadingBooking && !booking.mistriName) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 flex flex-col items-center justify-center gap-3 text-stone-500 text-xs">
+        <Loader2 className="h-6 w-6 animate-spin text-[#2c7865]" />
+        <span>{isBn ? 'বুকিং তথ্য লোড হচ্ছে...' : 'Loading booking details...'}</span>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6 space-y-5">
@@ -141,12 +221,12 @@ function CustomerLiveTrackContent() {
         {isEnRoute ? (
           <Badge variant="neutral" className="skeuo-pill gap-1.5 px-3 py-1 text-xs bg-stone-900 text-white font-bold">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>{isBn ? 'লাইভ জিপিএস ট্র্যাকিং সক্রিয়' : 'Live Tracking Active'}</span>
+            <span>{isBn ? 'লাইভ জিপিএস ট্র্যাকিং সক্রিয়' : 'Live Tracking Active'}</span>
           </Badge>
         ) : booking.status === 'pending' ? (
           <Badge variant="neutral" className="skeuo-pill gap-1.5 px-3 py-1 text-xs bg-amber-100 text-amber-900 border-amber-300 font-bold">
             <Clock className="h-3 w-3 text-amber-600" />
-            <span>{isBn ? 'মিস্ত্রীর সম্মতির অপেক্ষায়' : 'Awaiting Confirmation'}</span>
+            <span>{isBn ? 'মিস্ত্রীর সম্মতির অপেক্ষায়' : 'Awaiting Confirmation'}</span>
           </Badge>
         ) : (
           <Badge variant="neutral" className="skeuo-pill gap-1.5 px-3 py-1 text-xs bg-red-100 text-red-900 border-red-300 font-bold">
@@ -155,6 +235,26 @@ function CustomerLiveTrackContent() {
           </Badge>
         )}
       </div>
+
+      {/* Mistri Info Bar */}
+      {booking.mistriName && (
+        <Card className="p-4 skeuo-surface border-[#2c7865]/20 flex items-center gap-3">
+          {booking.mistriAvatar && (
+            <img
+              src={booking.mistriAvatar}
+              alt={booking.mistriName}
+              className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm shrink-0"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-[#14382f] truncate">{booking.mistriName}</h3>
+            <p className="text-xs text-[#2c7865] truncate">{booking.mistriTitle || booking.category}</p>
+          </div>
+          <Badge variant="neutral" className={`text-[10px] skeuo-pill font-bold shrink-0 ${isEnRoute ? 'bg-[#2c7865] text-[#fefded]' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
+            {isEnRoute ? (isBn ? 'অন-রুট' : 'En Route') : (isBn ? 'অপেক্ষমাণ' : 'Pending')}
+          </Badge>
+        </Card>
+      )}
 
       {/* Realistic Pending State Banner */}
       {booking.status === 'pending' && (
@@ -166,23 +266,25 @@ function CustomerLiveTrackContent() {
               </div>
               <div className="space-y-1">
                 <h2 className="text-base sm:text-lg font-black text-stone-900">
-                  {isBn ? 'বুকিং অনুরোধ জমা হয়েছে — মিস্ত্রীর সম্মতির অপেক্ষায় রয়েছে' : 'Booking Request Submitted — Awaiting Confirmation'}
+                  {isBn ? 'বুকিং অনুরোধ জমা হয়েছে — মিস্ত্রীর সম্মতির অপেক্ষায় রয়েছে' : 'Booking Request Submitted — Awaiting Confirmation'}
                 </h2>
                 <p className="text-xs text-stone-600 leading-relaxed max-w-xl">
                   {isBn 
-                    ? 'আপনার অনুরোধটি কারিগরের কাছে সফলভাবে পাঠানো হয়েছে। মিস্ত্রী অনুরোধ গ্রহণ করে আপনার ঠিকানার উদ্দেশ্যে রওনা হলে স্বয়ংক্রিয়ভাবে লাইভ জিপিএস এবং লাইভ ট্র্যাকিং ম্যাপ সক্রিয় হবে।' 
+                    ? 'আপনার অনুরোধটি কারিগরের কাছে সফলভাবে পাঠানো হয়েছে। মিস্ত্রী অনুরোধ গ্রহণ করে আপনার ঠিকানার উদ্দেশ্যে রওনা হলে স্বয়ংক্রিয়ভাবে লাইভ জিপিএস এবং লাইভ ট্র্যাকিং ম্যাপ সক্রিয় হবে।' 
                     : 'Your request was dispatched. Live GPS tracking will turn on as soon as the professional accepts and heads your way.'}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <a href={`tel:${booking.mistriPhone}`}>
-                <Button size="sm" variant="outline" className="skeuo-btn-light text-xs font-bold">
-                  <Phone className="h-3.5 w-3.5 mr-1" />
-                  <span>{isBn ? 'মিস্ত্রীকে কল করুন' : 'Call'}</span>
-                </Button>
-              </a>
+              {booking.mistriPhone && (
+                <a href={`tel:${booking.mistriPhone}`}>
+                  <Button size="sm" variant="outline" className="skeuo-btn-light text-xs font-bold">
+                    <Phone className="h-3.5 w-3.5 mr-1" />
+                    <span>{isBn ? 'মিস্ত্রীকে কল করুন' : 'Call'}</span>
+                  </Button>
+                </a>
+              )}
 
               <Button
                 size="sm"
@@ -266,12 +368,14 @@ function CustomerLiveTrackContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <a href={`tel:${booking.mistriPhone}`}>
-                <Button size="sm" className="skeuo-btn-light text-stone-900 font-bold text-xs">
-                  <Phone className="h-3.5 w-3.5 mr-1" />
-                  <span>{isBn ? 'কল করুন' : 'Call'}</span>
-                </Button>
-              </a>
+              {booking.mistriPhone && (
+                <a href={`tel:${booking.mistriPhone}`}>
+                  <Button size="sm" className="skeuo-btn-light text-stone-900 font-bold text-xs">
+                    <Phone className="h-3.5 w-3.5 mr-1" />
+                    <span>{isBn ? 'কল করুন' : 'Call'}</span>
+                  </Button>
+                </a>
+              )}
 
               <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" variant="outline" className="skeuo-btn-light text-stone-900 font-bold text-xs">
@@ -299,7 +403,7 @@ function CustomerLiveTrackContent() {
         customerLocation={booking.customerLocation}
         customerAddress={booking.customerAddress}
         mistriLocation={mistriLocation}
-        mistriName={booking.mistriName}
+        mistriName={booking.mistriName || 'মিস্ত্রী'}
         mistriCategory={booking.category}
         height="420px"
         isLiveTracking={isEnRoute}
@@ -310,15 +414,23 @@ function CustomerLiveTrackContent() {
         {/* Worker Details */}
         <Card className="p-4 skeuo-surface flex items-center justify-between border-[#2c7865]/20">
           <div className="flex items-center gap-3">
-            <img
-              src={booking.mistriAvatar}
-              alt={booking.mistriName}
-              className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm"
-            />
+            {booking.mistriAvatar ? (
+              <img
+                src={booking.mistriAvatar}
+                alt={booking.mistriName}
+                className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-2xl bg-[#2c7865]/10 flex items-center justify-center border border-[#2c7865]/20">
+                <Wrench className="h-5 w-5 text-[#2c7865]" />
+              </div>
+            )}
             <div>
-              <h3 className="text-sm font-bold text-[#14382f]">{booking.mistriName}</h3>
-              <p className="text-xs text-[#2c7865]">{booking.mistriTitle}</p>
-              <span className="text-[11px] font-mono font-bold text-[#14382f]">{booking.mistriPhone}</span>
+              <h3 className="text-sm font-bold text-[#14382f]">{booking.mistriName || '—'}</h3>
+              <p className="text-xs text-[#2c7865]">{booking.mistriTitle || booking.category}</p>
+              {booking.mistriPhone && (
+                <span className="text-[11px] font-mono font-bold text-[#14382f]">{booking.mistriPhone}</span>
+              )}
             </div>
           </div>
           <Badge variant="neutral" className={`text-[10px] skeuo-pill font-bold ${isEnRoute ? 'bg-[#2c7865] text-[#fefded]' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
@@ -441,5 +553,3 @@ export default function CustomerLiveTrackPage() {
     </Suspense>
   )
 }
-
-
