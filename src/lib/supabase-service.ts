@@ -931,3 +931,88 @@ export async function getBookingsFromSupabase(filter: {
     return []
   }
 }
+
+export async function softDeleteMistriInSupabase(id: string) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    if (!isUuid) return true
+
+    await supabase
+      .from('mistri_profiles')
+      .update({
+        deleted_at: new Date().toISOString(),
+        approval_status: 'suspended',
+        is_available: false,
+      })
+      .eq('id', id)
+    return true
+  } catch (err: any) {
+    console.error('softDeleteMistriInSupabase error:', err.message)
+    return false
+  }
+}
+
+export async function restoreMistriInSupabase(id: string) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    if (!isUuid) return true
+
+    await supabase
+      .from('mistri_profiles')
+      .update({
+        deleted_at: null,
+        approval_status: 'approved',
+        is_available: true,
+      })
+      .eq('id', id)
+    return true
+  } catch (err: any) {
+    console.error('restoreMistriInSupabase error:', err.message)
+    return false
+  }
+}
+
+export async function setMistriSuspendedInSupabase(id: string, suspended: boolean) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    if (!isUuid) return true
+
+    await supabase
+      .from('mistri_profiles')
+      .update({
+        approval_status: suspended ? 'suspended' : 'approved',
+        is_available: !suspended,
+      })
+      .eq('id', id)
+    return true
+  } catch (err: any) {
+    console.error('setMistriSuspendedInSupabase error:', err.message)
+    return false
+  }
+}
+
+export async function permanentDeleteMistriFromSupabase(id: string) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    if (!isUuid) return true
+
+    const { data: profile } = await supabase
+      .from('mistri_profiles')
+      .select('user_id')
+      .eq('id', id)
+      .maybeSingle()
+
+    await supabase.from('mistri_profiles').delete().eq('id', id)
+    if (profile?.user_id) {
+      await supabase.from('users').delete().eq('id', profile.user_id)
+    }
+    return true
+  } catch (err: any) {
+    console.error('permanentDeleteMistriFromSupabase error:', err.message)
+    return false
+  }
+}

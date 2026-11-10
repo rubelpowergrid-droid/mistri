@@ -226,6 +226,50 @@ declare global {
   var __APPROVED_MISTRIS__: any[] | undefined
   var __CUSTOMERS_STORE__: CustomerRecord[] | undefined
   var __BOOKINGS_STORE__: BookingRecord[] | undefined
+  var __TRASHED_MISTRI_IDS__: Set<string> | undefined
+  var __SUSPENDED_MISTRI_IDS__: Set<string> | undefined
+}
+
+export function getTrashedMistriIds(): Set<string> {
+  if (!global.__TRASHED_MISTRI_IDS__) {
+    global.__TRASHED_MISTRI_IDS__ = new Set<string>()
+  }
+  return global.__TRASHED_MISTRI_IDS__
+}
+
+export function getSuspendedMistriIds(): Set<string> {
+  if (!global.__SUSPENDED_MISTRI_IDS__) {
+    global.__SUSPENDED_MISTRI_IDS__ = new Set<string>(['m-4'])
+  }
+  return global.__SUSPENDED_MISTRI_IDS__
+}
+
+export function moveMistriToTrash(id: string) {
+  getTrashedMistriIds().add(id)
+  getSuspendedMistriIds().delete(id)
+}
+
+export function restoreMistriFromTrash(id: string) {
+  getTrashedMistriIds().delete(id)
+}
+
+export function setMistriSuspended(id: string, suspended: boolean) {
+  if (suspended) {
+    getSuspendedMistriIds().add(id)
+  } else {
+    getSuspendedMistriIds().delete(id)
+  }
+}
+
+export function permanentDeleteMistriFromMemory(id: string) {
+  getTrashedMistriIds().delete(id)
+  getSuspendedMistriIds().delete(id)
+  if (global.__APPROVED_MISTRIS__) {
+    global.__APPROVED_MISTRIS__ = global.__APPROVED_MISTRIS__.filter((m) => m.id !== id)
+  }
+  if (global.__MISTRI_APPLICANTS__) {
+    global.__MISTRI_APPLICANTS__ = global.__MISTRI_APPLICANTS__.filter((m) => m.id !== id)
+  }
 }
 
 export function clearMemoryStores(options: { bookings?: boolean; customers?: boolean; applicants?: boolean } = {}) {

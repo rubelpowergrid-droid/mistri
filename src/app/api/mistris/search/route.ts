@@ -225,8 +225,10 @@ export async function GET(request: NextRequest) {
     console.error('Supabase fetch error in search:', err)
   }
 
-  const { INITIAL_APPROVED_MISTRIS } = await import('@/lib/mistri-store')
+  const { INITIAL_APPROVED_MISTRIS, getTrashedMistriIds, getSuspendedMistriIds } = await import('@/lib/mistri-store')
   const liveMemory = (global as any).__APPROVED_MISTRIS__ || INITIAL_APPROVED_MISTRIS
+  const trashedSet = getTrashedMistriIds()
+  const suspendedSet = getSuspendedMistriIds()
 
   const rawList = [...supabaseMistris, ...liveMemory, ...MISTRI_DIRECTORY]
   const seen = new Set<string>()
@@ -239,6 +241,10 @@ export async function GET(request: NextRequest) {
     }
   }
   let filtered = allMistris.filter((m) => {
+    // Hide trashed or suspended accounts from public view!
+    if (trashedSet.has(m.id) || m.status === 'trash' || m.deleted_at) return false
+    if (suspendedSet.has(m.id) || m.status === 'suspended') return false
+
     // Text search
     if (q) {
       const matchName = m.name_bn.toLowerCase().includes(q) || m.name_en.toLowerCase().includes(q)

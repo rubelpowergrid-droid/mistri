@@ -21,6 +21,12 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400, headers: NO_CACHE_HEADERS })
   }
 
+  // If mistri is in Trash, do not allow public profile viewing!
+  const { getTrashedMistriIds } = await import('@/lib/mistri-store')
+  if (getTrashedMistriIds().has(id)) {
+    return NextResponse.json({ success: false, error: 'কারিগর পাওয়া যায়নি' }, { status: 404, headers: NO_CACHE_HEADERS })
+  }
+
   // 1. Check hardcoded MISTRI_DIRECTORY first (m-1, m-2, etc.)
   const demoMistri = MISTRI_DIRECTORY.find((m) => m.id === id)
   if (demoMistri) {

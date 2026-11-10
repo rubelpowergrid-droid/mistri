@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, ShieldCheck, Wrench, Users, 
   Layers, MapPin, Calendar, FileText, ArrowLeft,
-  Menu, X, Bell, LogOut, ChevronRight
+  Menu, X, Bell, LogOut, ChevronRight, Trash2
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       badge: pendingCount > 0 ? (isBn ? toBanglaNumber(pendingCount) : String(pendingCount)) : undefined 
     },
     { href: '/admin/mistris', label: isBn ? 'সকল মিস্ত্রী' : 'All Mistris', icon: Wrench },
+    { href: '/admin/mistris?tab=trash', label: isBn ? 'Trash ফোল্ডার' : 'Trash Folder', icon: Trash2 },
     { href: '/admin/customers', label: isBn ? 'কাস্টমার তালিকা' : 'Customers', icon: Users },
     { href: '/admin/categories', label: isBn ? 'ক্যাটাগরি ও সার্ভিস' : 'Categories & Services', icon: Layers },
     { href: '/admin/locations', label: isBn ? 'জেলা ও উপজেলা জিও' : 'Geo Locations', icon: MapPin },

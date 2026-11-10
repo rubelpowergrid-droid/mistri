@@ -1,8 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getApplicantsStore, INITIAL_APPROVED_MISTRIS } from '@/lib/mistri-store'
-import { getApprovedMistrisFromSupabase } from '@/lib/supabase-service'
+import { 
+  getApplicantsStore, 
+  INITIAL_APPROVED_MISTRIS, 
+  getTrashedMistriIds, 
+  getSuspendedMistriIds,
+  moveMistriToTrash,
+  restoreMistriFromTrash,
+  setMistriSuspended,
+  permanentDeleteMistriFromMemory
+} from '@/lib/mistri-store'
+import { 
+  softDeleteMistriInSupabase, 
+  restoreMistriInSupabase, 
+  setMistriSuspendedInSupabase, 
+  permanentDeleteMistriFromSupabase,
+  resolveCategoryFromTitle 
+} from '@/lib/supabase-service'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 
 export const DEMO_ADMIN_MISTRIS = [
+  {
+    id: 'm-jewel-rana',
+    name: 'মোঃ জুয়েল রানা',
+    phone: '01722159830',
+    title: 'সিনিয়র ইলেকট্রিশিয়ান ও টেকনিশিয়ান',
+    category: 'ইলেকট্রিক্যাল কাজ',
+    district: 'ঠাকুরগাঁও',
+    upazila: 'ঠাকুরগাঁও সদর',
+    experienceYears: 6,
+    rating: 5.0,
+    reviewsCount: 1,
+    completedJobs: 14,
+    status: 'approved',
+    avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+  },
   {
     id: 'm-1',
     name: 'মোঃ রফিকুল ইসলাম',
@@ -82,10 +115,44 @@ export const DEMO_ADMIN_MISTRIS = [
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Fetch approved from Supabase
+    const trashedIds = getTrashedMistriIds()
+    const suspendedIds = getSuspendedMistriIds()
+
+    // 1. Fetch from Supabase (all, including trashed and suspended)
     let supabaseMistris: any[] = []
     try {
-      supabaseMistris = await getApprovedMistrisFromSupabase()
+      const supabase = createAdminClient() as any
+      const { data } = await supabase
+        .from('mistri_profiles')
+        .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+      
+      if (data && Array.isArray(data)) {
+        supabaseMistris = data.map((row: any) => {
+          const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+          let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
+          if (row.deleted_at || trashedIds.has(row.id)) {
+            computedStatus = 'trash'
+          } else if (row.approval_status === 'suspended' || suspendedIds.has(row.id)) {
+            computedStatus = 'suspended'
+          }
+
+          return {
+            id: row.id,
+            name: row.full_name,
+            phone: row.users?.phone || '017XXXXXXXX',
+            title: row.professional_title || 'দক্ষ মিস্ত্রী',
+            category: catInfo.category_name_bn,
+            district: row.districts?.name_bn || 'ঠাকুরগাঁও',
+            upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+            experienceYears: row.experience_years || 5,
+            rating: row.average_rating || 5.0,
+            reviewsCount: row.total_reviews || 1,
+            completedJobs: row.total_completed_jobs || 0,
+            status: computedStatus,
+            avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+          }
+        })
+      }
     } catch (e) {
       console.error('Failed to get mistris from Supabase:', e)
     }
@@ -97,7 +164,6 @@ export async function GET(request: NextRequest) {
     // 3. Collect from global.__APPROVED_MISTRIS__
     const liveApproved = (global as any).__APPROVED_MISTRIS__ || INITIAL_APPROVED_MISTRIS
 
-    // Combine list, prioritizing newly approved mistris at the top
     const combined: any[] = []
     const seenPhones = new Set<string>()
 
@@ -106,21 +172,7 @@ export async function GET(request: NextRequest) {
       const cleanPhone = (sm.phone || '').replace(/[^0-9]/g, '')
       if (cleanPhone && !seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
-        combined.push({
-          id: sm.id,
-          name: sm.name_bn,
-          phone: sm.phone,
-          title: sm.professional_title,
-          category: sm.category_name_bn,
-          district: sm.district_bn,
-          upazila: sm.upazila_bn,
-          experienceYears: sm.experience_years,
-          rating: sm.average_rating || 5.0,
-          reviewsCount: sm.total_reviews || 1,
-          completedJobs: sm.total_completed_jobs || 0,
-          status: 'approved',
-          avatar: sm.avatar,
-        })
+        combined.push(sm)
       }
     }
 
@@ -129,9 +181,16 @@ export async function GET(request: NextRequest) {
       const cleanPhone = (lm.phone || '').replace(/[^0-9]/g, '')
       if (cleanPhone && !seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
+        let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
+        if (trashedIds.has(lm.id)) {
+          computedStatus = 'trash'
+        } else if (suspendedIds.has(lm.id) || lm.status === 'suspended') {
+          computedStatus = 'suspended'
+        }
+
         combined.push({
           id: lm.id,
-          name: lm.name_bn,
+          name: lm.name_bn || lm.name,
           phone: lm.phone,
           title: lm.title || lm.professional_title,
           category: lm.category_name_bn || lm.category,
@@ -141,7 +200,7 @@ export async function GET(request: NextRequest) {
           rating: lm.average_rating || lm.rating || 5.0,
           reviewsCount: lm.total_reviews || lm.reviewsCount || 1,
           completedJobs: lm.total_completed_jobs || lm.completedJobs || 0,
-          status: 'approved',
+          status: computedStatus,
           avatar: lm.avatar,
         })
       }
@@ -152,6 +211,13 @@ export async function GET(request: NextRequest) {
       const cleanPhone = app.phone.replace(/[^0-9]/g, '')
       if (!seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
+        let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
+        if (trashedIds.has(app.id)) {
+          computedStatus = 'trash'
+        } else if (suspendedIds.has(app.id)) {
+          computedStatus = 'suspended'
+        }
+
         combined.push({
           id: app.id,
           name: app.name,
@@ -164,7 +230,7 @@ export async function GET(request: NextRequest) {
           rating: 5.0,
           reviewsCount: 1,
           completedJobs: 0,
-          status: 'approved',
+          status: computedStatus,
           avatar: app.avatar,
         })
       }
@@ -175,13 +241,30 @@ export async function GET(request: NextRequest) {
       const cleanPhone = dm.phone.replace(/[^0-9]/g, '')
       if (!seenPhones.has(cleanPhone)) {
         seenPhones.add(cleanPhone)
-        combined.push(dm)
+        let computedStatus = dm.status as 'approved' | 'suspended' | 'trash'
+        if (trashedIds.has(dm.id)) {
+          computedStatus = 'trash'
+        } else if (suspendedIds.has(dm.id)) {
+          computedStatus = 'suspended'
+        }
+
+        combined.push({
+          ...dm,
+          status: computedStatus,
+        })
       }
     }
+
+    const trashList = combined.filter((m) => m.status === 'trash')
+    const activeList = combined.filter((m) => m.status !== 'trash')
+    const suspendedList = combined.filter((m) => m.status === 'suspended')
 
     return NextResponse.json({
       success: true,
       count: combined.length,
+      activeCount: activeList.length,
+      trashCount: trashList.length,
+      suspendedCount: suspendedList.length,
       mistris: combined,
     })
   } catch (err: any) {
@@ -189,3 +272,78 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, action } = body
+
+    if (!id || !action) {
+      return NextResponse.json({ success: false, error: 'ID and action required' }, { status: 400 })
+    }
+
+    if (action === 'trash') {
+      moveMistriToTrash(id)
+      await softDeleteMistriInSupabase(id)
+      return NextResponse.json({
+        success: true,
+        message: 'অ্যাকাউন্টটি Trash ফোল্ডারে পাঠানো হয়েছে এবং পাবলিক ভিউ থেকে সরানো হয়েছে।',
+      })
+    }
+
+    if (action === 'restore') {
+      restoreMistriFromTrash(id)
+      await restoreMistriInSupabase(id)
+      return NextResponse.json({
+        success: true,
+        message: 'অ্যাকাউন্টটি Trash ফোল্ডার থেকে সফলভাবে পুনরুদ্ধার করা হয়েছে।',
+      })
+    }
+
+    if (action === 'suspend') {
+      setMistriSuspended(id, true)
+      await setMistriSuspendedInSupabase(id, true)
+      return NextResponse.json({
+        success: true,
+        message: 'অ্যাকাউন্টটি সাময়িকভাবে স্থগিত করা হয়েছে।',
+      })
+    }
+
+    if (action === 'reactivate') {
+      setMistriSuspended(id, false)
+      await setMistriSuspendedInSupabase(id, false)
+      return NextResponse.json({
+        success: true,
+        message: 'অ্যাকাউন্টের স্থগিতাদেশ সফলভাবে প্রত্যাহার করা হয়েছে।',
+      })
+    }
+
+    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    let targetId = searchParams.get('id')
+    if (!targetId) {
+      const body = await request.json().catch(() => ({}))
+      targetId = body.id
+    }
+
+    if (!targetId) {
+      return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+    }
+
+    permanentDeleteMistriFromMemory(targetId)
+    await permanentDeleteMistriFromSupabase(targetId)
+
+    return NextResponse.json({
+      success: true,
+      message: 'অ্যাকাউন্টটি Trash থেকে স্থায়ীভাবে সম্পূর্ণ মুছে ফেলা হয়েছে।',
+    })
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  }
+}
