@@ -28,29 +28,7 @@ export default function DocumentInspectorPage() {
   const [zoomImage, setZoomImage] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  const [applicant, setApplicant] = useState<any>({
-    id: params.id || 'app-01',
-    name: 'মোঃ রফিকুল ইসলাম',
-    phone: '01712345678',
-    phoneVerified: true,
-    nidNumber: '1990521934000123',
-    dateOfBirth: '১৯৯০-০৫-১৫',
-    gender: 'পুরুষ',
-    district: 'ঠাকুরগাঁও',
-    upazila: 'ঠাকুরগাঁও সদর',
-    area: 'বাসস্ট্যান্ড এলাকা',
-    address: 'রোড নং ৩, পূর্ব হাজীপাড়া, ঠাকুরগাঁও',
-    serviceRadiusKm: 15,
-    category: 'ইলেকট্রিক্যাল কাজ',
-    subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত'],
-    experienceYears: 6,
-    chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
-    baseCharge: 400,
-    bio: 'আমি বিগত ৬ বছর ধরে ঠাকুরগাঁও সদর ও আশপাশের এলাকায় সব ধরনের বৈদ্যুতিক ওয়্যারিং, ফ্যান ফিটিংস ও মেরামতের কাজ সুনামের সাথে করে আসছি।',
-    nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-    nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-    submittedAt: '২০২৬-১১-০২, বিকাল ৪:৩০',
-  })
+  const [applicant, setApplicant] = useState<any>(null)
 
   React.useEffect(() => {
     async function loadData() {
@@ -100,6 +78,14 @@ export default function DocumentInspectorPage() {
       setIsProcessing(false)
       router.push('/admin/verification')
     }
+  }
+
+  if (!applicant) {
+    return (
+      <div className="py-16 text-center text-xs font-bold text-slate-500">
+        {isBn ? 'তথ্য লোড হচ্ছে...' : 'Loading applicant details...'}
+      </div>
+    )
   }
 
   return (
@@ -193,18 +179,26 @@ export default function DocumentInspectorPage() {
                   </button>
                 </div>
                 <div 
-                  onClick={() => setZoomImage(applicant.nidFrontUrl)}
-                  className="relative group rounded-2xl border-2 border-slate-200 overflow-hidden cursor-pointer bg-slate-100"
+                  onClick={() => applicant.nidFrontUrl && setZoomImage(applicant.nidFrontUrl)}
+                  className="relative group rounded-2xl border-2 border-slate-200 overflow-hidden cursor-pointer bg-slate-100 min-h-[12rem] flex items-center justify-center"
                 >
-                  <img
-                    src={applicant.nidFrontUrl}
-                    alt="NID Front"
-                    className="h-48 w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
-                    <ZoomIn className="h-5 w-5" />
-                    <span>ক্লিক করে জুম করুন</span>
-                  </div>
+                  {applicant.nidFrontUrl ? (
+                    <>
+                      <img
+                        src={applicant.nidFrontUrl}
+                        alt="NID Front"
+                        className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                        <ZoomIn className="h-5 w-5" />
+                        <span>ক্লিক করে জুম করুন</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                      এনআইডি সামনের ছবি সংযুক্ত নেই
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -212,27 +206,37 @@ export default function DocumentInspectorPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
                   <span>{isBn ? 'NID পেছনের দিক (Back Side)' : 'Back Side'}</span>
-                  <button
-                    onClick={() => setZoomImage(applicant.nidBackUrl)}
-                    className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[11px]"
-                  >
-                    <ZoomIn className="h-3.5 w-3.5" />
-                    <span>{isBn ? 'বড় করে দেখুন' : 'Zoom In'}</span>
-                  </button>
+                  {applicant.nidBackUrl && (
+                    <button
+                      onClick={() => setZoomImage(applicant.nidBackUrl)}
+                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-[11px]"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5" />
+                      <span>{isBn ? 'বড় করে দেখুন' : 'Zoom In'}</span>
+                    </button>
+                  )}
                 </div>
                 <div 
-                  onClick={() => setZoomImage(applicant.nidBackUrl)}
-                  className="relative group rounded-2xl border-2 border-slate-200 overflow-hidden cursor-pointer bg-slate-100"
+                  onClick={() => applicant.nidBackUrl && setZoomImage(applicant.nidBackUrl)}
+                  className="relative group rounded-2xl border-2 border-slate-200 overflow-hidden cursor-pointer bg-slate-100 min-h-[12rem] flex items-center justify-center"
                 >
-                  <img
-                    src={applicant.nidBackUrl}
-                    alt="NID Back"
-                    className="h-48 w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
-                    <ZoomIn className="h-5 w-5" />
-                    <span>ক্লিক করে জুম করুন</span>
-                  </div>
+                  {applicant.nidBackUrl ? (
+                    <>
+                      <img
+                        src={applicant.nidBackUrl}
+                        alt="NID Back"
+                        className="h-48 w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                        <ZoomIn className="h-5 w-5" />
+                        <span>ক্লিক করে জুম করুন</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                      এনআইডি পেছনের ছবি সংযুক্ত নেই
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

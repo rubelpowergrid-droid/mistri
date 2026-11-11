@@ -135,15 +135,23 @@ export async function saveMistriToSupabase(data: {
   phone: string
   password?: string
   nidNumber?: string
+  nidFrontUrl?: string
+  nidBackUrl?: string
+  avatarUrl?: string
   dateOfBirth?: string
   gender?: string
   district?: string
   upazila?: string
   streetAddress?: string
   professionalTitle?: string
+  category?: string
+  categorySlug?: string
+  subcategories?: string[]
   bio?: string
   experienceYears?: number
   baseCharge?: number
+  chargeType?: string
+  serviceRadiusKm?: number
   status?: 'pending' | 'approved'
 }) {
   try {
@@ -160,26 +168,49 @@ export async function saveMistriToSupabase(data: {
       .eq('phone', cleanPhone)
       .maybeSingle()
 
+    const metaPayload: any = {
+      phone: cleanPhone,
+      full_name: data.fullName,
+      father_name: data.fatherName || '',
+      nid_number: data.nidNumber || '',
+      nid_front_url: data.nidFrontUrl || '',
+      nid_back_url: data.nidBackUrl || '',
+      date_of_birth: data.dateOfBirth || '',
+      gender: data.gender || '',
+      district: data.district || '',
+      upazila: data.upazila || '',
+      street_address: data.streetAddress || '',
+      category: data.category || '',
+      category_slug: data.categorySlug || '',
+      subcategories: data.subcategories || [],
+      service_radius_km: Number(data.serviceRadiusKm) || 15,
+      role: 'mistri',
+    }
+    if (data.password) {
+      metaPayload.plain_pass = data.password
+    }
+
     if (existingUser?.id) {
       userId = existingUser.id
-      // Ensure user role is mistri
-      await supabase.from('users').update({ role: 'mistri' }).eq('id', userId)
-      if (data.password) {
-        try {
-          await supabase.auth.admin.updateUserById(userId, {
-            password: data.password,
-            email_confirm: true,
-            user_metadata: {
-              phone: cleanPhone,
-              full_name: data.fullName,
-              father_name: data.fatherName || '',
-              role: 'mistri',
-              plain_pass: data.password,
-            },
-          })
-        } catch (pwErr) {
-          console.warn('Update password warning:', pwErr)
-        }
+      const userUpdates: any = { role: 'mistri' }
+      if (data.avatarUrl) {
+        userUpdates.avatar_url = data.avatarUrl
+      }
+      await supabase.from('users').update(userUpdates).eq('id', userId)
+
+      try {
+        const authUserRes = await supabase.auth.admin.getUserById(userId)
+        const oldMeta = authUserRes.data?.user?.user_metadata || {}
+        await supabase.auth.admin.updateUserById(userId, {
+          ...(data.password ? { password: data.password } : {}),
+          email_confirm: true,
+          user_metadata: {
+            ...oldMeta,
+            ...metaPayload,
+          },
+        })
+      } catch (pwErr) {
+        console.warn('Update password warning:', pwErr)
       }
     } else {
       // Create auth user
@@ -188,38 +219,27 @@ export async function saveMistriToSupabase(data: {
         password: data.password || 'Mistri@2026',
         email_confirm: true,
         user_metadata: {
-          phone: cleanPhone,
-          full_name: data.fullName,
-          father_name: data.fatherName || '',
-          role: 'mistri',
+          ...metaPayload,
           plain_pass: data.password || 'Mistri@2026',
         },
       })
 
       if (authErr) {
         console.warn('Supabase auth createUser warning:', authErr.message)
-        // If user already exists in auth or table, resolve user ID
         const { data: userList } = await supabase.auth.admin.listUsers()
         const existingAuth = userList?.users?.find(
           (u: any) => u.email === email || (u.user_metadata?.phone && u.user_metadata.phone === cleanPhone)
         )
         if (existingAuth?.id) {
           userId = existingAuth.id
-          if (data.password) {
-            try {
-              await supabase.auth.admin.updateUserById(userId, {
-                password: data.password,
-                email_confirm: true,
-                user_metadata: {
-                  phone: cleanPhone,
-                  full_name: data.fullName,
-                  father_name: data.fatherName || '',
-                  role: 'mistri',
-                },
-              })
-            } catch (pwe) {
-              console.warn('Auth user password update error:', pwe)
-            }
+          try {
+            await supabase.auth.admin.updateUserById(userId, {
+              ...(data.password ? { password: data.password } : {}),
+              email_confirm: true,
+              user_metadata: metaPayload,
+            })
+          } catch (pwe) {
+            console.warn('Auth user password update error:', pwe)
           }
           await supabase.from('users').upsert({
             id: userId,
@@ -227,6 +247,7 @@ export async function saveMistriToSupabase(data: {
             email,
             role: 'mistri',
             preferred_language: 'bn',
+            ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}),
           }, { onConflict: 'id' })
         } else {
           const { data: u } = await supabase.from('users').select('id').eq('phone', cleanPhone).maybeSingle()
@@ -244,6 +265,7 @@ export async function saveMistriToSupabase(data: {
           email,
           role: 'mistri',
           preferred_language: 'bn',
+          ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}),
         })
       }
     }
@@ -273,7 +295,7 @@ export async function saveMistriToSupabase(data: {
         {
           user_id: userId,
           full_name: data.fullName,
-          professional_title: data.professionalTitle || 'দক্ষ ইলেকট্রিশিয়ান',
+          professional_title: data.professionalTitle || data.category || 'দক্ষ কারিগর',
           bio: data.bio || '',
           date_of_birth: data.dateOfBirth || null,
           gender: data.gender || null,
@@ -284,7 +306,9 @@ export async function saveMistriToSupabase(data: {
           approval_status: data.status || 'pending',
           experience_years: Number(data.experienceYears) || 5,
           is_available: true,
+          charge_type: data.chargeType || 'negotiable',
           base_charge: Number(data.baseCharge) || 400,
+          max_service_distance_km: Number(data.serviceRadiusKm) || 15,
         },
         { onConflict: 'user_id' }
       )
@@ -294,7 +318,23 @@ export async function saveMistriToSupabase(data: {
       console.error('Supabase mistri_profiles upsert error:', pErr.message)
     }
 
-    return profile?.[0] || null
+    const savedProfile = profile?.[0]
+
+    // Save to mistri_documents if NID info provided
+    if (savedProfile?.id && (data.nidNumber || data.nidFrontUrl || data.nidBackUrl)) {
+      try {
+        await supabase.from('mistri_documents').upsert({
+          mistri_profile_id: savedProfile.id,
+          nid_number: data.nidNumber || '',
+          nid_front_storage_path: data.nidFrontUrl || '',
+          nid_back_storage_path: data.nidBackUrl || '',
+        }, { onConflict: 'mistri_profile_id' })
+      } catch (docErr) {
+        console.warn('mistri_documents upsert warning:', docErr)
+      }
+    }
+
+    return savedProfile || null
   } catch (err: any) {
     console.error('saveMistriToSupabase exception:', err.message)
     return null
@@ -347,7 +387,7 @@ export async function getApplicantsFromSupabase(statusParam = 'all') {
     const supabase = createAdminClient() as any
     let query = supabase
       .from('mistri_profiles')
-      .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+      .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en), mistri_documents(nid_number, nid_front_storage_path, nid_back_storage_path)')
       .order('created_at', { ascending: false })
 
     if (statusParam && statusParam !== 'all') {
@@ -360,6 +400,7 @@ export async function getApplicantsFromSupabase(statusParam = 'all') {
 
     return data.map((row: any) => {
       const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+      const doc = Array.isArray(row.mistri_documents) ? row.mistri_documents[0] : row.mistri_documents
       return {
         id: row.id,
         name: row.full_name,
@@ -371,18 +412,20 @@ export async function getApplicantsFromSupabase(statusParam = 'all') {
         district: row.districts?.name_bn || 'ঠাকুরগাঁও',
         upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
         streetAddress: row.street_address || '',
-        serviceRadiusKm: 15,
-        chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
+        serviceRadiusKm: row.max_service_distance_km || 15,
+        chargeType: row.charge_type || 'আলোচনা সাপেক্ষে (Negotiable)',
         baseCharge: row.base_charge || 400,
-        bio: row.bio || 'দক্ষ কারিগর। সততার সাথে কাজ করি।',
+        bio: row.bio || '',
         submittedAt: new Date(row.created_at || Date.now()).toLocaleDateString('bn-BD', {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
         }),
         status: (row.approval_status || 'pending') as 'pending' | 'approved' | 'rejected',
-        avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-        nidNumber: '1990521934000123',
+        avatar: row.users?.avatar_url || '',
+        nidNumber: doc?.nid_number || '',
+        nidFrontUrl: doc?.nid_front_storage_path || '',
+        nidBackUrl: doc?.nid_back_storage_path || '',
       }
     })
   } catch (err: any) {
@@ -473,34 +516,55 @@ export async function getMistriProfileByPhone(phone: string) {
         .maybeSingle()
 
       if (profile) {
+        let doc: any = null
+        try {
+          const { data: docData } = await supabase
+            .from('mistri_documents')
+            .select('*')
+            .eq('mistri_profile_id', profile.id)
+            .maybeSingle()
+          doc = docData
+        } catch (de) {}
+
+        const catInfo = resolveCategoryFromTitle(
+          profile.professional_title || authUserMeta?.category || 'দক্ষ কারিগর'
+        )
+
+        const realCategory = authUserMeta?.category || profile.professional_title || catInfo.category_name_bn
+        const realCategorySlug = authUserMeta?.category_slug || catInfo.category_slug
+
+        const realSubcategories = Array.isArray(authUserMeta?.subcategories) && authUserMeta.subcategories.length > 0
+          ? authUserMeta.subcategories
+          : (Array.isArray(profile.subcategories) ? profile.subcategories : [])
+
         return {
           id: profile.id,
-          fullName: profile.full_name,
+          fullName: profile.full_name || authUserMeta?.full_name || '',
           phone: user.phone,
-          professionalTitle: profile.professional_title,
-          bio: profile.bio || '',
-          dateOfBirth: profile.date_of_birth || '১৯৯০-০৫-১৫',
-          gender: profile.gender || 'পুরুষ (Male)',
+          professionalTitle: profile.professional_title || authUserMeta?.professional_title || authUserMeta?.category || 'দক্ষ কারিগর',
+          bio: profile.bio || authUserMeta?.bio || '',
+          dateOfBirth: profile.date_of_birth || authUserMeta?.date_of_birth || '',
+          gender: profile.gender || authUserMeta?.gender || 'পুরুষ (Male)',
           fatherName: authUserMeta?.father_name || (profile as any)?.father_name || '',
-          nidNumber: '1990521934000123',
-          district: profile.districts?.name_bn || 'ঠাকুরগাঁও',
-          upazila: profile.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
-          streetAddress: profile.street_address || 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
-          serviceRadiusKm: profile.max_service_distance_km || 15,
-          experienceYears: profile.experience_years || 5,
-          approvalStatus: profile.approval_status || 'approved',
+          nidNumber: doc?.nid_number || authUserMeta?.nid_number || '',
+          district: profile.districts?.name_bn || authUserMeta?.district || 'ঠাকুরগাঁও',
+          upazila: profile.upazilas?.name_bn || authUserMeta?.upazila || 'ঠাকুরগাঁও সদর',
+          streetAddress: profile.street_address || authUserMeta?.street_address || '',
+          serviceRadiusKm: profile.max_service_distance_km || authUserMeta?.service_radius_km || 15,
+          experienceYears: profile.experience_years ?? authUserMeta?.experience_years ?? 5,
+          approvalStatus: profile.approval_status || 'pending',
           isAvailable: profile.is_available ?? true,
-          chargeType: profile.charge_type || 'negotiable',
+          chargeType: profile.charge_type || authUserMeta?.charge_type || 'negotiable',
           baseCharge: Number(profile.base_charge) || 400,
-          category: 'ইলেকট্রিক্যাল কাজ',
-          categorySlug: 'electrical-services',
-          subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
-          avatar: user.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
-          nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-          nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
+          category: realCategory,
+          categorySlug: realCategorySlug,
+          subcategories: realSubcategories,
+          avatar: user.avatar_url || authUserMeta?.avatar_url || '',
+          nidFrontUrl: doc?.nid_front_storage_path || authUserMeta?.nid_front_url || '',
+          nidBackUrl: doc?.nid_back_storage_path || authUserMeta?.nid_back_url || '',
           rating: Number(profile.average_rating) || 5.0,
-          reviewsCount: profile.total_reviews || 1,
-          completedJobs: profile.total_completed_jobs || 14,
+          reviewsCount: profile.total_reviews || 0,
+          completedJobs: profile.total_completed_jobs || 0,
         }
       }
     }
@@ -519,14 +583,14 @@ export async function getMistriProfileByPhone(phone: string) {
       fullName: foundApp.name,
       phone: foundApp.phone,
       professionalTitle: foundApp.category,
-      bio: foundApp.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
-      dateOfBirth: foundApp.dateOfBirth || '১৯৯০-০৫-১৫',
+      bio: foundApp.bio || '',
+      dateOfBirth: foundApp.dateOfBirth || '',
       gender: foundApp.gender || 'পুরুষ (Male)',
       fatherName: foundApp.fatherName || '',
-      nidNumber: foundApp.nidNumber || '1990521934000123',
+      nidNumber: foundApp.nidNumber || '',
       district: foundApp.district || 'ঠাকুরগাঁও',
       upazila: foundApp.upazila || 'ঠাকুরগাঁও সদর',
-      streetAddress: foundApp.streetAddress || 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
+      streetAddress: foundApp.streetAddress || '',
       serviceRadiusKm: foundApp.serviceRadiusKm || 15,
       experienceYears: foundApp.experienceYears || 5,
       approvalStatus: foundApp.status || 'pending',
@@ -535,10 +599,10 @@ export async function getMistriProfileByPhone(phone: string) {
       baseCharge: foundApp.baseCharge || 400,
       category: foundApp.category,
       categorySlug: foundApp.categorySlug || 'electrical-services',
-      subcategories: foundApp.subcategories || ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত'],
-      avatar: foundApp.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
-      nidFrontUrl: foundApp.nidFrontUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-      nidBackUrl: foundApp.nidBackUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
+      subcategories: foundApp.subcategories || [],
+      avatar: foundApp.avatar || '',
+      nidFrontUrl: foundApp.nidFrontUrl || '',
+      nidBackUrl: foundApp.nidBackUrl || '',
       rating: 5.0,
       reviewsCount: 1,
       completedJobs: foundApp.status === 'approved' ? 14 : 0,
@@ -604,6 +668,23 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
       .maybeSingle()
 
     if (user?.id) {
+      if (updates.district) {
+        const { data: dist } = await supabase
+          .from('districts')
+          .select('id')
+          .ilike('name_bn', `%${updates.district}%`)
+          .limit(1)
+        if (dist?.[0]?.id) safeUpdates.district_id = dist[0].id
+      }
+      if (updates.upazila) {
+        const { data: upz } = await supabase
+          .from('upazilas')
+          .select('id')
+          .ilike('name_bn', `%${updates.upazila}%`)
+          .limit(1)
+        if (upz?.[0]?.id) safeUpdates.upazila_id = upz[0].id
+      }
+
       if (Object.keys(safeUpdates).length > 0) {
         await supabase
           .from('mistri_profiles')
@@ -617,6 +698,33 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
           .from('users')
           .update({ avatar_url: updates.avatar })
           .eq('id', user.id)
+      }
+
+      // Also persist metadata to auth.users user_metadata (like subcategories, category, etc.)
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(user.id)
+        const oldMeta = authUser?.user?.user_metadata || {}
+        const metaUpdates: any = {}
+        if (updates.subcategories !== undefined) metaUpdates.subcategories = updates.subcategories
+        if (updates.category !== undefined) metaUpdates.category = updates.category
+        if (updates.categorySlug !== undefined) metaUpdates.category_slug = updates.categorySlug
+        if (updates.professionalTitle !== undefined) metaUpdates.professional_title = updates.professionalTitle
+        if (updates.bio !== undefined) metaUpdates.bio = updates.bio
+        if (updates.streetAddress !== undefined) metaUpdates.street_address = updates.streetAddress
+        if (updates.district !== undefined) metaUpdates.district = updates.district
+        if (updates.upazila !== undefined) metaUpdates.upazila = updates.upazila
+        if (updates.avatar !== undefined) metaUpdates.avatar_url = updates.avatar
+
+        if (Object.keys(metaUpdates).length > 0) {
+          await supabase.auth.admin.updateUserById(user.id, {
+            user_metadata: {
+              ...oldMeta,
+              ...metaUpdates,
+            },
+          })
+        }
+      } catch (authMetaErr) {
+        console.warn('Failed to update auth user_metadata:', authMetaErr)
       }
     }
   } catch (err: any) {

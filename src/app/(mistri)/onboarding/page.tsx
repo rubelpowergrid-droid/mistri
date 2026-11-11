@@ -37,23 +37,69 @@ function MistriOnboardingContent() {
   const nidFrontInputRef = useRef<HTMLInputElement>(null)
   const nidBackInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+  const compressImage = (file: File, maxDim = 1200, quality = 0.85): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (readerEvent) => {
+        const img = new Image()
+        img.onload = () => {
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width)
+              width = maxDim
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height)
+              height = maxDim
+            }
+          }
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(readerEvent.target?.result as string)
+            return
+          }
+          ctx.drawImage(img, 0, 0, width, height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+          resolve(compressedDataUrl)
+        }
+        img.onerror = () => resolve(readerEvent.target?.result as string)
+        img.src = readerEvent.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      alert(isBn ? 'শুধুমাত্র ছবি (JPG, PNG) আপলোড করুন' : 'Please upload image files')
+      alert(isBn ? 'শুধুমাত্র ছবি (JPG, PNG, WebP) আপলোড করুন' : 'Please upload image files')
       return
     }
-    if (file.size > 8 * 1024 * 1024) {
-      alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ৮ মেগাবাইট হতে পারবে' : 'Image size cannot exceed 8MB')
+    if (file.size > 10 * 1024 * 1024) {
+      alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ১০ মেগাবাইট হতে পারবে' : 'Image size cannot exceed 10MB')
       return
     }
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const result = event.target?.result as string
-      if (result) setter(result)
+    try {
+      const compressed = await compressImage(file, 1200, 0.85)
+      setter(compressed)
+    } catch {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const result = event.target?.result as string
+        if (result) setter(result)
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
     e.target.value = ''
   }
 
@@ -62,11 +108,9 @@ function MistriOnboardingContent() {
   const [fullName, setFullName] = useState(paramName || '')
   const [fatherName, setFatherName] = useState(paramFather || '')
   const [phone, setPhone] = useState(paramPhone || '')
-  const [dateOfBirth, setDateOfBirth] = useState('1990-05-15')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('male')
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80'
-  )
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Synchronize state if URL query params arrive or from stored user
   useEffect(() => {
@@ -94,20 +138,16 @@ function MistriOnboardingContent() {
   }
 
   // Step 2: NID Identity
-  const [nidNumber, setNidNumber] = useState('1990521934000123')
-  const [nidFront, setNidFront] = useState<string | null>(
-    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-  )
-  const [nidBack, setNidBack] = useState<string | null>(
-    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-  )
+  const [nidNumber, setNidNumber] = useState('')
+  const [nidFront, setNidFront] = useState<string | null>(null)
+  const [nidBack, setNidBack] = useState<string | null>(null)
 
   // Step 3: Location
   const [districtsList, setDistrictsList] = useState<DistrictOption[]>(DEFAULT_DISTRICTS)
   const [district, setDistrict] = useState(paramDistrict || 'Thakurgaon')
   const [upazila, setUpazila] = useState(paramUpazila || 'Thakurgaon Sadar')
-  const [area, setArea] = useState('বাসস্ট্যান্ড এলাকা')
-  const [streetAddress, setStreetAddress] = useState('রোড নং ৩, পূর্ব হাজীপাড়া')
+  const [area, setArea] = useState('')
+  const [streetAddress, setStreetAddress] = useState('')
   const [maxRadiusKm, setMaxRadiusKm] = useState(15)
 
   useEffect(() => {
@@ -139,9 +179,9 @@ function MistriOnboardingContent() {
   const [categoriesList, setCategoriesList] = useState<CategoryOption[]>(DEFAULT_CATEGORIES)
   const [selectedCategory, setSelectedCategory] = useState('electrical-services')
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
-  const [experienceYears, setExperienceYears] = useState(6)
-  const [professionalTitle, setProfessionalTitle] = useState('দক্ষ ইলেকট্রিশিয়ান ও টেকনিশিয়ান')
-  const [bio, setBio] = useState('আমি বিগত ৬ বছর ধরে ঠাকুরগাঁও সদর ও আশপাশের এলাকায় সব ধরনের বৈদ্যুতিক ওয়্যারিং, ফ্যান ফিটিংস ও মেরামতের কাজ সুনামের সাথে করে আসছি।')
+  const [experienceYears, setExperienceYears] = useState(5)
+  const [professionalTitle, setProfessionalTitle] = useState('')
+  const [bio, setBio] = useState('')
   const [chargeType, setChargeType] = useState('negotiable')
   const [baseCharge, setBaseCharge] = useState(400)
 

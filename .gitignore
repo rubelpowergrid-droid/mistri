@@ -4,5 +4,6 @@ out/
 build/
 .env*.local
 *.log
+*.tsbuildinfo
 .DS_Store
 Thumbs.db

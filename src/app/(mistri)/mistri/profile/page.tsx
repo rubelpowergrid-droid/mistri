@@ -66,32 +66,32 @@ export default function MistriProfilePage() {
   // Mistri profile data
   const [profile, setProfile] = useState<any>({
     id: '',
-    fullName: 'মোঃ জুয়েল রানা',
+    fullName: '',
     fatherName: '',
-    phone: '01722159830',
-    nidNumber: '1990521934000123',
-    dateOfBirth: '১৯৯০-০৫-১৫',
+    phone: '',
+    nidNumber: '',
+    dateOfBirth: '',
     gender: 'পুরুষ (Male)',
-    professionalTitle: 'সিনিয়র ইলেকট্রিশিয়ান ও টেকনিশিয়ান',
-    category: 'ইলেকট্রিক্যাল কাজ',
-    categorySlug: 'electrical-services',
-    subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত'],
-    experienceYears: 6,
+    professionalTitle: '',
+    category: '',
+    categorySlug: '',
+    subcategories: [],
+    experienceYears: 5,
     district: 'ঠাকুরগাঁও',
     upazila: 'ঠাকুরগাঁও সদর',
-    streetAddress: 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
+    streetAddress: '',
     serviceRadiusKm: 15,
     chargeType: 'আলোচনা সাপেক্ষে (Negotiable)',
     baseCharge: 400,
-    bio: 'আমি বিগত ৬ বছর ধরে ঠাকুরগাঁও সদর ও আশপাশের এলাকায় সব ধরনের বৈদ্যুতিক ওয়্যারিং, ফ্যান ফিটিংস ও মেরামতের কাজ সুনামের সাথে করে আসছি।',
-    avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
-    nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-    nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-    approvalStatus: 'approved',
+    bio: '',
+    avatar: '',
+    nidFrontUrl: '',
+    nidBackUrl: '',
+    approvalStatus: 'pending',
     isAvailable: true,
     rating: 5.0,
-    reviewsCount: 1,
-    completedJobs: 14,
+    reviewsCount: 0,
+    completedJobs: 0,
   })
 
   // Phone Change Modal States
@@ -631,16 +631,17 @@ export default function MistriProfilePage() {
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10 text-center md:text-left">
           {/* Avatar with Camera upload button */}
           <div className="relative group">
-            <img
-              src={profile.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
-              alt={profile.fullName}
-              onError={(e) => {
-                const target = e.currentTarget
-                target.onerror = null
-                target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
-              }}
-              className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-[#fefded]/40 shadow-xl"
-            />
+            {profile.avatar ? (
+              <img
+                src={profile.avatar}
+                alt={profile.fullName || 'Mistri'}
+                className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-[#fefded]/40 shadow-xl"
+              />
+            ) : (
+              <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl bg-[#1e5548] border-2 border-[#fefded]/40 shadow-xl flex items-center justify-center text-[#fefded]">
+                <User className="h-12 w-12 text-[#fefded]/60" />
+              </div>
+            )}
             <button
               type="button"
               disabled={isAvatarUploading}
@@ -841,7 +842,7 @@ export default function MistriProfilePage() {
             </label>
             <input
               type="text"
-              value={profile.dateOfBirth}
+              value={profile.dateOfBirth || (isBn ? 'প্রযোজ্য নয়' : 'N/A')}
               disabled
               className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 cursor-not-allowed select-none"
             />
@@ -854,7 +855,7 @@ export default function MistriProfilePage() {
             </label>
             <input
               type="text"
-              value={profile.nidNumber}
+              value={profile.nidNumber || (isBn ? 'সংযুক্ত নেই' : 'Not attached')}
               disabled
               className="w-full rounded-xl border border-stone-300 bg-stone-100 py-2 px-3 text-xs text-stone-800 font-mono font-bold cursor-not-allowed select-none"
             />
@@ -867,19 +868,33 @@ export default function MistriProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-3 bg-white rounded-2xl border border-slate-200 space-y-2">
               <span className="text-[11px] font-bold text-slate-700 block">এনআইডি সামনের দিক:</span>
-              <img
-                src={profile.nidFrontUrl}
-                alt="NID Front"
-                className="h-28 w-full object-cover rounded-xl border border-slate-100 bg-slate-50"
-              />
+              {profile.nidFrontUrl ? (
+                <img
+                  src={profile.nidFrontUrl}
+                  alt="NID Front"
+                  className="h-28 w-full object-cover rounded-xl border border-slate-100 bg-slate-50"
+                />
+              ) : (
+                <div className="h-28 w-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 text-stone-400 text-xs gap-1.5">
+                  <ShieldCheck className="h-6 w-6 text-stone-300" />
+                  <span>সংযুক্ত নেই</span>
+                </div>
+              )}
             </div>
             <div className="p-3 bg-white rounded-2xl border border-slate-200 space-y-2">
               <span className="text-[11px] font-bold text-slate-700 block">এনআইডি পেছনের দিক:</span>
-              <img
-                src={profile.nidBackUrl}
-                alt="NID Back"
-                className="h-28 w-full object-cover rounded-xl border border-slate-100 bg-slate-50"
-              />
+              {profile.nidBackUrl ? (
+                <img
+                  src={profile.nidBackUrl}
+                  alt="NID Back"
+                  className="h-28 w-full object-cover rounded-xl border border-slate-100 bg-slate-50"
+                />
+              ) : (
+                <div className="h-28 w-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 text-stone-400 text-xs gap-1.5">
+                  <ShieldCheck className="h-6 w-6 text-stone-300" />
+                  <span>সংযুক্ত নেই</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

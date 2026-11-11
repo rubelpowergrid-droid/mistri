@@ -25,34 +25,44 @@ export async function GET(
         const supabase = createAdminClient() as any
         const { data: profile } = await supabase
           .from('mistri_profiles')
-          .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+          .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en), mistri_documents(nid_number, nid_front_storage_path, nid_back_storage_path)')
           .eq('id', id)
           .maybeSingle()
 
         if (profile) {
+          let authMeta: any = null
+          if (profile.user_id) {
+            try {
+              const authUserRes = await supabase.auth.admin.getUserById(profile.user_id)
+              authMeta = authUserRes?.data?.user?.user_metadata
+            } catch (e) {}
+          }
+
+          const doc = Array.isArray(profile.mistri_documents) ? profile.mistri_documents[0] : profile.mistri_documents
+
           applicant = {
             id: profile.id,
-            name: profile.full_name,
-            fatherName: (profile.users as any)?.user_metadata?.father_name || '',
-            phone: profile.users?.phone || '017XXXXXXXX',
-            nidNumber: '1990521934000123',
-            dateOfBirth: profile.date_of_birth || '১৯৯০-০৫-১৫',
-            gender: profile.gender || 'পুরুষ',
-            district: profile.districts?.name_bn || 'ঠাকুরগাঁও',
-            upazila: profile.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
-            area: 'ঠাকুরগাঁও সদর',
-            streetAddress: profile.street_address || 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
-            serviceRadiusKm: profile.max_service_distance_km || 15,
-            category: profile.professional_title || 'ইলেকট্রিক্যাল কাজ',
-            categorySlug: 'electrical-services',
-            subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত'],
-            experienceYears: profile.experience_years || 5,
-            chargeType: profile.charge_type || 'আলোচনা সাপেক্ষে (Negotiable)',
-            baseCharge: profile.base_charge || 400,
-            bio: profile.bio || 'দক্ষ কারিগর। সততার সাথে কাজ করি।',
-            avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-            nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-            nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
+            name: profile.full_name || authMeta?.full_name || '',
+            fatherName: authMeta?.father_name || '',
+            phone: profile.users?.phone || authMeta?.phone || '',
+            nidNumber: doc?.nid_number || authMeta?.nid_number || '',
+            dateOfBirth: profile.date_of_birth || authMeta?.date_of_birth || '',
+            gender: profile.gender || authMeta?.gender || 'পুরুষ (Male)',
+            district: profile.districts?.name_bn || authMeta?.district || 'ঠাকুরগাঁও',
+            upazila: profile.upazilas?.name_bn || authMeta?.upazila || 'ঠাকুরগাঁও সদর',
+            area: authMeta?.area || '',
+            streetAddress: profile.street_address || authMeta?.street_address || '',
+            serviceRadiusKm: profile.max_service_distance_km || authMeta?.service_radius_km || 15,
+            category: authMeta?.category || profile.professional_title || 'দক্ষ কারিগর',
+            categorySlug: authMeta?.category_slug || 'electrical-services',
+            subcategories: Array.isArray(authMeta?.subcategories) && authMeta.subcategories.length > 0 ? authMeta.subcategories : [],
+            experienceYears: profile.experience_years || authMeta?.experience_years || 5,
+            chargeType: profile.charge_type || authMeta?.charge_type || 'আলোচনা সাপেক্ষে (Negotiable)',
+            baseCharge: profile.base_charge || authMeta?.base_charge || 400,
+            bio: profile.bio || authMeta?.bio || '',
+            avatar: profile.users?.avatar_url || authMeta?.avatar_url || '',
+            nidFrontUrl: doc?.nid_front_storage_path || authMeta?.nid_front_url || '',
+            nidBackUrl: doc?.nid_back_storage_path || authMeta?.nid_back_url || '',
             submittedAt: new Date(profile.created_at || Date.now()).toLocaleDateString('bn-BD', {
               year: 'numeric',
               month: 'long',
