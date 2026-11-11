@@ -5,5 +5,7 @@ build/
 .env*.local
 *.log
 *.tsbuildinfo
+*.apk
+.vscode/
 .DS_Store
 Thumbs.db

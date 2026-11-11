@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  static const String url = 'https://mock-mistri.supabase.co';
-  static const String anonKey = 'mock-anon-key-development-placeholder';
+  static const String url = 'https://oeaibuixwxmpzkkdaekz.supabase.co';
+  static const String anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lYWlidWl4d3htcHpra2RhZWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2ODcxNzEsImV4cCI6MjEwOTI2MzE3MX0.rpAJddhIuKfoJIKQnJ-Z8DTiQVQR4Vv8LBC7qfmXNig';
 
   static Future<void> init() async {
     try {
