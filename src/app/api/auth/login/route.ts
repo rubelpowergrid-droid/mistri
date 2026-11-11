@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@supabase/supabase-js'
-import { getApplicantsStore, getCustomersStore, INITIAL_APPROVED_MISTRIS } from '@/lib/mistri-store'
-import { MISTRI_DIRECTORY } from '@/app/api/mistris/search/route'
+import { getApplicantsStore, INITIAL_APPROVED_MISTRIS } from '@/lib/mistri-store'
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,51 +44,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Special handling for Seeded/Primary Mistri (মোঃ জুয়েল রানা - 01722159830)
-    if (cleanPhone === '01722159830') {
-      try {
-        const supabase = createAdminClient() as any
-        // Update user password to whatever password was provided so it syncs with Supabase Auth
-        await supabase.auth.admin.updateUserById('5734a862-8c75-4f6a-9d6d-01ed27bc0713', {
-          password: password,
-          user_metadata: { phone: cleanPhone, full_name: 'মোঃ জুয়েল রানা', role: 'mistri', plain_pass: password }
-        })
-      } catch (e) {
-        // Continue even if auth update fails
-      }
-
-      return NextResponse.json({
-        success: true,
-        role: 'mistri',
-        status: 'approved',
-        redirectUrl: '/mistri/profile',
-        message: 'সফলভাবে লগইন হয়েছে',
-        user: {
-          id: 'ac796c3e-8738-4acb-8b66-c03441c208bd',
-          name: 'মোঃ জুয়েল রানা',
-          phone: '01722159830',
-          role: 'mistri',
-          status: 'approved',
-        },
-      })
-    }
-
-    // 3. Authoritative Supabase Database Check for Mistri
+    // 2. Authoritative Supabase Database Check (Mistri or Customer)
     try {
       const supabase = createAdminClient() as any
-      const { data: dbUser, error: uErr } = await supabase
+      const { data: dbUser } = await supabase
         .from('users')
         .select('id, phone, email, role')
         .eq('phone', cleanPhone)
         .maybeSingle()
 
-      if (dbUser && dbUser.role === 'mistri') {
-        const { data: mistriProfile } = await supabase
-          .from('mistri_profiles')
-          .select('*')
-          .eq('user_id', dbUser.id)
-          .maybeSingle()
-
+      if (dbUser) {
         // Fetch user metadata from auth
         let authUser: any = null
         try {
@@ -97,7 +61,7 @@ export async function POST(request: NextRequest) {
           authUser = authRes.data?.user
         } catch (e) {}
 
-        const userEmail = dbUser?.email || `mistri_${cleanPhone}@mistri.app`
+        const userEmail = dbUser.email || `${dbUser.role}_${cleanPhone}@mistri.app`
 
         let isPasswordValid =
           password === 'Mistri@2026' ||
@@ -119,11 +83,7 @@ export async function POST(request: NextRequest) {
           } catch (e) {}
         }
 
-        // Allow login if valid password format provided
-        if (!isPasswordValid && password.length >= 4) {
-          isPasswordValid = true
-        }
-
+        // STRICT CHECK: Reject if password is not valid!
         if (!isPasswordValid) {
           return NextResponse.json(
             { success: false, error: 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' },
@@ -131,63 +91,72 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Keep Supabase Auth updated
-        try {
-          await supabase.auth.admin.updateUserById(dbUser.id, {
-            password: password,
-            user_metadata: { ...(authUser?.user_metadata || {}), plain_pass: password }
-          })
-        } catch (e) {}
+        // Mistri Role Login
+        if (dbUser.role === 'mistri') {
+          const { data: mistriProfile } = await supabase
+            .from('mistri_profiles')
+            .select('*')
+            .eq('user_id', dbUser.id)
+            .maybeSingle()
 
-        const isApproved = mistriProfile?.approval_status === 'approved'
-        const mistriName = mistriProfile?.full_name || authUser?.user_metadata?.full_name || 'মিস্ত্রী কারিগর'
+          const isApproved = mistriProfile?.approval_status === 'approved'
+          const mistriName = mistriProfile?.full_name || authUser?.user_metadata?.full_name || 'মিস্ত্রী কারিগর'
 
-        return NextResponse.json({
-          success: true,
-          role: 'mistri',
-          status: mistriProfile?.approval_status || 'approved',
-          redirectUrl: '/mistri/profile',
-          message: isApproved
-            ? 'সফলভাবে লগইন হয়েছে'
-            : 'আপনার আবেদনটি পর্যালোচনার জন্য জমা রয়েছে। আপনার প্রোফাইলটি নিচে দেখে নিন।',
-          user: {
-            id: mistriProfile?.id || dbUser.id,
-            name: mistriName,
-            phone: cleanPhone,
+          return NextResponse.json({
+            success: true,
             role: 'mistri',
             status: mistriProfile?.approval_status || 'approved',
-          },
-        })
-      }
+            redirectUrl: '/mistri/profile',
+            message: isApproved
+              ? 'সফলভাবে লগইন হয়েছে'
+              : 'আপনার আবেদনটি পর্যালোচনার জন্য জমা রয়েছে। আপনার প্রোফাইলটি নিচে দেখে নিন।',
+            user: {
+              id: mistriProfile?.id || dbUser.id,
+              name: mistriName,
+              phone: cleanPhone,
+              role: 'mistri',
+              status: mistriProfile?.approval_status || 'approved',
+            },
+          })
+        }
 
-      if (dbUser && dbUser.role === 'customer') {
-        const { data: customerProfile } = await supabase
-          .from('customer_profiles')
-          .select('*')
-          .eq('user_id', dbUser.id)
-          .maybeSingle()
+        // Customer Role Login
+        if (dbUser.role === 'customer') {
+          const { data: customerProfile } = await supabase
+            .from('customer_profiles')
+            .select('*')
+            .eq('user_id', dbUser.id)
+            .maybeSingle()
 
-        return NextResponse.json({
-          success: true,
-          role: 'customer',
-          redirectUrl: '/',
-          user: {
-            id: customerProfile?.id || dbUser.id,
-            name: customerProfile?.full_name || 'সম্মানিত গ্রাহক',
-            phone: cleanPhone,
+          return NextResponse.json({
+            success: true,
             role: 'customer',
-          },
-        })
+            redirectUrl: '/',
+            user: {
+              id: customerProfile?.id || dbUser.id,
+              name: customerProfile?.full_name || authUser?.user_metadata?.full_name || 'সম্মানিত গ্রাহক',
+              phone: cleanPhone,
+              role: 'customer',
+            },
+          })
+        }
       }
     } catch (supabaseErr) {
       console.warn('Supabase login verification fallback:', supabaseErr)
     }
 
-    // 4. Check INITIAL_APPROVED_MISTRIS
+    // 3. Check INITIAL_APPROVED_MISTRIS (like Jewel Rana - 01722159830)
     const initialMistri = INITIAL_APPROVED_MISTRIS.find(
       (m) => m.phone.replace(/[^0-9]/g, '') === cleanPhone
     )
     if (initialMistri) {
+      if (password !== '12345678' && password !== '123456789' && password !== 'Mistri@2026') {
+        return NextResponse.json(
+          { success: false, error: 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' },
+          { status: 401 }
+        )
+      }
+
       return NextResponse.json({
         success: true,
         role: 'mistri',
@@ -204,7 +173,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 5. Fallback: Check in-memory Mistri applicants store
+    // 4. Fallback: Check in-memory Mistri applicants store
     const store = getApplicantsStore()
     const mistri = store.find((m) => m.phone.replace(/[^0-9]/g, '') === cleanPhone)
 
@@ -235,42 +204,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 6. Check MISTRI_DIRECTORY default demo workers
-    const defaultMistri = MISTRI_DIRECTORY.find(
-      (m: any) => (m.phone && m.phone.replace(/[^0-9]/g, '') === cleanPhone) || m.id.replace(/[^0-9]/g, '') === cleanPhone
+    // 5. Account not found
+    return NextResponse.json(
+      { success: false, error: 'এই মোবাইল নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে নতুন একাউন্ট তৈরি করুন।' },
+      { status: 404 }
     )
-    if (defaultMistri) {
-      return NextResponse.json({
-        success: true,
-        role: 'mistri',
-        status: 'approved',
-        redirectUrl: '/mistri/profile',
-        user: {
-          id: defaultMistri.id,
-          name: defaultMistri.name_bn,
-          phone: cleanPhone,
-          role: 'mistri',
-          status: 'approved',
-        },
-      })
-    }
-
-    // 7. Customer login (Only if NOT a mistri!)
-    const storeCustomer = getCustomersStore().find(
-      (c) => c.phone.replace(/[^0-9]/g, '') === cleanPhone
-    )
-
-    return NextResponse.json({
-      success: true,
-      role: 'customer',
-      redirectUrl: '/',
-      user: {
-        id: storeCustomer?.id || `cust-${Date.now()}`,
-        name: storeCustomer?.name || 'সম্মানিত গ্রাহক',
-        phone: cleanPhone,
-        role: 'customer',
-      },
-    })
   } catch (err: any) {
     return NextResponse.json(
       { success: false, error: err.message },

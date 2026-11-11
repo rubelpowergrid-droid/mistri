@@ -174,6 +174,7 @@ export async function saveMistriToSupabase(data: {
               full_name: data.fullName,
               father_name: data.fatherName || '',
               role: 'mistri',
+              plain_pass: data.password,
             },
           })
         } catch (pwErr) {
@@ -191,6 +192,7 @@ export async function saveMistriToSupabase(data: {
           full_name: data.fullName,
           father_name: data.fatherName || '',
           role: 'mistri',
+          plain_pass: data.password || 'Mistri@2026',
         },
       })
 
