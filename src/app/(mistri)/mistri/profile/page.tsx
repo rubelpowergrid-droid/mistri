@@ -322,6 +322,9 @@ export default function MistriProfilePage() {
       setIsSaving(false)
 
       if (data.success) {
+        if (data.avatar) {
+          setProfile((prev: any) => ({ ...prev, avatar: data.avatar }))
+        }
         setSaveSuccessMessage(isBn ? '✓ আপনার প্রোফাইল তথ্য সফলভাবে সংরক্ষণ করা হয়েছে!' : 'Profile saved successfully!')
         setTimeout(() => setSaveSuccessMessage(''), 5000)
       } else {
