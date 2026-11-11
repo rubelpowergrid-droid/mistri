@@ -6,6 +6,7 @@ import { Header } from '@/components/navigation/header'
 import { Footer } from '@/components/navigation/footer'
 import { CustomerBottomNav } from '@/components/navigation/customer-bottom-nav'
 import { PwaRegistrar } from '@/components/pwa-registrar'
+import { PwaInstallBanner } from '@/components/pwa-install-banner'
 
 const tiroBangla = Tiro_Bangla({
   weight: '400',
@@ -15,11 +16,18 @@ const tiroBangla = Tiro_Bangla({
 })
 
 export const metadata: Metadata = {
-  title: 'mistri – আপনার এলাকার বিশ্বস্ত মিস্ত্রী',
-  description: 'ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুরের সেরা হোম ও প্রফেশনাল সার্ভিস মার্কেটপ্লেস',
+  title: 'Mistri – আপনার এলাকার বিশ্বস্ত মিস্ত্রী',
+  description: 'ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুরের সেরা হোম ও প্রফেশনাল কারিগর সার্ভিস মার্কেটপ্লেস',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icons/icon-192x192.png',
+    shortcut: '/icons/icon-192x192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Mistri',
   },
 }
 
@@ -40,6 +48,7 @@ export default function RootLayout({
       <body className={`${tiroBangla.className} min-h-screen bg-[#fefded] text-[#14382f] antialiased pb-20 sm:pb-0`}>
         <I18nProvider>
           <PwaRegistrar />
+          <PwaInstallBanner />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
