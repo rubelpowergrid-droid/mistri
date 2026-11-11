@@ -129,8 +129,13 @@ export default function MistriProfilePage() {
           <div className="flex items-start sm:items-center gap-5">
             <div className="relative shrink-0">
               <img
-                src={mistri.avatar}
+                src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
                 alt={mistri.name_bn}
+                onError={(e) => {
+                  const target = e.currentTarget
+                  target.onerror = null
+                  target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
+                }}
                 className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl object-cover border-2 border-slate-200 shadow-xs"
               />
               <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white shadow-md" title="Admin Verified">

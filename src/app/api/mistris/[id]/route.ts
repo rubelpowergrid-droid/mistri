@@ -101,7 +101,7 @@ export async function GET(
       // First try by mistri_profiles.id
       const { data: p1 } = await supabase
         .from('mistri_profiles')
-        .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+        .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
         .eq('id', cleanId)
         .maybeSingle()
       
@@ -111,7 +111,7 @@ export async function GET(
       if (!profile) {
         const { data: p2 } = await supabase
           .from('mistri_profiles')
-          .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+          .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
           .eq('user_id', cleanId)
           .maybeSingle()
         profile = p2
@@ -124,14 +124,14 @@ export async function GET(
       if (cleanPhone.length >= 10) {
         const { data: user } = await supabase
           .from('users')
-          .select('id, phone')
+          .select('id, phone, avatar_url')
           .eq('phone', cleanPhone)
           .maybeSingle()
 
         if (user?.id) {
           const { data: p3 } = await supabase
             .from('mistri_profiles')
-            .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+            .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
             .eq('user_id', user.id)
             .maybeSingle()
           profile = p3

@@ -127,6 +127,10 @@ export default function MistriProfilePage() {
         return
       }
 
+      if (user.phone) {
+        setProfile((prev: any) => ({ ...prev, phone: user.phone }))
+      }
+
       const phoneToLoad = user.phone || '01722159830'
 
       try {
@@ -193,8 +197,50 @@ export default function MistriProfilePage() {
     })
   }
 
-  // Handle avatar upload
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper to resize and compress image on client-side before sending to server (max 500x500, ~40-60KB)
+  const compressImage = (file: File, maxDim = 500, quality = 0.85): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (readerEvent) => {
+        const img = new Image()
+        img.onload = () => {
+          let width = img.width
+          let height = img.height
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width)
+              width = maxDim
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height)
+              height = maxDim
+            }
+          }
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(readerEvent.target?.result as string)
+            return
+          }
+          ctx.drawImage(img, 0, 0, width, height)
+          const dataUrl = canvas.toDataURL('image/jpeg', quality)
+          resolve(dataUrl)
+        }
+        img.onerror = () => reject(new Error('Image load failed'))
+        img.src = readerEvent.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('File read failed'))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Handle avatar upload with automatic client-side compression
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -203,55 +249,66 @@ export default function MistriProfilePage() {
       return
     }
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ৮ মেগাবাইট হতে পারবে' : 'Image cannot exceed 8MB')
+    if (file.size > 15 * 1024 * 1024) {
+      alert(isBn ? 'ছবির সাইজ সর্বোচ্চ ১৫ মেগাবাইট হতে পারবে' : 'Image cannot exceed 15MB')
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      const result = event.target?.result as string
-      if (!result) return
+    setIsAvatarUploading(true)
+    setSaveErrorMessage('')
 
-      // Update UI instantly
-      setProfile((prev: any) => ({ ...prev, avatar: result }))
-      setIsAvatarUploading(true)
+    try {
+      // 1. Client-side resize and compression to max 500x500 (~40-60KB)
+      const compressedDataUrl = await compressImage(file, 500, 0.85)
 
-      // Immediately save to database and Supabase Storage
-      try {
-        const res = await fetch('/api/mistri/profile', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: profile.phone,
-            avatar: result,
-            professionalTitle: profile.professionalTitle,
-            category: profile.category,
-            categorySlug: profile.categorySlug,
-            subcategories: profile.subcategories,
-            experienceYears: profile.experienceYears,
-            district: profile.district,
-            upazila: profile.upazila,
-            streetAddress: profile.streetAddress,
-            serviceRadiusKm: profile.serviceRadiusKm,
-            chargeType: profile.chargeType,
-            baseCharge: profile.baseCharge,
-            bio: profile.bio,
-            isAvailable: profile.isAvailable,
-          }),
-        })
+      // 2. Immediately show local preview
+      setProfile((prev: any) => ({ ...prev, avatar: compressedDataUrl }))
 
-        const resData = await res.json()
-        if (resData.success && resData.avatar) {
+      // 3. Current active phone number
+      const targetPhone = (profile.phone || session?.phone || '01722092810').replace(/[^0-9]/g, '')
+
+      // 4. Send to server to upload to Supabase Storage and update users.avatar_url
+      const res = await fetch('/api/mistri/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          avatar: compressedDataUrl,
+          professionalTitle: profile.professionalTitle,
+          category: profile.category,
+          categorySlug: profile.categorySlug,
+          subcategories: profile.subcategories,
+          experienceYears: profile.experienceYears,
+          district: profile.district,
+          upazila: profile.upazila,
+          streetAddress: profile.streetAddress,
+          serviceRadiusKm: profile.serviceRadiusKm,
+          chargeType: profile.chargeType,
+          baseCharge: profile.baseCharge,
+          bio: profile.bio,
+          isAvailable: profile.isAvailable,
+        }),
+      })
+
+      const resData = await res.json()
+      if (res.ok && resData.success) {
+        if (resData.avatar) {
           setProfile((prev: any) => ({ ...prev, avatar: resData.avatar }))
         }
-      } catch (err) {
-        console.error('ছবি সেভ ব্যর্থ হয়েছে:', err)
-      } finally {
-        setIsAvatarUploading(false)
+        setSaveSuccessMessage(isBn ? '✓ আপনার প্রোফাইল ছবি সফলভাবে সংরক্ষণ করা হয়েছে!' : 'Profile picture saved successfully!')
+        setTimeout(() => setSaveSuccessMessage(''), 5000)
+      } else {
+        setSaveErrorMessage(resData.error || (isBn ? 'ছবি সংরক্ষণ করতে ব্যর্থ হয়েছে' : 'Failed to save picture'))
+      }
+    } catch (err: any) {
+      console.error('ছবি সেভ ব্যর্থ হয়েছে:', err)
+      setSaveErrorMessage(isBn ? 'ছবি আপলোড করতে ব্যর্থ হয়েছে' : 'Failed to upload image')
+    } finally {
+      setIsAvatarUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
       }
     }
-    reader.readAsDataURL(file)
   }
 
   // Immediately toggle availability and save to API
@@ -259,12 +316,13 @@ export default function MistriProfilePage() {
     const newVal = !profile.isAvailable
     setProfile((p: any) => ({ ...p, isAvailable: newVal }))
     setIsAvailabilityToggling(true)
+    const targetPhone = (profile.phone || session?.phone || '01722092810').replace(/[^0-9]/g, '')
     try {
       await fetch('/api/mistri/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: profile.phone,
+          phone: targetPhone,
           isAvailable: newVal,
           professionalTitle: profile.professionalTitle,
           category: profile.category,
@@ -295,12 +353,14 @@ export default function MistriProfilePage() {
     setSaveSuccessMessage('')
     setSaveErrorMessage('')
 
+    const targetPhone = (profile.phone || session?.phone || '01722092810').replace(/[^0-9]/g, '')
+
     try {
       const res = await fetch('/api/mistri/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: profile.phone,
+          phone: targetPhone,
           professionalTitle: profile.professionalTitle,
           category: profile.category,
           categorySlug: profile.categorySlug,
@@ -572,8 +632,13 @@ export default function MistriProfilePage() {
           {/* Avatar with Camera upload button */}
           <div className="relative group">
             <img
-              src={profile.avatar}
+              src={profile.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
               alt={profile.fullName}
+              onError={(e) => {
+                const target = e.currentTarget
+                target.onerror = null
+                target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
+              }}
               className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl object-cover border-2 border-[#fefded]/40 shadow-xl"
             />
             <button

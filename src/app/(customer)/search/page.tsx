@@ -575,8 +575,13 @@ function SearchPageContent() {
                       <div className="flex items-start gap-3.5">
                         <div className="relative shrink-0">
                           <img
-                            src={mistri.avatar}
+                            src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
                             alt={mistri.name_bn}
+                            onError={(e) => {
+                              const target = e.currentTarget
+                              target.onerror = null
+                              target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
+                            }}
                             className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-stone-300"
                           />
                           <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">

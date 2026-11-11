@@ -54,11 +54,14 @@ export async function PUT(request: NextRequest) {
     // Handle avatar upload to Supabase Storage if base64 data URL provided
     if (body.avatar && typeof body.avatar === 'string' && body.avatar.startsWith('data:image/')) {
       try {
-        const matches = body.avatar.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
-        if (matches && matches[2]) {
-          const mimeType = matches[1] || 'image/jpeg'
-          const ext = mimeType.split('/')[1] || 'jpg'
-          const buffer = Buffer.from(matches[2], 'base64')
+        const commaIndex = body.avatar.indexOf(',')
+        if (commaIndex !== -1) {
+          const header = body.avatar.substring(0, commaIndex)
+          const rawBase64 = body.avatar.substring(commaIndex + 1).replace(/\s/g, '')
+          const mimeMatch = header.match(/data:([^;]+)/)
+          const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg'
+          const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg'
+          const buffer = Buffer.from(rawBase64, 'base64')
           const fileName = `avatar_${cleanPhone}_${Date.now()}.${ext}`
 
           const supabase = createAdminClient() as any
@@ -92,7 +95,7 @@ export async function PUT(request: NextRequest) {
       console.log('Ignored attempt to modify locked NID fields')
     }
 
-    const result = await updateMistriProfileByPhone(phone, body)
+    const result = await updateMistriProfileByPhone(cleanPhone, body)
 
     return NextResponse.json({
       success: true,

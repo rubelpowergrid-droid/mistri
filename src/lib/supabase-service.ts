@@ -653,6 +653,13 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
     }
   }
 
+  // Also update in INITIAL_APPROVED_MISTRIS if present
+  const { INITIAL_APPROVED_MISTRIS } = await import('@/lib/mistri-store')
+  const initial = INITIAL_APPROVED_MISTRIS.find(m => (m.phone || '').replace(/[^0-9]/g, '') === cleanPhone)
+  if (initial && updates.avatar !== undefined) {
+    initial.avatar = updates.avatar
+  }
+
   return { success: true }
 }
 
