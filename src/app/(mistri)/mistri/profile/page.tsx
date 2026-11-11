@@ -109,6 +109,7 @@ export default function MistriProfilePage() {
   const [session, setSession] = useState<UserSession | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false)
 
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false)
   const [isAvailabilityToggling, setIsAvailabilityToggling] = useState(false)
 
   // Load profile on mount — only poll for notification count, never overwrite local edits
@@ -214,10 +215,11 @@ export default function MistriProfilePage() {
 
       // Update UI instantly
       setProfile((prev: any) => ({ ...prev, avatar: result }))
+      setIsAvatarUploading(true)
 
-      // Immediately save to database
+      // Immediately save to database and Supabase Storage
       try {
-        await fetch('/api/mistri/profile', {
+        const res = await fetch('/api/mistri/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -238,8 +240,15 @@ export default function MistriProfilePage() {
             isAvailable: profile.isAvailable,
           }),
         })
+
+        const resData = await res.json()
+        if (resData.success && resData.avatar) {
+          setProfile((prev: any) => ({ ...prev, avatar: resData.avatar }))
+        }
       } catch (err) {
         console.error('ছবি সেভ ব্যর্থ হয়েছে:', err)
+      } finally {
+        setIsAvatarUploading(false)
       }
     }
     reader.readAsDataURL(file)
@@ -566,11 +575,18 @@ export default function MistriProfilePage() {
             />
             <button
               type="button"
+              disabled={isAvatarUploading}
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-1 right-1 p-2 rounded-xl skeuo-btn-dark text-[#fefded] shadow-md transition-all cursor-pointer"
+              className={`absolute bottom-1 right-1 p-2 rounded-xl skeuo-btn-dark text-[#fefded] shadow-md transition-all cursor-pointer ${
+                isAvatarUploading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               title="প্রোফাইল ছবি পরিবর্তন করুন"
             >
-              <Camera className="h-4 w-4 text-[#fefded]" />
+              {isAvatarUploading ? (
+                <RefreshCw className="h-4 w-4 text-[#fefded] animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4 text-[#fefded]" />
+              )}
             </button>
             <input
               type="file"

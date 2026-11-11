@@ -394,7 +394,7 @@ export async function getApprovedMistrisFromSupabase() {
     const supabase = createAdminClient() as any
     const { data, error } = await supabase
       .from('mistri_profiles')
-      .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+      .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
       .eq('approval_status', 'approved')
 
     if (error || !data) return []
@@ -432,7 +432,7 @@ export async function getApprovedMistrisFromSupabase() {
         available_tomorrow: true,
         is_verified: true,
         distance_km: 1.2,
-        avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+        avatar: row.users?.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
         bio: row.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
         portfolio: [],
         reviews: [],
@@ -453,7 +453,7 @@ export async function getMistriProfileByPhone(phone: string) {
     // 1. First check Supabase
     const { data: user } = await supabase
       .from('users')
-      .select('id, phone, email')
+      .select('id, phone, email, avatar_url')
       .eq('phone', cleanPhone)
       .maybeSingle()
 
@@ -493,7 +493,7 @@ export async function getMistriProfileByPhone(phone: string) {
           category: 'ইলেকট্রিক্যাল কাজ',
           categorySlug: 'electrical-services',
           subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
-          avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+          avatar: user.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
           nidFrontUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
           nidBackUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
           rating: Number(profile.average_rating) || 5.0,
@@ -592,7 +592,6 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
   if (typeof updates.isAvailable === 'boolean') safeUpdates.is_available = updates.isAvailable
   if (updates.chargeType !== undefined) safeUpdates.charge_type = updates.chargeType
   if (updates.baseCharge !== undefined) safeUpdates.base_charge = Number(updates.baseCharge)
-  if (updates.avatar !== undefined) safeUpdates.avatar_url = updates.avatar
 
   try {
     const supabase = createAdminClient() as any
@@ -603,10 +602,20 @@ export async function updateMistriProfileByPhone(phone: string, updates: any) {
       .maybeSingle()
 
     if (user?.id) {
-      await supabase
-        .from('mistri_profiles')
-        .update(safeUpdates)
-        .eq('user_id', user.id)
+      if (Object.keys(safeUpdates).length > 0) {
+        await supabase
+          .from('mistri_profiles')
+          .update(safeUpdates)
+          .eq('user_id', user.id)
+      }
+
+      // Update avatar_url on the users table (authoritative storage for avatars)
+      if (updates.avatar !== undefined) {
+        await supabase
+          .from('users')
+          .update({ avatar_url: updates.avatar })
+          .eq('id', user.id)
+      }
     }
   } catch (err: any) {
     console.error('updateMistriProfileByPhone Supabase error:', err.message)

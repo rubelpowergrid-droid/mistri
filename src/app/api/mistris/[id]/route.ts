@@ -167,7 +167,7 @@ export async function GET(
         available_tomorrow: true,
         is_verified: profile.approval_status === 'approved',
         distance_km: 1.2,
-        avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+        avatar: profile.users?.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
         bio: profile.bio || 'দক্ষ ও ভেরিফাইড কারিগর। সততার সাথে কাজ সম্পন্ন করি।',
         portfolio: [],
         reviews: [],

@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
       const supabase = createAdminClient() as any
       const { data } = await supabase
         .from('mistri_profiles')
-        .select('*, users(phone), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+        .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
       
       if (data && Array.isArray(data)) {
         supabaseMistris = data
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
               reviewsCount: row.total_reviews || 1,
               completedJobs: row.total_completed_jobs || 0,
               status: computedStatus,
-              avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+              avatar: row.users?.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
             }
           })
       }
