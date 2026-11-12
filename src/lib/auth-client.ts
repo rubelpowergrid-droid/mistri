@@ -4,6 +4,8 @@ export interface UserSession {
   id: string
   name: string
   phone: string
+  email?: string
+  avatar?: string
   role: 'admin' | 'mistri' | 'customer'
   status?: string
 }

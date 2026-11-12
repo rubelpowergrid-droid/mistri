@@ -8,6 +8,7 @@ import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -93,6 +94,17 @@ export default function LoginPage() {
           <p className="text-sm text-[#2c7865]/80 font-medium">
             {isBn ? 'আপনার মোবাইল নম্বর দিয়ে সরাসরি প্রবেশ করুন' : 'Sign in to your account'}
           </p>
+        </div>
+
+        {/* Google One-Click Sign In */}
+        <div className="space-y-3">
+          <GoogleSignInButton mode="signin" />
+          <div className="relative flex items-center justify-center my-2">
+            <div className="border-t border-stone-200 w-full" />
+            <span className="bg-white px-3 text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0">
+              {isBn ? 'অথবা মোবাইল নম্বর দিয়ে' : 'Or with Mobile'}
+            </span>
+          </div>
         </div>
 
         {/* Tab switch for OTP vs Password */}

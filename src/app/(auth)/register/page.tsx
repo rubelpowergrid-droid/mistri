@@ -8,6 +8,7 @@ import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 
 function RegisterContent() {
@@ -164,6 +165,17 @@ function RegisterContent() {
             <span className="text-xs font-bold">{isBn ? 'মিস্ত্রী (Mistri)' : 'Mistri Worker'}</span>
             <span className="text-[10px] opacity-80 mt-0.5">{isBn ? 'কাজ করতে চাই' : 'I want to work'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Google Quick Sign-Up */}
+      <div className="space-y-3">
+        <GoogleSignInButton mode="signup" role={role} />
+        <div className="relative flex items-center justify-center my-2">
+          <div className="border-t border-stone-200 w-full" />
+          <span className="bg-[#fdfbf7] px-3 text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0">
+            {isBn ? 'অথবা তথ্য পূরণ করে' : 'Or with Form'}
+          </span>
         </div>
       </div>
 

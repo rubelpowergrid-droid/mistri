@@ -115,6 +115,7 @@ function MistriOnboardingContent() {
     const activeName = paramName || (stored?.role === 'mistri' ? stored.name : '')
     if (activePhone && !phone) setPhone(activePhone)
     if (activeName && !fullName) setFullName(activeName)
+    if (stored?.avatar && !avatarPreview) setAvatarPreview(stored.avatar)
     if (paramFather && !fatherName) setFatherName(paramFather)
     if (paramDistrict) setDistrict(paramDistrict)
     if (paramUpazila) setUpazila(paramUpazila)
