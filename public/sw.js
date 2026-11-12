@@ -1,5 +1,5 @@
-// MISTRI Service Worker for Offline & Background Push Notifications
-const CACHE_NAME = 'mistri-pwa-v2'
+// MISTRI24 Service Worker for Offline & Background Push Notifications
+const CACHE_NAME = 'mistri24-pwa-v1'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -70,11 +70,11 @@ self.addEventListener('push', (event) => {
     data = event.data ? event.data.json() : {}
   } catch (e) {
     try {
-      data = { title: 'MISTRI - নতুন বিজ্ঞপ্তি', body: event.data ? event.data.text() : '' }
+      data = { title: 'mistri24 - নতুন বিজ্ঞপ্তি', body: event.data ? event.data.text() : '' }
     } catch {}
   }
 
-  const title = data.title || '🔔 MISTRI - নতুন বুকিং অনুরোধ!'
+  const title = data.title || '🔔 mistri24 - নতুন বুকিং অনুরোধ!'
   const body =
     data.body ||
     'আপনার জন্য নতুন একটি কাজের বুকিং এসেছে। বিস্তারিত দেখতে এখানে চাপ দিন।'

@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2c7865] text-[#fefded] font-bold text-sm">
             M
           </div>
-          <span className="font-bold text-sm tracking-tight">mistri Admin</span>
+          <span className="font-bold text-sm tracking-tight">mistri24 Admin</span>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -100,7 +100,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <div>
                 <span className="font-black text-white text-base tracking-tight">
-                  mistri<span className="text-[#38967f]">.</span>
+                  mistri<span className="text-[#38967f]">24.</span>
                 </span>
                 <span className="block text-[10px] text-[#38967f] font-semibold tracking-wider uppercase">
                   Admin Portal

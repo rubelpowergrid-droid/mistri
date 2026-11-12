@@ -164,7 +164,7 @@ export function GlobalNotificationListener() {
           phone: user?.phone || null,
           userId: user?.id || null,
           delaySeconds: 5,
-          title: '🔔 টেস্ট নোটিফিকেশন (MISTRI)',
+          title: '🔔 টেস্ট নোটিফিকেশন (mistri24)',
           message: 'স্ক্রিন অফ থাকলেও সফলভাবে নোটিফিকেশন রিসিভ হয়েছে! শুভকামনা।',
         }),
       })

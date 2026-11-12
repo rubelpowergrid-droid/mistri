@@ -21,7 +21,7 @@ export function Footer() {
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-black text-[#fefded] tracking-tight leading-none">
-                  mistri<span className="text-[#378b75]">.</span>
+                  mistri<span className="text-[#378b75]">24.</span>
                 </span>
                 <span className="text-[10px] text-[#fefded]/80 font-semibold tracking-wider">
                   {isBn ? 'সেবা মার্কেটপ্লেস' : 'Services Marketplace'}
@@ -121,7 +121,7 @@ export function Footer() {
 
         {/* Bottom Copyright & Legal Strip */}
         <div className="pt-6 border-t border-[#2c7865] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#fefded]/70">
-          <p>© ২০২৬ mistri. সর্বস্বত্ব সংরক্ষিত।</p>
+          <p>© ২০২৬ mistri24. সর্বস্বত্ব সংরক্ষিত।</p>
           <div className="flex items-center gap-4 text-[11px]">
             <Link href="/privacy" className="hover:text-[#fefded] transition-colors">
               {isBn ? 'গোপনীয়তা নীতি' : 'Privacy Policy'}

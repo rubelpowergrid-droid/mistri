@@ -12,7 +12,7 @@ export const VAPID_PRIVATE_KEY =
   '9l24a_Yhpjay-Y4G2c7yy8-14X03eI3wGd9v5vXlCuw'
 
 export const VAPID_SUBJECT =
-  process.env.VAPID_SUBJECT || 'mailto:support@mistri.app'
+  process.env.VAPID_SUBJECT || 'mailto:support@mistri24.app'
 
 // Initialize web-push configuration
 try {
@@ -178,10 +178,10 @@ export async function sendWebPush(
 ): Promise<boolean> {
   try {
     const jsonPayload = JSON.stringify({
-      title: payload.title || 'MISTRI - নতুন বিজ্ঞপ্তি',
+      title: payload.title || 'mistri24 - নতুন বিজ্ঞপ্তি',
       body: payload.body || 'আপনার জন্য নতুন বুকিং তথ্য রয়েছে।',
       url: payload.url || '/mistri/profile',
-      tag: payload.tag || `mistri-${Date.now()}`,
+      tag: payload.tag || `mistri24-${Date.now()}`,
       icon: payload.icon || '/icons/icon-192x192.png',
       badge: payload.badge || '/icons/icon-192x192.png',
       data: payload.data || {},

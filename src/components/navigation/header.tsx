@@ -68,7 +68,7 @@ export function Header() {
               </div>
               <div>
                 <span className="text-xl font-black tracking-tight text-[#2c7865]">
-                  mistri<span className="text-[#1e5548] font-extrabold">.</span>
+                  mistri<span className="text-[#1e5548] font-extrabold">24.</span>
                 </span>
                 <span className="hidden sm:inline-block ml-2 text-xs font-bold text-[#2c7865]/70 uppercase tracking-wider">
                   {lang === 'bn' ? 'সেবা মার্কেটপ্লেস' : 'Services'}

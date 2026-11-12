@@ -17,7 +17,7 @@ const tiroBangla = Tiro_Bangla({
 })
 
 export const metadata: Metadata = {
-  title: 'Mistri – আপনার এলাকার বিশ্বস্ত মিস্ত্রী',
+  title: 'mistri24 – আপনার এলাকার বিশ্বস্ত মিস্ত্রী',
   description: 'ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুরের সেরা হোম ও প্রফেশনাল কারিগর সার্ভিস মার্কেটপ্লেস',
   manifest: '/manifest.json',
   icons: {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Mistri',
+    title: 'mistri24',
   },
 }
 

@@ -616,7 +616,7 @@ export default function MistriProfilePage() {
       <div className="hidden print:block border-b-2 border-stone-800 pb-3 mb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black text-black">mistri. কারিগর পরিচিতি পত্র (Biodata)</h1>
+            <h1 className="text-xl font-black text-black">mistri24. কারিগর পরিচিতি পত্র (Biodata)</h1>
             <p className="text-xs text-stone-700">জাতীয় পরিচয়পত্র ভেরিফাইড কারিগর প্রোফাইল ও কাজের রেকর্ড</p>
           </div>
           <div className="text-right text-[11px] font-mono text-stone-800">

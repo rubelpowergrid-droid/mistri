@@ -65,12 +65,12 @@ export function PwaInstallBanner() {
         <div className="flex items-center gap-3 min-w-0">
           <img
             src="/icons/icon-192x192.png"
-            alt="Mistri"
+            alt="mistri24"
             className="h-10 w-10 rounded-xl border border-[#fefded]/30 shadow-md shrink-0 object-cover"
           />
           <div className="min-w-0">
             <h4 className="text-xs font-black tracking-tight text-[#fefded] truncate">
-              {isBn ? 'Mistri অ্যাপ ইনস্টল করুন' : 'Install Mistri App'}
+              {isBn ? 'mistri24 অ্যাপ ইনস্টল করুন' : 'Install mistri24 App'}
             </h4>
             <p className="text-[11px] text-[#fefded]/80 truncate">
               {isBn ? 'হোমস্ক্রিন থেকে এক ক্লিকে ব্যবহার করুন' : 'Add to home screen for 1-tap access'}
