@@ -128,10 +128,19 @@ export async function POST(request: NextRequest) {
     // 4. User does NOT exist: Handle Registration with Google
     const assignedRole = role === 'mistri' ? 'mistri' : 'customer'
 
-    // Generate or resolve auth user id
-    let userId: string = crypto.randomUUID()
+    // Resolve or create auth user id directly from auth.users (foreign key requirement)
+    let userId: string | null = null
+
     try {
-      const { data: authUser } = await supabase.auth.admin.createUser({
+      const { data: userList } = await supabase.auth.admin.listUsers()
+      const existingAuth = userList?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail)
+      if (existingAuth?.id) {
+        userId = existingAuth.id
+      }
+    } catch {}
+
+    if (!userId) {
+      const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
         email: cleanEmail,
         email_confirm: true,
         user_metadata: {
@@ -142,16 +151,22 @@ export async function POST(request: NextRequest) {
       })
       if (authUser?.user?.id) {
         userId = authUser.user.id
+      } else if (authErr) {
+        try {
+          const { data: userList2 } = await supabase.auth.admin.listUsers()
+          const matched = userList2?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail)
+          if (matched?.id) {
+            userId = matched.id
+          }
+        } catch {}
       }
-    } catch (e: any) {
-      // If user already exists in auth.users, try finding by email
-      try {
-        const { data: userList } = await supabase.auth.admin.listUsers()
-        const matched = userList?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail)
-        if (matched?.id) {
-          userId = matched.id
-        }
-      } catch {}
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'ইউজার অথেনটিকেশন আইডি তৈরি করা যায়নি।' },
+        { status: 500 }
+      )
     }
 
     // Ensure phone is never null to satisfy NOT NULL & UNIQUE constraints
@@ -161,14 +176,14 @@ export async function POST(request: NextRequest) {
 
     const { data: newUser, error: createErr } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: userId,
         email: cleanEmail,
         phone: userPhone,
         role: assignedRole,
         avatar_url: avatar || null,
         preferred_language: 'bn',
-      })
+      }, { onConflict: 'id' })
       .select('id, email, role, phone')
       .single()
 
