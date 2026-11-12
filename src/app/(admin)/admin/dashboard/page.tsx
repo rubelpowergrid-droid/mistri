@@ -17,6 +17,7 @@ interface DashboardStats {
   approvedMistris: number
   pendingVerifications: number
   totalBookings: number
+  completedBookings?: number
   districtDistribution: Array<{
     name_bn: string
     name_en: string
@@ -103,7 +104,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const res = await fetch('/api/admin/stats')
+        const res = await fetch('/api/admin/stats', { cache: 'no-store' })
         const data = await res.json()
         if (data.success && data.stats) {
           setStats(data.stats)
@@ -146,7 +147,7 @@ export default function AdminDashboardPage() {
     },
     {
       title: isBn ? 'মোট সফল বুকিং' : 'Completed Bookings',
-      value: stats.totalBookings,
+      value: stats.completedBookings !== undefined ? stats.completedBookings : stats.totalBookings,
       change: isBn ? 'সফল সম্পন্ন কাজ' : 'Completed orders',
       icon: Calendar,
       color: 'bg-purple-50 text-purple-600 border-purple-200',

@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Users, Search, Filter, Phone, MapPin, Calendar, 
-  CheckCircle2, ArrowLeft, Star, ShoppingBag 
+  CheckCircle2, ArrowLeft, Star, ShoppingBag, RefreshCw 
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -13,79 +13,56 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber } from '@/lib/utils'
 
+interface CustomerItem {
+  id: string
+  name: string
+  phone: string
+  district: string
+  upazila: string
+  address: string
+  totalBookings: number
+  lastBookingDate: string
+  status: 'active' | 'inactive'
+  avatar: string
+}
+
 export default function AdminCustomersPage() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [districtFilter, setDistrictFilter] = useState('all')
+  const [customersList, setCustomersList] = useState<CustomerItem[]>([])
+  const [activeCount, setActiveCount] = useState(0)
+  const [totalCompletedBookings, setTotalCompletedBookings] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const customersList = [
-    {
-      id: 'cust-01',
-      name: 'মোঃ মাসুদ রানা',
-      phone: '01722092804',
-      district: 'ঠাকুরগাঁও',
-      upazila: 'ঠাকুরগাঁও সদর',
-      address: 'পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
-      totalBookings: 4,
-      lastBookingDate: '২০২৬-১১-০৭',
-      status: 'active',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'cust-02',
-      name: 'আহমেদ জুবায়ের',
-      phone: '01711223344',
-      district: 'ঠাকুরগাঁও',
-      upazila: 'পীরগঞ্জ',
-      address: 'পীরগঞ্জ বাজার রোড',
-      totalBookings: 2,
-      lastBookingDate: '২০২৬-১১-০৪',
-      status: 'active',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'cust-03',
-      name: 'ফারহানা চৌধুরী',
-      phone: '01899887766',
-      district: 'পঞ্চগড়',
-      upazila: 'পঞ্চগড় সদর',
-      address: 'কলেজ রোড, পঞ্চগড়',
-      totalBookings: 3,
-      lastBookingDate: '২০২৬-১০-২৮',
-      status: 'active',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'cust-04',
-      name: 'কামরুল হাসান',
-      phone: '01922334455',
-      district: 'দিনাজপুর',
-      upazila: 'দিনাজপুর সদর',
-      address: 'বালুবাড়ী, দিনাজপুর সদর',
-      totalBookings: 5,
-      lastBookingDate: '২০২৬-১১-০১',
-      status: 'active',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'cust-05',
-      name: 'তানভীর আহমেদ',
-      phone: '01733445566',
-      district: 'ঠাকুরগাঁও',
-      upazila: 'রাণীশংকৈল',
-      address: 'রাণীশংকৈল বাসস্ট্যান্ড',
-      totalBookings: 1,
-      lastBookingDate: '২০২৬-১০-১৫',
-      status: 'active',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    },
-  ]
+  const fetchCustomers = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/admin/customers', { cache: 'no-store' })
+      const data = await res.json()
+      if (data.success && Array.isArray(data.customers)) {
+        setCustomersList(data.customers)
+        setActiveCount(typeof data.activeCustomers === 'number' ? data.activeCustomers : data.customers.length)
+        setTotalCompletedBookings(typeof data.totalCompletedBookings === 'number' ? data.totalCompletedBookings : 0)
+      }
+    } catch (err) {
+      console.error('Failed to load admin customers:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCustomers()
+  }, [])
 
   const filteredCustomers = customersList.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery)
-    const matchesDistrict = districtFilter === 'all' || c.district === districtFilter
+    const matchesSearch = 
+      (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (c.phone || '').includes(searchQuery)
+    const matchesDistrict = districtFilter === 'all' || (c.district || '').includes(districtFilter)
     return matchesSearch && matchesDistrict
   })
 
@@ -108,37 +85,54 @@ export default function AdminCustomersPage() {
               : 'View all registered customers and their service booking history.'}
           </p>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchCustomers}
+          disabled={isLoading}
+          className="self-start sm:self-auto gap-1 text-xs"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
+        </Button>
       </div>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3">
+        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3 shadow-xs">
           <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
             <Users className="h-5 w-5" />
           </div>
           <div>
             <span className="text-[11px] font-semibold text-slate-500 block">মোট কাস্টমার</span>
-            <span className="text-xl font-black text-slate-900">{toBanglaNumber(customersList.length)} জন</span>
+            <span className="text-xl font-black text-slate-900">
+              {isLoading ? '...' : `${toBanglaNumber(customersList.length)} জন`}
+            </span>
           </div>
         </Card>
 
-        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3">
+        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3 shadow-xs">
           <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
             <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
             <span className="text-[11px] font-semibold text-slate-500 block">সক্রিয় অ্যাকাউন্ট</span>
-            <span className="text-xl font-black text-slate-900">{toBanglaNumber(customersList.length)} জন (১০০%)</span>
+            <span className="text-xl font-black text-slate-900">
+              {isLoading ? '...' : `${toBanglaNumber(activeCount)} জন (১০০%)`}
+            </span>
           </div>
         </Card>
 
-        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3">
+        <Card className="p-4 border-slate-200 bg-white flex items-center gap-3 shadow-xs">
           <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
             <ShoppingBag className="h-5 w-5" />
           </div>
           <div>
             <span className="text-[11px] font-semibold text-slate-500 block">মোট সম্পন্ন বুকিং</span>
-            <span className="text-xl font-black text-slate-900">{toBanglaNumber(15)} টি</span>
+            <span className="text-xl font-black text-slate-900">
+              {isLoading ? '...' : `${toBanglaNumber(totalCompletedBookings)} টি`}
+            </span>
           </div>
         </Card>
       </div>
@@ -185,10 +179,19 @@ export default function AdminCustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {filteredCustomers.length === 0 ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
-                    কোনো কাস্টমার পাওয়া যায়নি
+                    <div className="flex items-center justify-center gap-2">
+                      <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                      <span>{isBn ? 'কাস্টমার তালিকা লোড হচ্ছে...' : 'Loading customer list...'}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                    {isBn ? 'কোনো কাস্টমার পাওয়া যায়নি' : 'No customers found'}
                   </td>
                 </tr>
               ) : (
@@ -231,13 +234,13 @@ export default function AdminCustomersPage() {
                     <td className="py-3.5 px-4">
                       <Badge variant="success" className="text-[10px] py-0.5">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
-                        <span>সক্রিয়</span>
+                        <span>{isBn ? 'সক্রিয়' : 'Active'}</span>
                       </Badge>
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
                       <a
-                        href={`https://wa.me/88${c.phone.replace(/[^0-9]/g, '')}`}
+                        href={`https://wa.me/88${(c.phone || '').replace(/[^0-9]/g, '')}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-xs text-emerald-700 font-bold hover:underline bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
@@ -256,4 +259,3 @@ export default function AdminCustomersPage() {
     </div>
   )
 }
-
