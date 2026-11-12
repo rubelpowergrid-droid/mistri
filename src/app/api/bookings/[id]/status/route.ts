@@ -66,6 +66,39 @@ export async function PATCH(
       proposedTime: proposedTime || null,
     })
 
+    // 3. Send Web Push to Customer on status transitions
+    if (updated?.customerPhone) {
+      try {
+        const { sendPushToUser } = await import('@/lib/web-push')
+        let statusTitle = ''
+        let statusMsg = ''
+
+        if (status === 'accepted') {
+          statusTitle = '✅ বুকিং গৃহীত হয়েছে!'
+          statusMsg = `${updated.mistriName || 'মিস্ত্রী'} আপনার কাজের অনুরোধ গ্রহণ করেছেন।`
+        } else if (status === 'in_progress') {
+          statusTitle = '🚀 মিস্ত্রী কাজ শুরু করেছেন!'
+          statusMsg = `কাজের লাইভ অগ্রগতি ও স্ট্যাটাস দেখতে পারেন।`
+        } else if (status === 'completed') {
+          statusTitle = '🎉 কাজ সম্পন্ন হয়েছে!'
+          statusMsg = `মোট বিল: ৳${agreedPrice || updated.amount || 400}। অনুগ্রহ করে কারিগরের সেবার মূল্যায়ন দিন।`
+        } else if (status === 'cancelled') {
+          statusTitle = '❌ বুকিং বাতিল হয়েছে'
+          statusMsg = reason ? `কারণ: ${reason}` : 'আপনার বুকিংটি বাতিল করা হয়েছে।'
+        }
+
+        if (statusTitle) {
+          sendPushToUser({
+            phone: updated.customerPhone,
+            title: statusTitle,
+            body: statusMsg,
+            url: `/bookings/${id}/live-track`,
+            tag: `status-${id}-${status}`,
+          }).catch(() => {})
+        }
+      } catch {}
+    }
+
     return NextResponse.json({
       success: true,
       bookingId: id,

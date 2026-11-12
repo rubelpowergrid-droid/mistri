@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { 
   Navigation, Phone, ShieldCheck, ArrowLeft, Clock, 
   MapPin, Wrench, ExternalLink, AlertCircle, Compass,
-  CheckCircle2, XCircle, AlertTriangle, X, Play, Loader2
+  CheckCircle2, XCircle, AlertTriangle, X, Play, Loader2,
+  Radio, Crosshair
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -39,7 +40,7 @@ function CustomerLiveTrackContent() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
-  const bookingId = params.id as string
+  const bookingId = (params?.id as string) || ''
   const initialStatus = searchParams.get('status') || 'pending'
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -56,12 +57,13 @@ function CustomerLiveTrackContent() {
     mistriAvatar: '',
   })
 
+  const [customerGpsAccuracy, setCustomerGpsAccuracy] = useState<number | null>(null)
   const [mistriLocation, setMistriLocation] = useState<Coordinates>(DEFAULT_MISTRI_START)
+  const [mistriSpeed, setMistriSpeed] = useState<number | null>(null)
+  const [lastMistriPing, setLastMistriPing] = useState<string | null>(null)
   const [distanceMeters, setDistanceMeters] = useState(1200)
   const [etaMinutes, setEtaMinutes] = useState(5)
-  const [isSessionActive, setIsSessionActive] = useState(
-    initialStatus === 'in_progress' || initialStatus === 'accepted'
-  )
+  const [isSessionActive, setIsSessionActive] = useState(false)
 
   // Cancel Modal state
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
@@ -69,13 +71,36 @@ function CustomerLiveTrackContent() {
   const [cancelNotes, setCancelNotes] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
-  // ── Load real booking data from localStorage + API ─────────────────────────
+  // ── 1. Request Customer's Real Device GPS Location ────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) return
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userLoc: Coordinates = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }
+        setBooking((prev) => ({
+          ...prev,
+          customerLocation: userLoc,
+        }))
+        setCustomerGpsAccuracy(Math.round(pos.coords.accuracy))
+      },
+      (err) => {
+        console.warn('Customer GPS unavailable, using booking address coords:', err)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    )
+  }, [])
+
+  // ── 2. Load real booking data from localStorage + API ─────────────────────
   useEffect(() => {
     if (!bookingId) return
 
     let found = false
 
-    // 1. First try localStorage (fastest, works offline)
+    // Try localStorage
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('mistri_customer_bookings')
@@ -88,6 +113,9 @@ function CustomerLiveTrackContent() {
               id: match.id || bookingId,
               status: (match.status as any) || initialStatus,
               customerAddress: match.jobAddress || prev.customerAddress,
+              customerLocation: (match.latitude && match.longitude) 
+                ? { latitude: match.latitude, longitude: match.longitude } 
+                : prev.customerLocation,
               mistriName: match.mistriName || '',
               mistriTitle: match.mistriTitle || '',
               mistriPhone: match.mistriPhone || '',
@@ -100,28 +128,27 @@ function CustomerLiveTrackContent() {
       } catch {}
     }
 
-    // 2. Also fetch from API to get the latest status and mistri info
+    // Fetch from API
     const fetchFromApi = async () => {
       try {
-        const res = await fetch(`/api/bookings?role=customer`, { cache: 'no-store' })
+        const res = await fetch(`/api/bookings/${bookingId}`, { cache: 'no-store' })
         const json = await res.json()
-        if (json.success && Array.isArray(json.data)) {
-          const match = json.data.find(
-            (b: any) => b.id === bookingId || b.bookingNumber === bookingId
-          )
-          if (match) {
-            setBooking((prev) => ({
-              ...prev,
-              id: match.id || bookingId,
-              status: (match.status as any) || prev.status,
-              customerAddress: match.jobAddress || prev.customerAddress,
-              mistriName: match.mistriName || prev.mistriName,
-              mistriTitle: match.mistriTitle || prev.mistriTitle,
-              mistriPhone: match.mistriPhone || prev.mistriPhone,
-              category: match.category || match.serviceName || prev.category,
-              mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
-            }))
-          }
+        if (json.success && json.data) {
+          const match = json.data
+          setBooking((prev) => ({
+            ...prev,
+            id: match.id || bookingId,
+            status: (match.status as any) || prev.status,
+            customerAddress: match.jobAddress || match.location || prev.customerAddress,
+            customerLocation: (match.latitude && match.longitude)
+              ? { latitude: match.latitude, longitude: match.longitude }
+              : prev.customerLocation,
+            mistriName: match.mistriName || prev.mistriName,
+            mistriTitle: match.mistriTitle || prev.mistriTitle,
+            mistriPhone: match.mistriPhone || prev.mistriPhone,
+            category: match.serviceName || match.category || prev.category,
+            mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
+          }))
         }
       } catch {}
       setIsLoadingBooking(false)
@@ -131,28 +158,45 @@ function CustomerLiveTrackContent() {
     if (found) setIsLoadingBooking(false)
   }, [bookingId, initialStatus])
 
-  // ── Realtime GPS animation ─────────────────────────────────────────────────
+  // ── 3. Realtime GPS Polling for Mistri's Live Movement ─────────────────────
   useEffect(() => {
-    if (!isSessionActive || booking.status === 'pending' || booking.status === 'cancelled') return
+    if (booking.status === 'cancelled') return
 
-    const interval = setInterval(() => {
-      setMistriLocation((prev) => {
-        const dLat = (booking.customerLocation.latitude - prev.latitude) * 0.08
-        const dLng = (booking.customerLocation.longitude - prev.longitude) * 0.08
-        const nextLat = prev.latitude + dLat
-        const nextLng = prev.longitude + dLng
-        const dist = calculateHaversineDistance(
-          { latitude: nextLat, longitude: nextLng },
-          booking.customerLocation
-        )
-        setDistanceMeters(Math.round(dist))
-        setEtaMinutes(estimateTravelTimeMinutes(dist))
-        return { latitude: nextLat, longitude: nextLng }
-      })
-    }, 4000)
+    const pollMistriLocation = async () => {
+      try {
+        const res = await fetch(`/api/tracking/${bookingId}`, { cache: 'no-store' })
+        const json = await res.json()
+
+        if (json.success && json.is_active && json.data) {
+          const { latitude, longitude, speed, last_ping_at } = json.data
+          if (latitude && longitude) {
+            const nextMistriLoc = { latitude: Number(latitude), longitude: Number(longitude) }
+            setMistriLocation(nextMistriLoc)
+            setMistriSpeed(speed ? Math.round(Number(speed)) : null)
+            if (last_ping_at) {
+              setLastMistriPing(new Date(last_ping_at).toLocaleTimeString('bn-BD'))
+            }
+            setIsSessionActive(true)
+
+            // Recalculate distance and ETA dynamically
+            const dist = calculateHaversineDistance(nextMistriLoc, booking.customerLocation)
+            setDistanceMeters(Math.round(dist))
+            setEtaMinutes(estimateTravelTimeMinutes(dist))
+          }
+        } else {
+          // Mistri has not started or paused sharing
+          setIsSessionActive(false)
+        }
+      } catch (err) {
+        console.warn('Live tracking poll failed:', err)
+      }
+    }
+
+    pollMistriLocation()
+    const interval = setInterval(pollMistriLocation, 3500)
 
     return () => clearInterval(interval)
-  }, [isSessionActive, booking.customerLocation, booking.status])
+  }, [bookingId, booking.customerLocation, booking.status])
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSimulateAccept = () => {
@@ -164,14 +208,13 @@ function CustomerLiveTrackContent() {
     setIsCancelling(true)
     try {
       await fetch(`/api/bookings/${booking.id}/status`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'cancelled',
           reason: cancelReason + (cancelNotes ? `: ${cancelNotes}` : ''),
         }),
       })
-      // Also update localStorage
       if (typeof window !== 'undefined') {
         try {
           const stored = localStorage.getItem('mistri_customer_bookings')
@@ -194,9 +237,8 @@ function CustomerLiveTrackContent() {
   }
 
   const googleMapsUrl = generateGoogleMapsDirectionUrl(mistriLocation, booking.customerLocation)
-  const isEnRoute = booking.status === 'in_progress' || booking.status === 'accepted'
+  const isEnRoute = (booking.status === 'in_progress' || booking.status === 'accepted') && isSessionActive
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   if (isLoadingBooking && !booking.mistriName) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 flex flex-col items-center justify-center gap-3 text-stone-500 text-xs">
@@ -229,12 +271,25 @@ function CustomerLiveTrackContent() {
             <span>{isBn ? 'মিস্ত্রীর সম্মতির অপেক্ষায়' : 'Awaiting Confirmation'}</span>
           </Badge>
         ) : (
-          <Badge variant="neutral" className="skeuo-pill gap-1.5 px-3 py-1 text-xs bg-red-100 text-red-900 border-red-300 font-bold">
-            <XCircle className="h-3 w-3 text-red-600" />
-            <span>{isBn ? 'বুকিং বাতিলকৃত' : 'Booking Cancelled'}</span>
+          <Badge variant="neutral" className="skeuo-pill gap-1.5 px-3 py-1 text-xs bg-[#2c7865]/10 text-[#2c7865] border-[#2c7865]/30 font-bold">
+            <CheckCircle2 className="h-3 w-3 text-[#2c7865]" />
+            <span>{isBn ? 'অনুরোধ গৃহীত (রওয়ানার অপেক্ষায়)' : 'Booking Confirmed'}</span>
           </Badge>
         )}
       </div>
+
+      {/* Customer GPS Accuracy Indicator */}
+      {customerGpsAccuracy !== null && (
+        <div className="flex items-center justify-between text-[11px] text-stone-600 bg-stone-100/80 px-3 py-1.5 rounded-xl border border-stone-200">
+          <span className="flex items-center gap-1.5">
+            <Crosshair className="h-3.5 w-3.5 text-[#2c7865]" />
+            <span>আপনার ডিভাইস জিপিএস সনাক্ত হয়েছে (নির্ভুলতা: <strong>±{customerGpsAccuracy} মিটার</strong>)</span>
+          </span>
+          <span className="font-mono text-stone-500">
+            {booking.customerLocation.latitude.toFixed(4)}, {booking.customerLocation.longitude.toFixed(4)}
+          </span>
+        </div>
+      )}
 
       {/* Mistri Info Bar */}
       {booking.mistriName && (
@@ -251,7 +306,7 @@ function CustomerLiveTrackContent() {
             <p className="text-xs text-[#2c7865] truncate">{booking.mistriTitle || booking.category}</p>
           </div>
           <Badge variant="neutral" className={`text-[10px] skeuo-pill font-bold shrink-0 ${isEnRoute ? 'bg-[#2c7865] text-[#fefded]' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
-            {isEnRoute ? (isBn ? 'অন-রুট' : 'En Route') : (isBn ? 'অপেক্ষমাণ' : 'Pending')}
+            {isEnRoute ? (isBn ? 'অন-রুট (লাইভ জিপিএস)' : 'En Route') : (isBn ? 'অপেক্ষমাণ' : 'Pending')}
           </Badge>
         </Card>
       )}
@@ -270,7 +325,7 @@ function CustomerLiveTrackContent() {
                 </h2>
                 <p className="text-xs text-stone-600 leading-relaxed max-w-xl">
                   {isBn 
-                    ? 'আপনার অনুরোধটি কারিগরের কাছে সফলভাবে পাঠানো হয়েছে। মিস্ত্রী অনুরোধ গ্রহণ করে আপনার ঠিকানার উদ্দেশ্যে রওনা হলে স্বয়ংক্রিয়ভাবে লাইভ জিপিএস এবং লাইভ ট্র্যাকিং ম্যাপ সক্রিয় হবে।' 
+                    ? 'আপনার অনুরোধটি কারিগরের কাছে পাঠানো হয়েছে। মিস্ত্রী অনুরোধ গ্রহণ করে আপনার ঠিকানার উদ্দেশ্যে রওনা হলে স্বয়ংক্রিয়ভাবে লাইভ জিপিএস ট্র্যাকিং সক্রিয় হবে।' 
                     : 'Your request was dispatched. Live GPS tracking will turn on as soon as the professional accepts and heads your way.'}
                 </p>
               </div>
@@ -297,54 +352,33 @@ function CustomerLiveTrackContent() {
               </Button>
             </div>
           </div>
+        </Card>
+      )}
 
-          {/* Step Timeline Indicator */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-stone-200 text-xs">
-            <div className="p-2.5 rounded-xl bg-stone-100 border border-stone-300 space-y-1">
-              <span className="text-[10px] text-stone-500 font-bold block">ধাপ ১</span>
-              <span className="font-bold text-stone-900 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                <span>অনুরোধ জমা</span>
-              </span>
+      {/* When Mistri Accepted but has not started GPS Sharing yet */}
+      {(booking.status === 'accepted' || booking.status === 'in_progress') && !isSessionActive && (
+        <Card className="p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="h-5 w-5 text-amber-600" />
+              <h3 className="text-sm font-bold text-amber-950">
+                {isBn ? 'মিস্ত্রী অনুরোধ গ্রহণ করেছেন' : 'Request Accepted by Professional'}
+              </h3>
             </div>
-
-            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 space-y-1">
-              <span className="text-[10px] text-amber-700 font-bold block">ধাপ ২</span>
-              <span className="font-bold text-amber-900 flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5 text-amber-600 animate-spin" />
-                <span>মিস্ত্রীর সম্মতি (চলছে)</span>
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-400 space-y-1">
-              <span className="text-[10px] font-bold block">ধাপ ৩</span>
-              <span className="font-semibold flex items-center gap-1">
-                <span>রওনা ও লাইভ জিপিএস</span>
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-400 space-y-1">
-              <span className="text-[10px] font-bold block">ধাপ ৪</span>
-              <span className="font-semibold flex items-center gap-1">
-                <span>কাজ শুরু ও সমাপ্তি</span>
-              </span>
-            </div>
+            {booking.mistriPhone && (
+              <a href={`tel:${booking.mistriPhone}`}>
+                <Button size="sm" className="skeuo-btn-light text-stone-900 font-bold text-xs py-1 px-3">
+                  <Phone className="h-3.5 w-3.5 mr-1" />
+                  <span>{isBn ? 'কল দিন' : 'Call'}</span>
+                </Button>
+              </a>
+            )}
           </div>
-
-          {/* Test Simulation Helper Bar */}
-          <div className="p-3 bg-stone-100 rounded-xl border border-stone-300 flex items-center justify-between text-xs">
-            <span className="text-stone-600 font-medium">
-              💡 টেস্টিং নোট: মিস্ত্রী গ্রহণ করার পরের দৃশ্য ও লাইভ জিপিএস দেখতে নিচের বাটনে ক্লিক করুন:
-            </span>
-            <Button
-              size="sm"
-              onClick={handleSimulateAccept}
-              className="skeuo-btn-dark text-xs font-bold py-1 px-3"
-            >
-              <Play className="h-3 w-3 mr-1 fill-white" />
-              <span>মিস্ত্রী গ্রহণ ও যাত্রা সিমুলেট করুন</span>
-            </Button>
-          </div>
+          <p className="text-xs text-amber-900/85 leading-relaxed">
+            {isBn
+              ? 'মিস্ত্রী আপনার উদ্দেশ্যে রওনা হয়ে তার ফোন থেকে লাইভ লোকেশন শেয়ার চালু করলেই সরাসরি এখানে তার গতি ও জিপিএস অবস্থান দেখা যাবে।'
+              : 'As soon as the professional departs and enables GPS sharing from their device, their live position will appear on the map.'}
+          </p>
         </Card>
       )}
 
@@ -353,18 +387,28 @@ function CustomerLiveTrackContent() {
         <Card className="p-5 skeuo-surface-dark text-white space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-xs text-stone-300 font-semibold flex items-center gap-1">
-                <Navigation className="h-3.5 w-3.5 text-white animate-pulse" />
-                {isBn ? 'মিস্ত্রী আপনার ঠিকানার উদ্দেশ্যে রওনা হয়েছেন' : 'Professional is Heading to Your Location'}
+              <span className="text-xs text-stone-300 font-semibold flex items-center gap-1.5">
+                <Navigation className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                <span>{isBn ? 'মিস্ত্রী সরাসরি আপনার ঠিকানার দিকে আসছেন (লাইভ জিপিএস)' : 'Professional is Heading to Your Location'}</span>
               </span>
               <div className="flex items-baseline gap-3">
-                <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
                   {toBanglaNumber(etaMinutes)} {isBn ? 'মিনিট' : 'mins'}
                 </h1>
                 <span className="text-sm font-semibold text-stone-300">
                   ({formatDistance(distanceMeters / 1000, isBn)} দূরে)
                 </span>
+                {mistriSpeed !== null && mistriSpeed > 0 && (
+                  <span className="text-xs text-amber-300 font-mono">
+                    • গতি: {mistriSpeed} কিমি/ঘণ্টা
+                  </span>
+                )}
               </div>
+              {lastMistriPing && (
+                <span className="text-[10px] text-stone-400 block">
+                  সর্বশেষ জিপিএস আপডেট: {lastMistriPing}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -452,94 +496,80 @@ function CustomerLiveTrackContent() {
         </Card>
       </div>
 
-      {/* Cancel Confirmation Modal */}
+      {/* Cancellation Modal */}
       {isCancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl skeuo-surface p-6 shadow-2xl space-y-4 border border-[#2c7865]/30">
-            <div className="flex items-center justify-between border-b border-[#2c7865]/20 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-red-100 text-red-700">
-                  <AlertTriangle className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#14382f]">বুকিং বাতিলকরণ নিশ্চিত করুন</h3>
-                  <p className="text-[11px] text-[#2c7865]/70">বুকিং আইডি: {booking.id}</p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
+          <Card className="w-full max-w-md p-6 skeuo-surface space-y-4 border-stone-300">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div className="flex items-center gap-2 text-stone-900 font-bold">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <h3 className="text-sm">{isBn ? 'বুকিং বাতিলের কারণ' : 'Reason for Cancellation'}</h3>
               </div>
               <button
-                type="button"
                 onClick={() => setIsCancelModalOpen(false)}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-[#f4f0d6]"
+                className="text-stone-400 hover:text-stone-600"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs text-[#14382f] font-medium">
-                আপনি কি নিশ্চিত যে এই কারিগরের সাথে বুকিং অনুরোধটি বাতিল করতে চান?
-              </p>
+              {CANCELLATION_REASONS.map((reason) => (
+                <label
+                  key={reason}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    cancelReason === reason
+                      ? 'bg-[#2c7865]/10 border-[#2c7865] font-bold text-[#14382f]'
+                      : 'border-stone-200 hover:bg-stone-50 text-stone-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value={reason}
+                    checked={cancelReason === reason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="accent-[#2c7865]"
+                  />
+                  <span>{reason}</span>
+                </label>
+              ))}
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#14382f] block">বাতিলের প্রধান কারণ:</label>
-                <div className="space-y-1.5">
-                  {CANCELLATION_REASONS.map((reason) => (
-                    <label
-                      key={reason}
-                      className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                        cancelReason === reason
-                          ? 'border-[#2c7865] bg-[#f4f0d6] font-bold text-[#2c7865]'
-                          : 'border-[#2c7865]/20 hover:bg-[#fefded] text-[#14382f]'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="cancelReasonTrack"
-                        checked={cancelReason === reason}
-                        onChange={() => setCancelReason(reason)}
-                        className="accent-[#2c7865]"
-                      />
-                      <span>{reason}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#14382f] block">অতিরিক্ত মন্তব্য (ঐচ্ছিক):</label>
+              <div className="pt-2">
+                <label className="text-[11px] font-semibold text-stone-600 block mb-1">
+                  {isBn ? 'অতিরিক্ত মন্তব্য (ঐচ্ছিক)' : 'Additional Comments (Optional)'}
+                </label>
                 <textarea
                   value={cancelNotes}
                   onChange={(e) => setCancelNotes(e.target.value)}
-                  placeholder="অন্য কোনো কারণ থাকলে লিখুন..."
+                  placeholder="বিস্তারিত লিখুন..."
                   rows={2}
-                  className="w-full skeuo-input-well p-2.5 text-xs text-[#14382f] focus:outline-none rounded-xl"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-xs focus:border-[#2c7865] focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#2c7865]/20">
+            <div className="flex items-center gap-2 pt-2 border-t border-stone-200">
               <Button
-                type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => setIsCancelModalOpen(false)}
-                className="skeuo-btn-light text-xs font-bold text-[#2c7865]"
+                className="flex-1 text-xs"
               >
-                না, ফিরে যান
+                {isBn ? 'ফিরে যান' : 'Back'}
               </Button>
-
               <Button
-                type="button"
-                size="sm"
-                isLoading={isCancelling}
                 onClick={handleConfirmCancel}
-                className="skeuo-btn-dark bg-red-700 hover:bg-red-800 text-xs font-bold text-white"
+                disabled={isCancelling}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
               >
-                <XCircle className="h-3.5 w-3.5 mr-1" />
-                <span>হ্যাঁ, বুকিং বাতিল করুন</span>
+                {isCancelling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span>{isBn ? 'বাতিল নিশ্চিত করুন' : 'Confirm Cancel'}</span>
+                )}
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
@@ -548,7 +578,14 @@ function CustomerLiveTrackContent() {
 
 export default function CustomerLiveTrackPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-stone-500">ট্র্যাকিং লোড হচ্ছে...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-4xl px-4 py-16 flex flex-col items-center justify-center gap-3 text-stone-500 text-xs">
+          <Loader2 className="h-6 w-6 animate-spin text-[#2c7865]" />
+          <span>লোড হচ্ছে...</span>
+        </div>
+      }
+    >
       <CustomerLiveTrackContent />
     </Suspense>
   )

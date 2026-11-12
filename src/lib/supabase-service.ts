@@ -979,6 +979,21 @@ export async function saveBookingToSupabase(data: {
       }
     }
 
+    // 6. Send Web Push to Mistri device (wakes up mobile even if screen is OFF)
+    try {
+      const { sendPushToUser } = await import('./web-push')
+      await sendPushToUser({
+        userId: mistriUserId,
+        phone: mistriPhone,
+        title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
+        body: `গ্রাহক ${data.customerName || data.contactPhone} আপনার জন্য একটি নতুন কাজের অনুরোধ পাঠিয়েছেন (${data.subcategory})।`,
+        url: insertedBooking?.id ? `/mistri/bookings/${insertedBooking.id}` : '/requests',
+        tag: `booking-${insertedBooking?.id || Date.now()}`,
+      })
+    } catch (pErr: any) {
+      console.warn('WebPush send warning:', pErr.message)
+    }
+
     return {
       success: true,
       booking: insertedBooking,

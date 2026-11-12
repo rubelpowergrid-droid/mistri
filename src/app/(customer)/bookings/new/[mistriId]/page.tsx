@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Calendar, Clock, MapPin, DollarSign, 
   Upload, Camera, CheckCircle2, Shield, Wrench, 
-  Star, AlertCircle, Phone, X, Loader2
+  Star, AlertCircle, Phone, X, Loader2, Crosshair
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -43,6 +43,36 @@ export default function NewBookingPage() {
     longitude: 88.4617,
   })
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isDetectingGps, setIsDetectingGps] = useState(false)
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
+
+  const handleGetDeviceGps = () => {
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
+      alert(isBn ? 'আপনার ডিভাইসে জিপিএস লোকেশন সমর্থিত নয়।' : 'Geolocation not supported')
+      return
+    }
+
+    setIsDetectingGps(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsDetectingGps(false)
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        const acc = Math.round(pos.coords.accuracy)
+        setJobCoordinates({ latitude: lat, longitude: lng })
+        setGpsAccuracy(acc)
+      },
+      (err) => {
+        setIsDetectingGps(false)
+        if (err.code === 1) {
+          alert(isBn ? 'লোকেশন পারমিশন বন্ধ আছে। অনুগ্রহ করে মোবাইলের ব্রাউজার সেটিংসে গিয়ে লোকেশন "Allow" করুন।' : 'Location permission denied.')
+        } else {
+          alert(isBn ? 'জিপিএস সংকেত পাওয়া যায়নি। অনুগ্রহ করে মোবাইল জিপিএস অন করুন।' : 'Unable to acquire GPS signal.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    )
+  }
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -414,14 +444,25 @@ export default function NewBookingPage() {
               <label className="text-xs font-semibold text-stone-700">
                 {t('booking.job_address')} <span className="text-red-500">*</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setIsLocationModalOpen(true)}
-                className="text-xs font-bold text-[#2c7865] hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{isBn ? 'ম্যাপে পিন করুন' : 'Pin on Map'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGetDeviceGps}
+                  disabled={isDetectingGps}
+                  className="text-[11px] font-bold text-[#2c7865] bg-[#2c7865]/10 hover:bg-[#2c7865]/20 px-2 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Crosshair className={`h-3 w-3 ${isDetectingGps ? 'animate-spin' : ''}`} />
+                  <span>{isDetectingGps ? (isBn ? 'সনাক্ত হচ্ছে...' : 'Locating...') : (isBn ? 'লাইভ জিপিএস নিন' : 'Use Live GPS')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="text-[11px] font-bold text-[#2c7865] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <MapPin className="h-3 w-3" />
+                  <span>{isBn ? 'ম্যাপে পিন' : 'Pin on Map'}</span>
+                </button>
+              </div>
             </div>
             <Input
               id="jobAddress"
@@ -430,9 +471,17 @@ export default function NewBookingPage() {
               placeholder="রোড নম্বর, বাড়ি বা ভবনের নাম..."
               required
             />
-            <div className="flex items-center gap-1.5 text-[11px] text-stone-500">
-              <MapPin className="h-3 w-3 text-[#2c7865]" />
-              <span>জিপিএস কোঅর্ডিনেট সংযুক্ত: {jobCoordinates.latitude.toFixed(4)}, {jobCoordinates.longitude.toFixed(4)}</span>
+            <div className="flex items-center justify-between text-[11px] text-stone-500 bg-stone-100/60 p-1.5 rounded-lg border border-stone-200">
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-[#2c7865]" />
+                <span>
+                  জিপিএস: {jobCoordinates.latitude.toFixed(4)}, {jobCoordinates.longitude.toFixed(4)}
+                  {gpsAccuracy !== null && <strong className="text-emerald-700 ml-1">(একুরেসি: ±{gpsAccuracy} মি.)</strong>}
+                </span>
+              </span>
+              {gpsAccuracy !== null && (
+                <span className="text-[10px] text-emerald-600 font-bold">✅ ডিভাইস জিপিএস সক্রিয়</span>
+              )}
             </div>
           </div>
 

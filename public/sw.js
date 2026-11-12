@@ -1,16 +1,18 @@
-// MISTRI Service Worker for Offline & Push Notifications
-const CACHE_NAME = 'mistri-pwa-v1'
+// MISTRI Service Worker for Offline & Background Push Notifications
+const CACHE_NAME = 'mistri-pwa-v2'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/search',
   '/categories',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS)
+      return cache.addAll(STATIC_ASSETS).catch(() => {})
     })
   )
   self.skipWaiting()
@@ -34,11 +36,14 @@ self.addEventListener('activate', (event) => {
 // Network-first with cache fallback
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
+  const url = new URL(event.request.url)
+
+  // Do not cache API requests or tracking calls
+  if (url.pathname.startsWith('/api/')) return
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone response to cache valid GET requests
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone()
           caches.open(CACHE_NAME).then((cache) => {
@@ -49,10 +54,7 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse
-          }
-          // Fallback to offline home page
+          if (cachedResponse) return cachedResponse
           if (event.request.mode === 'navigate') {
             return caches.match('/')
           }
@@ -61,38 +63,66 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Web Push Notification Handler
+// ── Background Web Push Handler (Works when screen is OFF) ────────────────────
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {}
-  const title = data.title || 'MISTRI - নতুন বিজ্ঞপ্তি'
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch (e) {
+    try {
+      data = { title: 'MISTRI - নতুন বিজ্ঞপ্তি', body: event.data ? event.data.text() : '' }
+    } catch {}
+  }
+
+  const title = data.title || '🔔 MISTRI - নতুন বুকিং অনুরোধ!'
+  const body =
+    data.body ||
+    'আপনার জন্য নতুন একটি কাজের বুকিং এসেছে। বিস্তারিত দেখতে এখানে চাপ দিন।'
+
   const options = {
-    body: data.body || 'আপনার বুকিং এর নতুন আপডেট রয়েছে।',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
+    body,
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-192x192.png',
+    vibrate: [400, 150, 400, 150, 600],
+    tag: data.tag || `mistri-alert-${Date.now()}`,
+    renotify: true,
+    requireInteraction: true,
     data: {
-      url: data.url || '/bookings',
+      url: data.url || '/mistri/profile',
+      timestamp: Date.now(),
     },
+    actions: [
+      { action: 'open', title: '👁️ বিস্তারিত দেখুন' },
+    ],
   }
 
   event.waitUntil(self.registration.showNotification(title, options))
 })
 
+// ── Notification Click Handler ───────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl = event.notification.data?.url || '/bookings'
+
+  const targetUrl = event.notification.data?.url || '/mistri/profile'
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If a window is already open, focus and navigate it
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
-          return client.focus()
+        if ('focus' in client) {
+          if (client.url && client.url.includes(targetUrl)) {
+            return client.focus()
+          }
+          if ('navigate' in client) {
+            client.navigate(targetUrl)
+            return client.focus()
+          }
         }
       }
+      // Otherwise open a new window
       if (clients.openWindow) {
         return clients.openWindow(targetUrl)
       }
     })
   )
 })
-

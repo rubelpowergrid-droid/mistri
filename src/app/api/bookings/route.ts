@@ -166,6 +166,19 @@ export async function POST(request: NextRequest) {
       workPhotos: parsed.data.workPhotos || [],
     })
 
+    // Also trigger push directly if mistriPhone or mistriId is present
+    try {
+      const { sendPushToUser } = await import('@/lib/web-push')
+      sendPushToUser({
+        userId: supaRes?.mistriUserId || null,
+        phone: newBooking.mistriPhone || parsed.data.mistriId,
+        title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
+        body: `${newBooking.customerName || 'গ্রাহক'} একটি কাজের অনুরোধ পাঠিয়েছেন (${newBooking.serviceName})`,
+        url: newBooking.id ? `/mistri/bookings/${newBooking.id}` : '/requests',
+        tag: `booking-${newBooking.id}`,
+      }).catch(() => {})
+    } catch {}
+
     return NextResponse.json({
       success: true,
       message: 'Booking request created successfully',

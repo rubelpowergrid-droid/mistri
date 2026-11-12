@@ -1,25 +1,19 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
-  ArrowLeft, MapPin, Phone, User, CheckCircle2, 
-  Navigation, DollarSign, Clock, ShieldCheck, 
-  ExternalLink, AlertTriangle, Radio, Loader2, Wrench
+  ArrowLeft, Navigation, MapPin, Phone, User, Clock, 
+  CheckCircle2, AlertTriangle, ShieldCheck, ExternalLink,
+  Play, Radio, DollarSign, Loader2, Sparkles, AlertCircle
 } from 'lucide-react'
-import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Coordinates, 
-  generateGoogleMapsDirectionUrl 
-} from '@/lib/geo'
-import { formatBDT, toBanglaNumber } from '@/lib/utils'
+import { useI18n } from '@/locales'
 
-export default function MistriJobExecutionPage() {
+export default function MistriJobDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { lang } = useI18n()
@@ -30,13 +24,24 @@ export default function MistriJobExecutionPage() {
   const [booking, setBooking] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [jobStatus, setJobStatus] = useState<'pending' | 'accepted' | 'in_progress' | 'completed'>('accepted')
+  
+  // Real GPS tracking states
   const [isLocationSharing, setIsLocationSharing] = useState(false)
+  const [isLocating, setIsLocating] = useState(false)
   const [lastPingTime, setLastPingTime] = useState<string | null>(null)
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null)
+  const [gpsSpeed, setGpsSpeed] = useState<number | null>(null)
+  const [permissionError, setPermissionError] = useState<string | null>(null)
+
   const [finalAgreedPrice, setFinalAgreedPrice] = useState<number>(400)
   const [isCompleting, setIsCompleting] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+
+  const watchIdRef = useRef<number | null>(null)
+  const lastPosRef = useRef<{ lat: number; lng: number; speed: number | null; heading: number | null; accuracy: number | null } | null>(null)
 
   // Load live booking details dynamically by ID
   useEffect(() => {
@@ -76,29 +81,128 @@ export default function MistriJobExecutionPage() {
     }
   }, [bookingId, isBn])
 
-  // Toggle live location sharing
-  const toggleLocationSharing = async () => {
-    const nextState = !isLocationSharing
-    setIsLocationSharing(nextState)
+  // Send real GPS position to tracking API
+  const sendGpsPing = useCallback(async (pos: GeolocationPosition) => {
+    const lat = pos.coords.latitude
+    const lng = pos.coords.longitude
+    const accuracy = Math.round(pos.coords.accuracy)
+    const speed = pos.coords.speed !== null && pos.coords.speed !== undefined 
+      ? Math.round(pos.coords.speed * 3.6) // m/s to km/h
+      : null
+    const heading = pos.coords.heading || 0
 
-    if (nextState) {
-      setLastPingTime(new Date().toLocaleTimeString('bn-BD'))
-      try {
-        await fetch('/api/tracking/ping', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookingId: booking?.id || bookingId,
-            latitude: 26.0425,
-            longitude: 88.4550,
-            speed: 18.5,
-          }),
-        })
-      } catch {}
-    } else {
-      setLastPingTime(null)
+    setGpsCoords({ lat, lng })
+    setGpsAccuracy(accuracy)
+    setGpsSpeed(speed)
+    setLastPingTime(new Date().toLocaleTimeString('bn-BD'))
+    setIsLocating(false)
+
+    lastPosRef.current = { lat, lng, speed, heading, accuracy }
+
+    try {
+      await fetch('/api/tracking/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: booking?.id || bookingId,
+          latitude: lat,
+          longitude: lng,
+          accuracy,
+          speed: speed || 0,
+          heading,
+        }),
+      })
+    } catch (err) {
+      console.warn('GPS ping sync failed:', err)
+    }
+  }, [booking?.id, bookingId])
+
+  // Stop location sharing cleanup
+  const stopLocationWatch = useCallback(async () => {
+    if (watchIdRef.current !== null && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    setIsLocationSharing(false)
+    setIsLocating(false)
+    setLastPingTime(null)
+    setGpsAccuracy(null)
+    setGpsSpeed(null)
+
+    try {
+      await fetch('/api/tracking/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking?.id || bookingId }),
+      })
+    } catch {}
+  }, [booking?.id, bookingId])
+
+  // Toggle live location sharing with Real GPS
+  const toggleLocationSharing = async () => {
+    if (isLocationSharing) {
+      await stopLocationWatch()
+      return
+    }
+
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
+      setPermissionError('আপনার মোবাইলে বা ব্রাউজারে জিপিএস লোকেশন সমর্থিত নয়।')
+      return
+    }
+
+    setPermissionError(null)
+    setIsLocating(true)
+    setIsLocationSharing(true)
+
+    // 1. Get immediate high-accuracy position
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        sendGpsPing(pos)
+      },
+      (err) => {
+        setIsLocating(false)
+        if (err.code === 1) { // PERMISSION_DENIED
+          setPermissionError('লোকেশন পারমিশন বন্ধ রয়েছে! ফোনের সেটিংস বা ব্রাউজার পারমিশনে গিয়ে লোকেশন "Allow" করুন।')
+          setIsLocationSharing(false)
+        } else if (err.code === 2) {
+          setPermissionError('জিপিএস সংকেত পাওয়া যায়নি। অনুগ্রহ করে ফোনের লোকেশন/GPS সুইচ চালু করুন।')
+          setIsLocationSharing(false)
+        } else {
+          setPermissionError('লোকেশন সনাক্ত করতে সময়সীমা পার হয়েছে। পুনরায় চেষ্টা করুন।')
+          setIsLocationSharing(false)
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    )
+
+    // 2. Continuous watchPosition for live movement
+    try {
+      const wid = navigator.geolocation.watchPosition(
+        (pos) => {
+          sendGpsPing(pos)
+        },
+        (err) => {
+          if (err.code === 1) {
+            setPermissionError('লোকেশন পারমিশন প্রত্যাহার করা হয়েছে।')
+            stopLocationWatch()
+          }
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 3000 }
+      )
+      watchIdRef.current = wid
+    } catch (e: any) {
+      console.warn('watchPosition failed:', e)
     }
   }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
+  }, [])
 
   // Handle Start Job
   const handleStartJob = async () => {
@@ -110,7 +214,7 @@ export default function MistriJobExecutionPage() {
         body: JSON.stringify({ status: 'in_progress' }),
       })
       setJobStatus('in_progress')
-      setIsLocationSharing(false)
+      await stopLocationWatch()
     } catch (e) {
       console.error(e)
     } finally {
@@ -132,6 +236,7 @@ export default function MistriJobExecutionPage() {
       })
       setJobStatus('completed')
       setShowCompletionModal(false)
+      await stopLocationWatch()
     } catch (e) {
       console.error(e)
     } finally {
@@ -141,33 +246,30 @@ export default function MistriJobExecutionPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 space-y-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2c7865]" />
-        <p className="text-xs font-semibold text-stone-600">
-          {isBn ? 'কাজের তথ্য লোড হচ্ছে...' : 'Loading job details...'}
-        </p>
+      <div className="mx-auto max-w-4xl px-4 py-24 flex flex-col items-center justify-center gap-3 text-stone-500 text-xs">
+        <Loader2 className="h-6 w-6 animate-spin text-[#2c7865]" />
+        <span>বুকিং ও কাস্টমারের তথ্য লোড হচ্ছে...</span>
       </div>
     )
   }
 
-  if (errorMessage || !booking) {
+  if (errorMessage && !booking) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-center space-y-4">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-          <AlertTriangle className="h-7 w-7" />
-        </div>
-        <h2 className="text-lg font-bold text-stone-900">
-          {errorMessage || (isBn ? 'বুকিং পাওয়া যায়নি' : 'Booking not found')}
-        </h2>
+      <div className="mx-auto max-w-lg px-4 py-16 text-center space-y-4">
+        <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto" />
+        <h3 className="text-base font-bold text-stone-900">{errorMessage}</h3>
         <Button onClick={() => router.push('/mistri/bookings')} className="skeuo-btn-dark text-xs">
-          {isBn ? 'বুকিং তালিকায় ফিরে যান' : 'Back to Bookings'}
+          কাজের তালিকায় ফিরুন
         </Button>
       </div>
     )
   }
 
-  // Google Maps Direction URL
-  const googleMapsUrl = booking.customerAddress || booking.jobAddress
+  const destLat = booking?.latitude
+  const destLng = booking?.longitude
+  const googleMapsUrl = (destLat && destLng)
+    ? `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`
+    : booking?.customerAddress || booking?.jobAddress
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.customerAddress || booking.jobAddress)}`
     : `https://www.google.com/maps`
 
@@ -213,6 +315,17 @@ export default function MistriJobExecutionPage() {
         </div>
       </div>
 
+      {/* Permission Error Warning */}
+      {permissionError && (
+        <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 text-xs flex items-start gap-2.5">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold block">জিপিএস লোকেশন পারমিশন সমস্যা:</span>
+            <span>{permissionError}</span>
+          </div>
+        </div>
+      )}
+
       {/* GPS Live Sharing Switcher Banner */}
       {jobStatus !== 'completed' && (
         <Card className={`p-5 transition-all ${
@@ -230,18 +343,30 @@ export default function MistriJobExecutionPage() {
               </div>
               <p className={`text-xs ${isLocationSharing ? 'text-[#fefded]/85' : 'text-stone-600'}`}>
                 {isBn 
-                  ? 'কাস্টমারের ঠিকানার উদ্দেশ্যে রওনা হলে এটি অন করুন। কাস্টমার ম্যাপে আপনার অবস্থান দেখতে পারবেন।' 
+                  ? 'কাস্টমারের ঠিকানার উদ্দেশ্যে রওনা হলে এটি অন করুন। মোবাইলের জিপিএস থেকে সরাসরি গ্রাহক আপনার অবস্থান দেখতে পারবেন।' 
                   : 'Turn on when traveling to customer location. Customer can track your arrival in real-time.'}
               </p>
-              {lastPingTime && (
-                <span className="inline-block text-[10px] text-amber-200 font-medium">
-                  সর্বশেষ জিপিএস পিং: {lastPingTime}
-                </span>
+              
+              {isLocationSharing && (
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-amber-200">
+                  {isLocating ? (
+                    <span className="flex items-center gap-1 font-semibold text-white animate-pulse">
+                      <Loader2 className="h-3 w-3 animate-spin" /> জিপিএস পজিশন নেওয়া হচ্ছে...
+                    </span>
+                  ) : (
+                    <>
+                      {lastPingTime && <span>সর্বশেষ জিপিএস পিং: <strong>{lastPingTime}</strong></span>}
+                      {gpsAccuracy && <span>নির্ভুলতা: <strong>±{gpsAccuracy} মিটার</strong></span>}
+                      {gpsSpeed !== null && gpsSpeed > 0 && <span>গতি: <strong>{gpsSpeed} কিমি/ঘণ্টা</strong></span>}
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
             <Button
               onClick={toggleLocationSharing}
+              disabled={isLocating}
               className={`font-bold text-xs px-5 py-2.5 shadow-xs cursor-pointer ${
                 isLocationSharing 
                   ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' 
@@ -249,7 +374,11 @@ export default function MistriJobExecutionPage() {
               }`}
             >
               <Navigation className="h-4 w-4 mr-1.5" />
-              <span>{isLocationSharing ? (isBn ? 'শেয়ারিং বন্ধ করুন' : 'Stop Sharing') : (isBn ? 'আমি রওনা হয়েছি (Share Live GPS)' : 'I am on the way')}</span>
+              <span>
+                {isLocationSharing 
+                  ? (isBn ? 'শেয়ারিং বন্ধ করুন' : 'Stop Sharing') 
+                  : (isBn ? 'আমি রওনা হয়েছি (Share Live GPS)' : 'I am on the way')}
+              </span>
             </Button>
           </div>
         </Card>
@@ -294,6 +423,11 @@ export default function MistriJobExecutionPage() {
             <div>
               <span className="text-stone-500 block text-[11px] font-semibold">{isBn ? 'কাজের ঠিকানা' : 'Job Address'}</span>
               <p className="font-bold text-stone-900 leading-snug">{booking.customerAddress || booking.jobAddress}</p>
+              {destLat && destLng && (
+                <span className="text-[10px] text-stone-500 font-mono mt-0.5 block">
+                  📍 জিপিএস পিন: {Number(destLat).toFixed(4)}, {Number(destLng).toFixed(4)}
+                </span>
+              )}
             </div>
 
             <div>
@@ -318,100 +452,90 @@ export default function MistriJobExecutionPage() {
             "{booking.description || (isBn ? 'কোনো বিবরণ দেওয়া হয়নি।' : 'No description provided.')}"
           </p>
         </div>
-
-        {/* Work Photos if attached */}
-        {Array.isArray(booking.workPhotos) && booking.workPhotos.length > 0 && (
-          <div className="pt-2 border-t border-stone-200 space-y-2">
-            <span className="text-stone-600 font-semibold text-xs block">{isBn ? 'কাস্টমারের সংযুক্ত কাজের ছবি:' : 'Customer Attached Photos:'}</span>
-            <div className="flex flex-wrap gap-3">
-              {booking.workPhotos.map((photo: string, idx: number) => (
-                <a key={idx} href={photo} target="_blank" rel="noopener noreferrer">
-                  <img src={photo} alt={`Work ${idx + 1}`} className="h-16 w-16 rounded-xl object-cover border border-stone-300 shadow-xs hover:scale-105 transition-transform" />
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
       </Card>
 
-      {/* Execution Actions (Start Work / Mark Completed) */}
-      <Card className="p-6 space-y-4 skeuo-surface border-stone-300">
-        <div className="flex items-center justify-between border-b border-stone-200 pb-3">
-          <h3 className="text-sm font-bold text-stone-900">
-            {isBn ? 'কাজের অগ্রগতি নিয়ন্ত্রণ' : 'Job State Controls'}
-          </h3>
-          <div className="text-right">
-            <span className="text-[10px] text-stone-500 block font-semibold">{isBn ? 'মজুরি' : 'Amount'}</span>
-            <span className="text-sm font-black text-[#2c7865]">
-              {formatBDT(booking.agreedPrice || booking.estimatedBudget || booking.amount || 400, isBn)}
-            </span>
-          </div>
-        </div>
+      {/* Action Desk Card */}
+      <Card className="p-6 skeuo-surface border-stone-300 space-y-4">
+        <h3 className="text-sm font-bold text-stone-900 border-b border-stone-200 pb-3 flex items-center gap-2">
+          <Play className="h-4 w-4 text-[#2c7865]" />
+          <span>{isBn ? 'কাজের অগ্রগতি স্ট্যাটাস আপডেট' : 'Job Lifecycle Action'}</span>
+        </h3>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {jobStatus === 'accepted' && (
             <Button
               onClick={handleStartJob}
-              isLoading={isStarting}
-              className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-3 px-6 cursor-pointer shadow-md"
+              disabled={isStarting}
+              className="w-full sm:flex-1 skeuo-btn-dark py-3 text-xs font-bold cursor-pointer"
             >
-              <Clock className="h-4 w-4 mr-1.5" />
-              <span>{isBn ? 'আমি পৌঁছেছি, কাজ শুরু করুন' : 'I Have Arrived - Start Work'}</span>
+              {isStarting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+              ) : (
+                <Play className="h-4 w-4 mr-1.5" />
+              )}
+              <span>{isBn ? 'কাজ শুরু হয়েছে চিহ্নিত করুন' : 'Mark Job Started'}</span>
             </Button>
           )}
 
           {jobStatus === 'in_progress' && (
             <Button
               onClick={() => setShowCompletionModal(true)}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-6 cursor-pointer shadow-md"
+              className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-xs shadow-md cursor-pointer"
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              <span>{isBn ? 'কাজ সম্পন্ন হয়েছে (Mark Completed)' : 'Mark Job as Completed'}</span>
+              <span>{isBn ? 'কাজ সম্পন্ন হয়েছে ও বিল কনফার্ম করুন' : 'Mark Job Completed & Collect Payment'}</span>
             </Button>
           )}
 
           {jobStatus === 'completed' && (
-            <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-300 text-xs text-emerald-800 font-bold flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <span>{isBn ? 'কাজটি সফলভাবে সম্পন্ন হয়েছে। চূড়ান্ত চার্জ সংরক্ষিত।' : 'Job marked as completed. Customer can now leave a review.'}</span>
+            <div className="w-full p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+              <span className="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4" />
+                কাজটি সফলভাবে সম্পন্ন হয়েছে। মোট পারিশ্রমিক: ৳{finalAgreedPrice}
+              </span>
             </div>
           )}
         </div>
       </Card>
 
-      {/* Completion & Agreed Price Handshake Modal */}
+      {/* Completion Modal */}
       {showCompletionModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
-          <Card className="max-w-md w-full p-6 space-y-4 skeuo-surface shadow-2xl border-stone-300">
-            <h3 className="text-base font-bold text-emerald-700 flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5" />
-              <span>{isBn ? 'কাজ সম্পন্ন নিশ্চিতকরণ' : 'Confirm Completion'}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[#fefded] p-6 shadow-2xl border-2 border-stone-300 space-y-4">
+            <h3 className="text-base font-bold text-stone-900">
+              {isBn ? 'কাজ সম্পন্ন ও চূড়ান্ত পারিশ্রমিক' : 'Confirm Final Bill'}
             </h3>
-
             <p className="text-xs text-stone-600 leading-relaxed">
-              {isBn 
-                ? 'কাস্টমারের সাথে আলোচনার ভিত্তিতে চূড়ান্ত সম্মত পারিশ্রমিক নিশ্চিত করুন:' 
-                : 'Confirm the final agreed service charge with the customer:'}
+              গ্রাহকের সাথে আলোচনা করে চূড়ান্ত নির্ধারিত পারিশ্রমিক লিখুন।
             </p>
 
-            <Input
-              id="finalPrice"
-              type="number"
-              label={isBn ? 'চূড়ান্ত সম্মত পারিশ্রমিক (টাকা)' : 'Final Agreed Charge (BDT)'}
-              value={finalAgreedPrice}
-              onChange={(e) => setFinalAgreedPrice(Number(e.target.value))}
-              leftIcon={<DollarSign className="h-4 w-4" />}
-            />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-stone-700">চূড়ান্ত বিল (টাকা)</label>
+              <Input
+                type="number"
+                value={finalAgreedPrice}
+                onChange={(e) => setFinalAgreedPrice(Number(e.target.value) || 0)}
+                className="font-bold text-lg text-[#2c7865]"
+              />
+            </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setShowCompletionModal(false)} className="cursor-pointer text-xs">
-                {isBn ? 'বাতিল' : 'Cancel'}
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                onClick={handleConfirmCompletion}
+                disabled={isCompleting}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+              >
+                {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'সম্পন্ন নিশ্চিত করুন'}
               </Button>
-              <Button size="sm" isLoading={isCompleting} onClick={handleConfirmCompletion} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer text-xs">
-                {isBn ? 'সম্পন্ন নিশ্চিত করুন' : 'Confirm Completed'}
+              <Button
+                variant="outline"
+                onClick={() => setShowCompletionModal(false)}
+                className="text-xs cursor-pointer"
+              >
+                বাতিল
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>
