@@ -2,12 +2,12 @@ import { initializeApp, getApps, getApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyC18sKGWgFicGGmXNxSy1NyJdGW4M_z4QU',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'mistri24-app.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'mistri24-app',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'mistri24-app.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '407078290379',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:407078290379:web:603bf503e2dba549406c4e',
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyAOxNMUUYl0lKovn0Z9KDScdsyzQsQU7VI',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'mistri24-portal.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'mistri24-portal',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'mistri24-portal.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '223028672344',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:223028672344:web:81835cad56fdc32a53572d',
 }
 
 // Initialize Firebase App
@@ -68,3 +68,4 @@ export async function signInWithGooglePopup(): Promise<{
     return { success: false, error: msg }
   }
 }
+
