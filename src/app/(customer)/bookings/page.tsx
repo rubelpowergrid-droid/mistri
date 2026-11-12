@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { 
   Calendar, Clock, MapPin, Navigation, Phone, 
   CheckCircle2, XCircle, AlertCircle, Star, 
-  RotateCcw, ShieldCheck, ArrowRight, MessageSquare, X, AlertTriangle
+  RotateCcw, ShieldCheck, ArrowRight, MessageSquare, X, AlertTriangle, User
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -63,62 +63,7 @@ function BookingsListContent() {
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelFeedback, setCancelFeedback] = useState<string>('')
 
-  const [bookings, setBookings] = useState<BookingRecord[]>([
-    {
-      id: 'b-1',
-      bookingNumber: 'MST-261108-PK99',
-      mistriId: 'm-1',
-      mistriName: 'মোঃ রফিকুল ইসলাম',
-      mistriTitle: 'সিনিয়র ইলেকট্রিশিয়ান',
-      mistriPhone: '01712345678',
-      mistriAvatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
-      category: 'ইলেকট্রিক্যাল কাজ',
-      workDescription: 'মাস্টার বেডরুমের সিলিং ফ্যান খুব আস্তে ঘুরছে এবং সুইচ বোর্ডে স্পার্ক করছে।',
-      jobAddress: 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
-      preferredDate: '২০২৬-১১-০৮',
-      preferredTime: 'সকাল ১১:০০',
-      status: 'pending', // Realistic starting state (Awaiting confirmation)
-      agreedPrice: 400,
-      estimatedBudget: 400,
-      hasReviewed: false,
-    },
-    {
-      id: 'b-2',
-      bookingNumber: 'MST-261028-XY89',
-      mistriId: 'm-2',
-      mistriName: 'আব্দুল করিম',
-      mistriTitle: 'দক্ষ প্লাম্বিং টেকনিশিয়ান',
-      mistriPhone: '01898765432',
-      mistriAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      category: 'প্লাম্বিং সার্ভিস',
-      workDescription: 'পানির মোটরের ক্যাপাসিটর নষ্ট ও পাইপলাইন লিকেজ মেরামত।',
-      jobAddress: 'সদর হাসপাতাল রোড, ঠাকুরগাঁও',
-      preferredDate: '২০২৬-১০-২৮',
-      preferredTime: 'বিকাল ৪:০০',
-      status: 'completed',
-      agreedPrice: 500,
-      estimatedBudget: 500,
-      hasReviewed: false,
-    },
-    {
-      id: 'b-3',
-      bookingNumber: 'MST-261104-CD45',
-      mistriId: 'm-3',
-      mistriName: 'তরিকুল হাসান',
-      mistriTitle: 'রাজমিস্ত্রী ও টাইলস স্পেশালিস্ট',
-      mistriPhone: '01911223344',
-      mistriAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      category: 'রাজমিস্ত্রীর কাজ',
-      workDescription: 'বাথরুমের ফ্লোর টাইলস পরিবর্তনের কাজ।',
-      jobAddress: 'বোদা বাজার, পঞ্চগড়',
-      preferredDate: '২০২৬-১১-০৫',
-      preferredTime: 'সকাল ৯:০০',
-      status: 'pending',
-      agreedPrice: null,
-      estimatedBudget: 800,
-      hasReviewed: false,
-    },
-  ])
+  const [bookings, setBookings] = useState<BookingRecord[]>([])
 
   // Load bookings from localStorage and sync from server in real-time
   useEffect(() => {
@@ -157,9 +102,9 @@ function BookingsListContent() {
                 bookingNumber: item.bookingNumber || item.booking_number,
                 mistriId: item.mistriId,
                 mistriName: item.mistriName,
-                mistriTitle: item.mistriTitle || 'দক্ষ কারিগর',
+                mistriTitle: item.mistriTitle || item.category || 'দক্ষ কারিগর',
                 mistriPhone: item.mistriPhone || item.customerPhone,
-                mistriAvatar: item.mistriAvatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+                mistriAvatar: item.mistriAvatar || '',
                 category: item.category || item.serviceName || 'ইলেকট্রিক্যাল কাজ',
                 workDescription: item.description || item.workDescription,
                 jobAddress: item.jobAddress || item.location,
@@ -377,11 +322,17 @@ function BookingsListContent() {
               {/* Main Content: Worker info & Job Description */}
               <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div className="flex items-start gap-3.5">
-                  <img
-                    src={b.mistriAvatar}
-                    alt={b.mistriName}
-                    className="h-14 w-14 rounded-2xl object-cover border border-stone-300 shrink-0 shadow-sm"
-                  />
+                  {b.mistriAvatar ? (
+                    <img
+                      src={b.mistriAvatar}
+                      alt={b.mistriName}
+                      className="h-14 w-14 rounded-2xl object-cover border border-stone-300 shrink-0 shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-2xl bg-[#2c7865] text-[#fefded] flex items-center justify-center font-bold text-lg shrink-0 shadow-sm border border-[#225f50]">
+                      {b.mistriName ? b.mistriName.charAt(0) : <User className="h-6 w-6" />}
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-stone-900">{b.mistriName}</h3>
                     <p className="text-xs text-stone-500">{b.mistriTitle}</p>

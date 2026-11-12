@@ -46,6 +46,7 @@ export interface BookingRecord {
   bookingNumber: string
   mistriId?: string
   mistriName: string
+  mistriTitle?: string
   mistriPhone?: string
   mistriAvatar?: string
   customerName: string
@@ -202,8 +203,9 @@ export function addBookingToStore(booking: Partial<BookingRecord>): BookingRecor
         Math.random().toString(36).substring(2, 6).toUpperCase(),
     mistriId: booking.mistriId || '',
     mistriName: booking.mistriName || 'দক্ষ কারিগর',
+    mistriTitle: booking.mistriTitle || 'দক্ষ কারিগর',
     mistriPhone: booking.mistriPhone || '',
-    mistriAvatar: booking.mistriAvatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+    mistriAvatar: booking.mistriAvatar || '',
     customerName: booking.customerName || 'সম্মানিত গ্রাহক',
     customerPhone: booking.customerPhone || '017XXXXXXXX',
     serviceName: booking.serviceName || 'সাধারণ সেবা',

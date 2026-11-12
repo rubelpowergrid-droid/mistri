@@ -27,6 +27,7 @@ export default function NewBookingPage() {
 
   const [mistri, setMistri] = useState<any>(null)
   const [isLoadingMistri, setIsLoadingMistri] = useState(true)
+  const [customerName, setCustomerName] = useState('')
   const [selectedSubcategory, setSelectedSubcategory] = useState('')
   const [workDescription, setWorkDescription] = useState('')
   const [contactPhone, setContactPhone] = useState('')
@@ -51,12 +52,15 @@ export default function NewBookingPage() {
     const mistriId = params.mistriId as string
     if (!mistriId) return
 
-    // Auto-fill logged-in user phone
+    // Auto-fill logged-in user phone and name
     const user = getStoredUser()
     if (user?.phone) {
       setContactPhone(user.phone)
     } else {
       setContactPhone('')
+    }
+    if (user?.name) {
+      setCustomerName(user.name)
     }
 
     // Set today's date dynamically
@@ -135,6 +139,10 @@ export default function NewBookingPage() {
 
   const executeBookingSubmit = async (finalPhone: string) => {
     setIsSubmitting(true)
+    const user = getStoredUser()
+    const finalCustomerName = customerName.trim() || user?.name || 'সম্মানিত গ্রাহক'
+    const finalMistriTitle = mistri.professional_title || mistri.title_bn || mistri.category || 'রং মিস্ত্রী'
+
     try {
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -142,6 +150,8 @@ export default function NewBookingPage() {
         body: JSON.stringify({
           mistriId: mistri.id,
           mistriName: mistri.name_bn || mistri.name,
+          mistriTitle: finalMistriTitle,
+          customerName: finalCustomerName,
           subcategory: selectedSubcategory || 'সাধারণ সেবা',
           workDescription,
           jobAddress,
@@ -168,9 +178,11 @@ export default function NewBookingPage() {
               bookingNumber: data?.booking?.booking_number || `MST-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
               mistriId: mistri.id,
               mistriName: mistri.name_bn || mistri.name,
-              mistriTitle: mistri.professional_title,
+              mistriTitle: finalMistriTitle,
               mistriPhone: mistri.phone || finalPhone,
               mistriAvatar: mistri.avatar,
+              customerName: finalCustomerName,
+              customerPhone: finalPhone,
               category: mistri.category_name_bn || 'ইলেকট্রিক্যাল কাজ',
               workDescription,
               jobAddress,
@@ -454,6 +466,18 @@ export default function NewBookingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Input
+                id="customerName"
+                type="text"
+                label={isBn ? 'আপনার পূর্ণ নাম (Customer Name)' : 'Your Full Name'}
+                placeholder={isBn ? 'যেমন: সানজিদা পারভিন' : 'e.g. Sanjida Parvin'}
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Input
                 id="contactPhone"
                 type="tel"
                 inputMode="numeric"
@@ -474,7 +498,9 @@ export default function NewBookingPage() {
                 <span>{isBn ? 'মিস্ত্রী এই নম্বরে আপনার সাথে কাজের বিষয়ে সরাসরি যোগাযোগ করবেন' : 'The professional will contact you at this number'}</span>
               </p>
             </div>
+          </div>
 
+          <div className="pt-1">
             <Input
               id="estimatedBudget"
               type="number"

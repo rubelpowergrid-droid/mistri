@@ -818,6 +818,7 @@ export async function saveBookingToSupabase(data: {
   mistriName?: string
   contactPhone: string
   customerName?: string
+  mistriTitle?: string
   subcategory: string
   workDescription: string
   jobAddress: string
@@ -879,13 +880,15 @@ export async function saveBookingToSupabase(data: {
     let mistriProfileId: string | null = null
     let mistriUserId: string | null = null
     let mistriPhone: string | null = null
+    let mistriTitle: string | null = data.mistriTitle || null
+    let mistriAvatar: string | null = null
 
     const cleanMistriId = (data.mistriId || '').replace(/^m-live-/, '')
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanMistriId)
     if (isUuid) {
       const { data: mProf } = await supabase
         .from('mistri_profiles')
-        .select('id, user_id, users(phone)')
+        .select('id, user_id, professional_title, users(phone, avatar_url)')
         .eq('id', cleanMistriId)
         .maybeSingle()
 
@@ -893,6 +896,8 @@ export async function saveBookingToSupabase(data: {
         mistriProfileId = mProf.id
         mistriUserId = mProf.user_id
         mistriPhone = mProf.users?.phone || null
+        if (mProf.professional_title) mistriTitle = mProf.professional_title
+        if (mProf.users?.avatar_url) mistriAvatar = mProf.users.avatar_url
       }
     }
 
@@ -900,7 +905,7 @@ export async function saveBookingToSupabase(data: {
     if (!mistriProfileId) {
       const { data: mProf2 } = await supabase
         .from('mistri_profiles')
-        .select('id, user_id, users(phone)')
+        .select('id, user_id, professional_title, users(phone, avatar_url)')
         .ilike('full_name', `%${data.mistriName || ''}%`)
         .limit(1)
         .maybeSingle()
@@ -909,6 +914,8 @@ export async function saveBookingToSupabase(data: {
         mistriProfileId = mProf2.id
         mistriUserId = mProf2.user_id
         mistriPhone = mProf2.users?.phone || null
+        if (mProf2.professional_title) mistriTitle = mProf2.professional_title
+        if (mProf2.users?.avatar_url) mistriAvatar = mProf2.users.avatar_url
       }
     }
 
@@ -977,6 +984,8 @@ export async function saveBookingToSupabase(data: {
       booking: insertedBooking,
       mistriPhone,
       mistriUserId,
+      mistriTitle,
+      mistriAvatar,
     }
   } catch (err: any) {
     console.error('saveBookingToSupabase exception:', err.message)
@@ -1063,7 +1072,7 @@ export async function getBookingsFromSupabase(filter: {
     const supabase = createAdminClient() as any
     let query = supabase
       .from('bookings')
-      .select('*, mistri_profiles(id, full_name, users(phone)), customer_profiles(full_name, users(phone)), categories(name_bn), subcategories(name_bn)')
+      .select('*, mistri_profiles(id, full_name, professional_title, users(phone, avatar_url)), customer_profiles(full_name, default_address, users(phone, avatar_url)), categories(name_bn), subcategories(name_bn)')
       .order('created_at', { ascending: false })
 
     if (filter.status && filter.status !== 'all') {
@@ -1097,14 +1106,16 @@ export async function getBookingsFromSupabase(filter: {
         bookingNumber: row.booking_number,
         mistriId: row.mistri_id,
         mistriName: row.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী',
+        mistriTitle: row.mistri_profiles?.professional_title || row.subcategories?.name_bn || row.categories?.name_bn || 'রং মিস্ত্রী',
         mistriPhone: row.mistri_profiles?.users?.phone || '',
+        mistriAvatar: row.mistri_profiles?.users?.avatar_url || '',
         customerName: row.customer_profiles?.full_name || 'সম্মানিত গ্রাহক',
-        customerPhone: row.contact_phone || '',
+        customerPhone: row.contact_phone || row.customer_profiles?.users?.phone || '',
         serviceName: row.subcategories?.name_bn || row.categories?.name_bn || 'সাধারণ সেবা',
         category: row.categories?.name_bn || 'ইলেকট্রিক্যাল কাজ',
         description: row.work_description || '',
-        jobAddress: row.job_address || '',
-        location: row.job_address || '',
+        jobAddress: row.job_address || row.customer_profiles?.default_address || '',
+        location: row.job_address || row.customer_profiles?.default_address || '',
         amount: Number(row.estimated_budget) || 400,
         estimatedBudget: Number(row.estimated_budget) || 400,
         agreedPrice: row.agreed_price ? Number(row.agreed_price) : null,
@@ -1119,6 +1130,56 @@ export async function getBookingsFromSupabase(filter: {
   } catch (err: any) {
     console.error('getBookingsFromSupabase error:', err.message)
     return []
+  }
+}
+
+export async function getBookingByIdFromSupabase(idOrNumber: string) {
+  try {
+    const supabase = createAdminClient() as any
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrNumber)
+    
+    let query = supabase
+      .from('bookings')
+      .select('*, mistri_profiles(id, full_name, professional_title, location_point, users(phone, avatar_url)), customer_profiles(full_name, default_address, users(phone, avatar_url)), categories(name_bn), subcategories(name_bn)')
+    
+    if (isUuid) {
+      query = query.eq('id', idOrNumber)
+    } else {
+      query = query.eq('booking_number', idOrNumber)
+    }
+
+    const { data: row, error } = await query.maybeSingle()
+    if (error || !row) return null
+
+    return {
+      id: row.id,
+      bookingNumber: row.booking_number,
+      mistriId: row.mistri_id,
+      mistriName: row.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী',
+      mistriTitle: row.mistri_profiles?.professional_title || row.subcategories?.name_bn || row.categories?.name_bn || 'রং মিস্ত্রী',
+      mistriPhone: row.mistri_profiles?.users?.phone || '',
+      mistriAvatar: row.mistri_profiles?.users?.avatar_url || '',
+      customerName: row.customer_profiles?.full_name || 'সম্মানিত গ্রাহক',
+      customerPhone: row.contact_phone || row.customer_profiles?.users?.phone || '',
+      customerAddress: row.job_address || row.customer_profiles?.default_address || '',
+      jobAddress: row.job_address || row.customer_profiles?.default_address || '',
+      serviceName: row.subcategories?.name_bn || row.categories?.name_bn || 'সাধারণ সেবা',
+      category: row.categories?.name_bn || 'সাধারণ সেবা',
+      description: row.work_description || '',
+      amount: Number(row.estimated_budget) || 400,
+      estimatedBudget: Number(row.estimated_budget) || 400,
+      agreedPrice: row.agreed_price ? Number(row.agreed_price) : null,
+      preferredDate: row.preferred_date || '',
+      preferredTime: row.preferred_time || '',
+      status: row.status,
+      date: row.preferred_date || new Date(row.created_at).toISOString().slice(0, 10),
+      workPhotos: row.work_photos || [],
+      cancellationReason: row.cancellation_reason || null,
+      createdAt: row.created_at,
+    }
+  } catch (err: any) {
+    console.error('getBookingByIdFromSupabase error:', err.message)
+    return null
   }
 }
 

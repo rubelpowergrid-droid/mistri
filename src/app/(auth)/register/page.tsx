@@ -31,11 +31,11 @@ function RegisterContent() {
   React.useEffect(() => {
     const roleParam = searchParams.get('role')
     if (roleParam === 'mistri') {
-      setRole('mistri')
+      router.replace('/onboarding')
     } else if (roleParam === 'customer') {
       setRole('customer')
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   React.useEffect(() => {
     async function loadLiveLocations() {
@@ -153,7 +153,7 @@ function RegisterContent() {
 
           <button
             type="button"
-            onClick={() => setRole('mistri')}
+            onClick={() => router.push('/onboarding')}
             className={`flex flex-col items-center justify-center p-3.5 rounded-2xl text-center transition-all cursor-pointer ${
               role === 'mistri'
                 ? 'skeuo-btn-dark ring-2 ring-stone-900 shadow-md text-white'

@@ -20,6 +20,13 @@ const updateStatusSchema = z.object({
   proposedTime: z.string().optional(),
 })
 
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return PATCH(request, context)
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

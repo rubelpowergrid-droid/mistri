@@ -7,6 +7,7 @@ import { Footer } from '@/components/navigation/footer'
 import { CustomerBottomNav } from '@/components/navigation/customer-bottom-nav'
 import { PwaRegistrar } from '@/components/pwa-registrar'
 import { PwaInstallBanner } from '@/components/pwa-install-banner'
+import { GlobalNotificationListener } from '@/components/notifications/global-notification-listener'
 
 const tiroBangla = Tiro_Bangla({
   weight: '400',
@@ -49,6 +50,7 @@ export default function RootLayout({
         <I18nProvider>
           <PwaRegistrar />
           <PwaInstallBanner />
+          <GlobalNotificationListener />
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
