@@ -154,17 +154,22 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
+    // Ensure phone is never null to satisfy NOT NULL & UNIQUE constraints
+    const userPhone = (cleanPhone && cleanPhone.length >= 10)
+      ? cleanPhone
+      : `010${Math.floor(10000000 + Math.random() * 90000000)}`
+
     const { data: newUser, error: createErr } = await supabase
       .from('users')
       .insert({
         id: userId,
         email: cleanEmail,
-        phone: cleanPhone || null,
+        phone: userPhone,
         role: assignedRole,
         avatar_url: avatar || null,
         preferred_language: 'bn',
       })
-      .select('id, email, role')
+      .select('id, email, role, phone')
       .single()
 
     if (createErr || !newUser) {
@@ -186,7 +191,7 @@ export async function POST(request: NextRequest) {
           userId: newUser.id,
           name: name || 'মিস্ত্রী কারিগর',
           email: cleanEmail,
-          phone: cleanPhone || '',
+          phone: userPhone.startsWith('010') ? '' : userPhone,
           role: 'mistri',
           avatar: avatar || '',
           status: 'pending',
@@ -209,7 +214,7 @@ export async function POST(request: NextRequest) {
         id: newUser.id,
         name: name || 'সম্মানিত গ্রাহক',
         email: cleanEmail,
-        phone: cleanPhone || '',
+        phone: userPhone.startsWith('010') ? '' : userPhone,
         role: 'customer',
         avatar: avatar || '',
       },
