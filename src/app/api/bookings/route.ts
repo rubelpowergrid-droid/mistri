@@ -16,15 +16,17 @@ const createBookingSchema = z.object({
   mistriId: z.string().min(1),
   mistriName: z.string().optional(),
   mistriTitle: z.string().optional(),
+  mistriPhone: z.string().optional().nullable(),
+  mistriAvatar: z.string().optional().nullable(),
   customerName: z.string().optional(),
   subcategory: z.string().min(1),
-  workDescription: z.string().min(5),
-  jobAddress: z.string().min(5),
-  latitude: z.number(),
-  longitude: z.number(),
-  contactPhone: z.string().min(11),
-  preferredDate: z.string(),
-  preferredTime: z.string(),
+  workDescription: z.string().min(1),
+  jobAddress: z.string().min(1),
+  latitude: z.number().optional().default(26.0336),
+  longitude: z.number().optional().default(88.4617),
+  contactPhone: z.string().min(10),
+  preferredDate: z.string().optional().default(new Date().toISOString().slice(0, 10)),
+  preferredTime: z.string().optional().default('সকাল ১০:০০ - ১২:০০'),
   estimatedBudget: z.number().nullable().optional(),
   workPhotos: z.array(z.string()).optional(),
 })
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
       const bMPhone = (b.mistriPhone || '').replace(/[^0-9]/g, '')
       
       const matchId = mistriId && (b.mistriId === mistriId || b.mistriId === `m-live-${mistriId}`)
-      const matchPhone = cleanMPhone && bMPhone === cleanMPhone
+      const matchPhone = cleanMPhone && bMPhone && (cleanMPhone.slice(-10) === bMPhone.slice(-10))
 
       if (mistriId && mistriPhone) {
         if (!matchId && !matchPhone) return false
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
     if (customerPhone) {
       const cleanCPhone = customerPhone.replace(/[^0-9]/g, '')
       const bCPhone = (b.customerPhone || '').replace(/[^0-9]/g, '')
-      if (cleanCPhone && bCPhone !== cleanCPhone) {
+      if (cleanCPhone && bCPhone && cleanCPhone.slice(-10) !== bCPhone.slice(-10)) {
         return false
       }
     }
@@ -125,6 +127,7 @@ export async function POST(request: NextRequest) {
         mistriId: parsed.data.mistriId,
         mistriName: parsed.data.mistriName,
         mistriTitle: parsed.data.mistriTitle,
+        mistriPhone: parsed.data.mistriPhone || '',
         contactPhone: parsed.data.contactPhone,
         customerName: parsed.data.customerName || 'সম্মানিত গ্রাহক',
         subcategory: parsed.data.subcategory,
@@ -141,6 +144,8 @@ export async function POST(request: NextRequest) {
       console.warn('saveBookingToSupabase failed:', e.message)
     }
 
+    const resolvedMistriPhone = parsed.data.mistriPhone || supaRes?.mistriPhone || ''
+
     // 2. Save into central in-memory store
     const newBooking = addBookingToStore({
       id: supaRes?.booking?.id || `b-${Date.now()}`,
@@ -148,8 +153,8 @@ export async function POST(request: NextRequest) {
       mistriId: parsed.data.mistriId,
       mistriName: parsed.data.mistriName || 'নির্ধারিত মিস্ত্রী',
       mistriTitle: parsed.data.mistriTitle || supaRes?.mistriTitle || 'দক্ষ কারিগর',
-      mistriPhone: supaRes?.mistriPhone || '',
-      mistriAvatar: supaRes?.mistriAvatar || '',
+      mistriPhone: resolvedMistriPhone,
+      mistriAvatar: parsed.data.mistriAvatar || supaRes?.mistriAvatar || '',
       customerName: parsed.data.customerName || 'সম্মানিত গ্রাহক',
       customerPhone: parsed.data.contactPhone,
       serviceName: parsed.data.subcategory,
@@ -171,7 +176,7 @@ export async function POST(request: NextRequest) {
       const { sendPushToUser } = await import('@/lib/web-push')
       sendPushToUser({
         userId: supaRes?.mistriUserId || null,
-        phone: newBooking.mistriPhone || parsed.data.mistriId,
+        phone: resolvedMistriPhone || parsed.data.mistriId,
         title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
         body: `${newBooking.customerName || 'গ্রাহক'} একটি কাজের অনুরোধ পাঠিয়েছেন (${newBooking.serviceName})`,
         url: newBooking.id ? `/mistri/bookings/${newBooking.id}` : '/requests',

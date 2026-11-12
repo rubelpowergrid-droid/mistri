@@ -172,6 +172,7 @@ export default function NewBookingPage() {
     const user = getStoredUser()
     const finalCustomerName = customerName.trim() || user?.name || 'সম্মানিত গ্রাহক'
     const finalMistriTitle = mistri.professional_title || mistri.title_bn || mistri.category || 'রং মিস্ত্রী'
+    const finalMistriPhone = mistri.phone || ''
 
     try {
       const res = await fetch('/api/bookings', {
@@ -181,6 +182,8 @@ export default function NewBookingPage() {
           mistriId: mistri.id,
           mistriName: mistri.name_bn || mistri.name,
           mistriTitle: finalMistriTitle,
+          mistriPhone: finalMistriPhone,
+          mistriAvatar: mistri.avatar || '',
           customerName: finalCustomerName,
           subcategory: selectedSubcategory || 'সাধারণ সেবা',
           workDescription,
@@ -198,18 +201,18 @@ export default function NewBookingPage() {
       const data = await res.json()
       setIsSubmitting(false)
 
-      if (data.success || true) {
+      if (data.success && data.booking) {
         if (typeof window !== 'undefined') {
           try {
             const stored = localStorage.getItem('mistri_customer_bookings')
             const existing = stored ? JSON.parse(stored) : []
             const newBookingItem = {
-              id: data?.booking?.id || `b-${Date.now()}`,
-              bookingNumber: data?.booking?.booking_number || `MST-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+              id: data.booking.id,
+              bookingNumber: data.booking.bookingNumber || data.booking.booking_number || `MST-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
               mistriId: mistri.id,
               mistriName: mistri.name_bn || mistri.name,
               mistriTitle: finalMistriTitle,
-              mistriPhone: mistri.phone || finalPhone,
+              mistriPhone: finalMistriPhone,
               mistriAvatar: mistri.avatar,
               customerName: finalCustomerName,
               customerPhone: finalPhone,
@@ -229,10 +232,12 @@ export default function NewBookingPage() {
           }
         }
         router.push('/bookings?success=true')
+      } else {
+        setErrorMessage(data.error || (isBn ? 'বুকিং অনুরোধ পাঠাতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Failed to send booking request.'))
       }
     } catch {
       setIsSubmitting(false)
-      router.push('/bookings?success=true')
+      setErrorMessage(isBn ? 'সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি।' : 'Connection error.')
     }
   }
 
@@ -249,22 +254,29 @@ export default function NewBookingPage() {
       return
     }
     const cleanPhone = contactPhone.replace(/[^0-9]/g, '')
-    if (!cleanPhone || cleanPhone.length < 11) {
+    if (!cleanPhone || cleanPhone.length < 10) {
       setErrorMessage(isBn ? 'অনুগ্রহ করে সঠিক মোবাইল নম্বর দিন' : 'Please provide a valid contact phone')
       return
     }
 
-    // Auto-create customer session if not already logged in
+    // Auto-create or update customer session with user's actual name
     const user = getStoredUser()
+    const enteredName = customerName.trim()
     if (!user || !user.phone) {
       const customerUser = {
         id: `cust-${Date.now()}`,
         phone: cleanPhone,
-        name: 'সম্মানিত গ্রাহক',
+        name: enteredName || 'সম্মানিত গ্রাহক',
         role: 'customer',
       }
       if (typeof window !== 'undefined') {
         localStorage.setItem('mistri_user', JSON.stringify(customerUser))
+        window.dispatchEvent(new Event('mistri_auth_changed'))
+      }
+    } else if (enteredName && user.name !== enteredName) {
+      user.name = enteredName
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mistri_user', JSON.stringify(user))
         window.dispatchEvent(new Event('mistri_auth_changed'))
       }
     }

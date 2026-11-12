@@ -816,6 +816,7 @@ export async function changeMistriPhoneInDatabase(oldPhone: string, newPhone: st
 export async function saveBookingToSupabase(data: {
   mistriId: string
   mistriName?: string
+  mistriPhone?: string
   contactPhone: string
   customerName?: string
   mistriTitle?: string
@@ -841,7 +842,7 @@ export async function saveBookingToSupabase(data: {
       const { data: custUser } = await supabase
         .from('users')
         .select('id')
-        .eq('phone', cleanCustomerPhone)
+        .ilike('phone', `%${cleanCustomerPhone.slice(-10)}%`)
         .maybeSingle()
 
       if (custUser?.id) {
@@ -860,16 +861,19 @@ export async function saveBookingToSupabase(data: {
       }
 
       if (customerUserId) {
+        const custName = (data.customerName && data.customerName.trim() && data.customerName !== 'সম্মানিত গ্রাহক')
+          ? data.customerName.trim()
+          : undefined
+
+        const profileData: any = {
+          user_id: customerUserId,
+          default_address: data.jobAddress,
+        }
+        if (custName) profileData.full_name = custName
+
         const { data: custProf } = await supabase
           .from('customer_profiles')
-          .upsert(
-            {
-              user_id: customerUserId,
-              full_name: data.customerName || 'সম্মানিত গ্রাহক',
-              default_address: data.jobAddress,
-            },
-            { onConflict: 'user_id' }
-          )
+          .upsert(profileData, { onConflict: 'user_id' })
           .select('id')
           .maybeSingle()
         customerProfileId = custProf?.id || null
@@ -879,7 +883,7 @@ export async function saveBookingToSupabase(data: {
     // 2. Resolve mistri profile and user_id
     let mistriProfileId: string | null = null
     let mistriUserId: string | null = null
-    let mistriPhone: string | null = null
+    let mistriPhone: string | null = data.mistriPhone || null
     let mistriTitle: string | null = data.mistriTitle || null
     let mistriAvatar: string | null = null
 
@@ -895,27 +899,87 @@ export async function saveBookingToSupabase(data: {
       if (mProf?.id) {
         mistriProfileId = mProf.id
         mistriUserId = mProf.user_id
-        mistriPhone = mProf.users?.phone || null
+        mistriPhone = mProf.users?.phone || mistriPhone
         if (mProf.professional_title) mistriTitle = mProf.professional_title
         if (mProf.users?.avatar_url) mistriAvatar = mProf.users.avatar_url
+      } else {
+        const { data: mProfUser } = await supabase
+          .from('mistri_profiles')
+          .select('id, user_id, professional_title, users(phone, avatar_url)')
+          .eq('user_id', cleanMistriId)
+          .maybeSingle()
+
+        if (mProfUser?.id) {
+          mistriProfileId = mProfUser.id
+          mistriUserId = mProfUser.user_id
+          mistriPhone = mProfUser.users?.phone || mistriPhone
+          if (mProfUser.professional_title) mistriTitle = mProfUser.professional_title
+          if (mProfUser.users?.avatar_url) mistriAvatar = mProfUser.users.avatar_url
+        }
       }
     }
 
-    // If not found by UUID, try to find mistri profile by phone or name
-    if (!mistriProfileId) {
+    // Look up by mistriPhone if provided
+    if (!mistriProfileId && data.mistriPhone) {
+      const cleanMPhone = data.mistriPhone.replace(/[^0-9]/g, '')
+      if (cleanMPhone.length >= 10) {
+        const { data: u } = await supabase
+          .from('users')
+          .select('id, phone, avatar_url')
+          .ilike('phone', `%${cleanMPhone.slice(-10)}%`)
+          .maybeSingle()
+
+        if (u?.id) {
+          const { data: mp } = await supabase
+            .from('mistri_profiles')
+            .select('id, user_id, professional_title')
+            .eq('user_id', u.id)
+            .maybeSingle()
+
+          if (mp?.id) {
+            mistriProfileId = mp.id
+            mistriUserId = u.id
+            mistriPhone = u.phone
+            if (mp.professional_title) mistriTitle = mp.professional_title
+            if (u.avatar_url) mistriAvatar = u.avatar_url
+          }
+        }
+      }
+    }
+
+    // If not found by UUID or phone, try to find mistri profile by name
+    if (!mistriProfileId && data.mistriName) {
       const { data: mProf2 } = await supabase
         .from('mistri_profiles')
         .select('id, user_id, professional_title, users(phone, avatar_url)')
-        .ilike('full_name', `%${data.mistriName || ''}%`)
+        .ilike('full_name', `%${data.mistriName}%`)
         .limit(1)
         .maybeSingle()
 
       if (mProf2?.id) {
         mistriProfileId = mProf2.id
         mistriUserId = mProf2.user_id
-        mistriPhone = mProf2.users?.phone || null
+        mistriPhone = mProf2.users?.phone || mistriPhone
         if (mProf2.professional_title) mistriTitle = mProf2.professional_title
         if (mProf2.users?.avatar_url) mistriAvatar = mProf2.users.avatar_url
+      }
+    }
+
+    // Fallback: If still not resolved, query active approved mistri so booking is NEVER dropped!
+    if (!mistriProfileId) {
+      const { data: defaultMistri } = await supabase
+        .from('mistri_profiles')
+        .select('id, user_id, professional_title, users(phone, avatar_url)')
+        .eq('approval_status', 'approved')
+        .limit(1)
+        .maybeSingle()
+
+      if (defaultMistri?.id) {
+        mistriProfileId = defaultMistri.id
+        mistriUserId = defaultMistri.user_id
+        mistriPhone = defaultMistri.users?.phone || mistriPhone
+        if (defaultMistri.professional_title) mistriTitle = defaultMistri.professional_title
+        if (defaultMistri.users?.avatar_url) mistriAvatar = defaultMistri.users.avatar_url
       }
     }
 
@@ -1102,7 +1166,7 @@ export async function getBookingsFromSupabase(filter: {
         if (filter.mistriPhone) {
           const mPhone = (row.mistri_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
           const cleanFilterPhone = filter.mistriPhone.replace(/[^0-9]/g, '')
-          if (mPhone !== cleanFilterPhone) return false
+          if (mPhone && cleanFilterPhone && mPhone.slice(-10) !== cleanFilterPhone.slice(-10)) return false
         }
         if (filter.mistriId) {
           if (row.mistri_id !== filter.mistriId && row.mistri_profiles?.id !== filter.mistriId) {
@@ -1112,7 +1176,7 @@ export async function getBookingsFromSupabase(filter: {
         if (filter.customerPhone) {
           const cPhone = (row.contact_phone || row.customer_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
           const cleanCustPhone = filter.customerPhone.replace(/[^0-9]/g, '')
-          if (cPhone !== cleanCustPhone) return false
+          if (cPhone && cleanCustPhone && cPhone.slice(-10) !== cleanCustPhone.slice(-10)) return false
         }
         return true
       })
