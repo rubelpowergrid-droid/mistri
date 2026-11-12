@@ -128,9 +128,36 @@ export async function POST(request: NextRequest) {
     // 4. User does NOT exist: Handle Registration with Google
     const assignedRole = role === 'mistri' ? 'mistri' : 'customer'
 
+    // Generate or resolve auth user id
+    let userId: string = crypto.randomUUID()
+    try {
+      const { data: authUser } = await supabase.auth.admin.createUser({
+        email: cleanEmail,
+        email_confirm: true,
+        user_metadata: {
+          full_name: name,
+          role: assignedRole,
+          avatar_url: avatar,
+        },
+      })
+      if (authUser?.user?.id) {
+        userId = authUser.user.id
+      }
+    } catch (e: any) {
+      // If user already exists in auth.users, try finding by email
+      try {
+        const { data: userList } = await supabase.auth.admin.listUsers()
+        const matched = userList?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail)
+        if (matched?.id) {
+          userId = matched.id
+        }
+      } catch {}
+    }
+
     const { data: newUser, error: createErr } = await supabase
       .from('users')
       .insert({
+        id: userId,
         email: cleanEmail,
         phone: cleanPhone || null,
         role: assignedRole,
@@ -168,10 +195,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Customer profile creation
-    await supabase.from('customer_profiles').insert({
+    await supabase.from('customer_profiles').upsert({
       user_id: newUser.id,
       full_name: name || 'সম্মানিত গ্রাহক',
-    })
+    }, { onConflict: 'user_id' })
 
     return NextResponse.json({
       success: true,
