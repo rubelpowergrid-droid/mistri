@@ -38,21 +38,13 @@ export default function AdminDashboardPage() {
   const isBn = lang === 'bn'
 
   const [stats, setStats] = useState<DashboardStats>({
-    totalCustomers: 5,
-    approvedMistris: 5,
-    pendingVerifications: 3,
-    totalBookings: 3,
-    districtDistribution: [
-      { name_bn: 'ঠাকুরগাঁও জেলা', name_en: 'Thakurgaon District', percentage: 60, count: 6, color: 'bg-blue-600' },
-      { name_bn: 'পঞ্চগড় জেলা', name_en: 'Panchagarh District', percentage: 20, count: 2, color: 'bg-emerald-600' },
-      { name_bn: 'দিনাজপুর জেলা', name_en: 'Dinajpur District', percentage: 20, count: 2, color: 'bg-amber-500' },
-    ],
-    categoryBookingShares: [
-      { name_bn: 'ইলেকট্রিক্যাল সার্ভিস', name_en: 'Electrical Services', count: 2, share: '৪০%' },
-      { name_bn: 'প্লাম্বিং সার্ভিস', name_en: 'Plumbing Services', count: 1, share: '৩০%' },
-      { name_bn: 'রং করার কাজ', name_en: 'Painting Services', count: 1, share: '১৫%' },
-      { name_bn: 'রাজমিস্ত্রীর কাজ', name_en: 'Masonry Services', count: 1, share: '১৫%' },
-    ],
+    totalCustomers: 0,
+    approvedMistris: 0,
+    pendingVerifications: 0,
+    totalBookings: 0,
+    completedBookings: 0,
+    districtDistribution: [],
+    categoryBookingShares: [],
   })
 
   const [isCleaning, setIsCleaning] = useState(false)
