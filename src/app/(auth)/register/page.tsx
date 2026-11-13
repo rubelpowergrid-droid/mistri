@@ -3,17 +3,11 @@
 import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { 
-  User, Phone, Lock, Wrench, Shield, ArrowRight, AlertCircle, 
-  Mail, KeyRound, CheckCircle2, Loader2 
-} from 'lucide-react'
+import { User, Wrench, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
 import { useI18n } from '@/locales'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
-import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
-import { setStoredUser } from '@/lib/auth-client'
 
 function RegisterContent() {
   const router = useRouter()
@@ -23,111 +17,9 @@ function RegisterContent() {
   const isBn = lang === 'bn'
 
   const [role, setRole] = useState<'customer' | 'mistri'>(initialRole)
-  const [fullName, setFullName] = useState('')
-  const [fatherName, setFatherName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [districtsList, setDistrictsList] = useState<DistrictOption[]>(DEFAULT_DISTRICTS)
-  const [district, setDistrict] = useState('Thakurgaon')
-  const [upazila, setUpazila] = useState('Thakurgaon Sadar')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  React.useEffect(() => {
-    async function loadLiveLocations() {
-      try {
-        const res = await fetch('/api/admin/locations')
-        const data = await res.json()
-        if (data.success && Array.isArray(data.districts) && data.districts.length > 0) {
-          setDistrictsList(data.districts)
-        }
-      } catch (err) {
-        console.warn('Failed to load live locations:', err)
-      }
-    }
-    loadLiveLocations()
-  }, [])
-
-  const availableUpazilas = getUpazilasForDistrict(district, districtsList)
-
-  const handleDistrictChange = (newDist: string) => {
-    setDistrict(newDist)
-    const newUpList = getUpazilasForDistrict(newDist, districtsList)
-    if (newUpList && newUpList.length > 0) {
-      setUpazila(newUpList[0].name_en || newUpList[0].name_bn)
-    }
-  }
-
-  // Direct Register without OTP
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    const cleanPhone = phone.replace(/[^0-9]/g, '')
-    const cleanEmail = email.trim().toLowerCase()
-
-    if (!fullName.trim() || fullName.trim().length < 2) {
-      setError(isBn ? 'আপনার পূর্ণ নাম সঠিকভাবে লিখুন' : 'Enter your full name')
-      return
-    }
-
-    if (!cleanPhone || cleanPhone.length < 11) {
-      setError(isBn ? 'সঠিক ১১-সংখ্যার মোবাইল নম্বর দিন' : 'Enter a valid 11-digit phone number')
-      return
-    }
-
-    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      setError(isBn ? 'সঠিক Gmail বা ইমেইল ঠিকানা প্রদান করুন' : 'Enter a valid Gmail address')
-      return
-    }
-
-    if (!password || password.length < 6) {
-      setError(isBn ? 'কমপক্ষে ৬ অক্ষরের একটি গোপন পাসওয়ার্ড তৈরি করুন' : 'Password must be at least 6 characters')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError(isBn ? 'পাসওয়ার্ড ও কনফার্ম পাসওয়ার্ড মেলেনি' : 'Passwords do not match')
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: fullName.trim(),
-          fatherName: fatherName.trim(),
-          phone: cleanPhone,
-          email: cleanEmail,
-          password,
-          role,
-          district,
-          upazila,
-        }),
-      })
-
-      const data = await res.json()
-      setIsLoading(false)
-
-      if (data.success && data.user) {
-        setStoredUser(data.user)
-        const targetUrl = data.redirectUrl || (role === 'mistri' ? '/onboarding' : '/')
-        router.push(targetUrl)
-      } else {
-        setError(data.error || (isBn ? 'রেজিস্ট্রেশন সম্পন্ন করা যায়নি' : 'Registration failed'))
-      }
-    } catch {
-      setIsLoading(false)
-      setError(isBn ? 'সার্ভারের সাথে সংযোগ স্থাপন করা যায়নি' : 'Server connection failed')
-    }
-  }
 
   return (
-    <Card className="w-full max-w-lg p-6 sm:p-8 space-y-6 skeuo-surface border-stone-300">
+    <Card className="w-full max-w-md p-6 sm:p-8 space-y-6 skeuo-surface border-stone-300">
       <div className="text-center space-y-2">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl skeuo-surface-dark text-[#fefded] shadow-xl">
           <Wrench className="h-7 w-7 text-[#fefded]" />
@@ -162,10 +54,7 @@ function RegisterContent() {
 
           <button
             type="button"
-            onClick={() => {
-              setRole('mistri')
-              router.push('/onboarding')
-            }}
+            onClick={() => setRole('mistri')}
             className={`flex flex-col items-center justify-center p-3.5 rounded-2xl text-center transition-all cursor-pointer ${
               role === 'mistri'
                 ? 'skeuo-btn-dark ring-2 ring-stone-900 shadow-md text-white'
@@ -179,172 +68,29 @@ function RegisterContent() {
         </div>
       </div>
 
-      {/* 1. Google Instant Sign-Up (Priority & Frictionless) */}
-      <div className="space-y-2">
-        <div className="rounded-2xl p-1 bg-gradient-to-r from-blue-50 to-emerald-50 border border-stone-200">
+      {/* Google Sign-Up Box */}
+      <div className="space-y-4 pt-2">
+        <div className="rounded-2xl p-1.5 bg-gradient-to-r from-blue-50 to-emerald-50 border border-stone-200">
           <GoogleSignInButton mode="signup" role={role} />
         </div>
-        <p className="text-[11px] text-center text-stone-600 font-medium">
-          {isBn 
-            ? '⚡ Google দিয়ে সরাসরি এক ক্লিকে সাইন আপ করুন।' 
-            : '⚡ Sign up instantly with Google in one click.'}
-        </p>
-        <div className="relative flex items-center justify-center my-3">
-          <div className="border-t border-stone-200 w-full" />
-          <span className="bg-[#fdfbf7] px-3 text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0">
-            {isBn ? 'অথবা তথ্য দিয়ে অ্যাকাউন্ট খুলুন' : 'Or with Details'}
-          </span>
-        </div>
+
+        {role === 'mistri' && (
+          <div className="pt-2">
+            <Button
+              type="button"
+              onClick={() => router.push('/onboarding')}
+              className="w-full skeuo-btn-dark py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>{isBn ? 'মিস্ত্রী অনবোর্ডিং ফর্মে এগিয়ে যান' : 'Continue to Mistri Onboarding'}</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      {error && (
-        <div className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-200 flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* 2. Manual Form (Direct, Zero OTP) */}
-      <form onSubmit={handleRegister} className="space-y-4">
-        <Input
-          id="fullName"
-          label={isBn ? 'আপনার পূর্ণ নাম' : 'Full Name'}
-          placeholder={isBn ? 'যেমন: মোঃ জুয়েল রানা' : 'e.g. Jewel Rana'}
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          leftIcon={<User className="h-4 w-4" />}
-          required
-        />
-
-        {role === 'mistri' && (
-          <Input
-            id="fatherName"
-            label={isBn ? 'পিতার নাম / অভিভাবক' : "Father's Name / Guardian"}
-            placeholder={isBn ? 'যেমন: মোঃ আব্দুল জলিল' : "e.g. Md. Abdul Jalil"}
-            value={fatherName}
-            onChange={(e) => setFatherName(e.target.value)}
-            leftIcon={<User className="h-4 w-4" />}
-          />
-        )}
-
-        <Input
-          id="phone"
-          type="tel"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={11}
-          label={isBn ? 'মোবাইল নম্বর (লগইন আইডি)' : 'Mobile Number'}
-          placeholder="017XXXXXXXX"
-          value={phone}
-          onChange={(e) => {
-            const converted = e.target.value.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
-            setPhone(converted.replace(/[^0-9]/g, '').slice(0, 11))
-          }}
-          leftIcon={<Phone className="h-4 w-4" />}
-          required
-        />
-
-        {/* Gmail Field */}
-        <div className="space-y-1">
-          <Input
-            id="email"
-            type="email"
-            label={isBn ? 'আপনার Gmail / ইমেইল ঠিকানা' : 'Gmail / Email'}
-            placeholder="yourname@gmail.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            leftIcon={<Mail className="h-4 w-4 text-blue-600" />}
-            required
-          />
-          <span className="text-[10px] text-stone-500 block">
-            {isBn ? 'ভবিষ্যতে এই Gmail অথবা মোবাইল নম্বর দিয়ে সরাসরি লগইন করতে পারবেন' : 'Used for future login and notifications'}
-          </span>
-        </div>
-
-        {/* Password Fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input
-            id="password"
-            type="password"
-            label={isBn ? 'পাসওয়ার্ড তৈরি করুন' : 'Create Password'}
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            leftIcon={<Lock className="h-4 w-4" />}
-            required
-          />
-
-          <Input
-            id="confirmPassword"
-            type="password"
-            label={isBn ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm Password'}
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            leftIcon={<KeyRound className="h-4 w-4" />}
-            required
-          />
-        </div>
-
-        {/* Location Selectors */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-700">
-              {t('locations.select_district')}
-            </label>
-            <select
-              value={district}
-              onChange={(e) => handleDistrictChange(e.target.value)}
-              className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-black focus:outline-none"
-            >
-              {districtsList.map((d) => (
-                <option key={d.id} value={d.name_en}>
-                  {isBn ? d.name_bn : d.name_en}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-700">
-              {t('locations.select_upazila')}
-            </label>
-            <select
-              value={upazila}
-              onChange={(e) => setUpazila(e.target.value)}
-              className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-black focus:outline-none"
-            >
-              {availableUpazilas.map((u) => (
-                <option key={u.id} value={u.name_en || u.name_bn}>
-                  {isBn ? u.name_bn : u.name_en}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {role === 'mistri' && (
-          <div className="rounded-2xl bg-amber-50 p-3.5 text-xs text-amber-900 border border-amber-200 flex items-start gap-2.5">
-            <Shield className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
-            <span>
-              {isBn
-                ? 'মিস্ত্রী অ্যাকাউন্ট চালুর জন্য পরবর্তী ধাপে আপনার জাতীয় পরিচয়পত্র (NID) ও দক্ষতার তথ্য জমা দিতে হবে।'
-                : 'To activate your Mistri account, provide your NID and skill details in the next step.'}
-            </span>
-          </div>
-        )}
-
-        <Button
-          type="submit"
-          isLoading={isLoading}
-          className="w-full skeuo-btn-dark py-3.5 text-sm font-bold cursor-pointer flex items-center justify-center gap-2"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          <span>{role === 'mistri' ? (isBn ? 'এগিয়ে যান ও আবেদন করুন' : 'Continue to Onboarding') : (isBn ? 'অ্যাকাউন্ট তৈরি করুন' : 'Create Account')}</span>
-        </Button>
-      </form>
-
-      <div className="pt-2 text-center text-xs text-stone-600">
+      {/* Login link */}
+      <div className="pt-4 border-t border-stone-200 text-center text-xs text-stone-600">
         <span>{isBn ? 'ইতিমধ্যে অ্যাকাউন্ট আছে? ' : 'Already have an account? '}</span>
         <Link href="/login" className="font-bold text-stone-900 hover:text-black underline underline-offset-4">
           {t('auth.login')}

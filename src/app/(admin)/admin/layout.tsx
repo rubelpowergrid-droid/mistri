@@ -25,8 +25,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Auth Guard: Admin access only
   React.useEffect(() => {
     const user = getStoredUser()
+    if (pathname === '/admin') {
+      setIsAuthorized(true)
+      return
+    }
     if (!user || user.role !== 'admin') {
-      router.replace('/login?redirect=' + encodeURIComponent(pathname))
+      router.replace('/admin')
       return
     }
     setIsAuthorized(true)
@@ -67,6 +71,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/locations', label: isBn ? 'জেলা ও উপজেলা জিও' : 'Geo Locations', icon: MapPin },
     { href: '/admin/bookings', label: isBn ? 'বুকিং ও ডিসপিউট' : 'Bookings & Disputes', icon: Calendar },
   ]
+
+  if (pathname === '/admin') {
+    const user = getStoredUser()
+    if (!user || user.role !== 'admin') {
+      return (
+        <div className="min-h-screen bg-[#fefded]">
+          {children}
+        </div>
+      )
+    }
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#fefded] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2c7865]" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#fefded] flex flex-col md:flex-row">

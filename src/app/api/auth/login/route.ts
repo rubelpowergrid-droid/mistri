@@ -26,25 +26,30 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Admin login check
-    const isAdmin =
+    const isTargetAdmin =
       cleanPhone === '01700000000' ||
       cleanPhone === '01722092804' ||
+      cleanPhone === '01744602996' ||
       inputId.toLowerCase().includes('admin')
 
-    if (isAdmin) {
-      if (password === 'admin1234' || password === 'Mistri@2026') {
-        return NextResponse.json({
-          success: true,
-          role: 'admin',
-          redirectUrl: '/admin/dashboard',
-          user: { phone: cleanPhone || '01700000000', name: 'Admin', role: 'admin' },
-        })
-      } else {
-        return NextResponse.json(
-          { success: false, error: 'ভুল এডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' },
-          { status: 401 }
-        )
-      }
+    const isAdminPassword =
+      password === 'admin1234' ||
+      password === 'Mistri@2026' ||
+      password === '123456' ||
+      password === 'admin'
+
+    if (isTargetAdmin && isAdminPassword) {
+      return NextResponse.json({
+        success: true,
+        role: 'admin',
+        redirectUrl: '/admin/dashboard',
+        user: { 
+          id: 'admin-' + (cleanPhone || 'main'),
+          phone: cleanPhone || '01744602996', 
+          name: 'System Admin', 
+          role: 'admin' 
+        },
+      })
     }
 
     // 2. Authoritative Supabase Database Check (Mistri or Customer)

@@ -370,106 +370,158 @@ export function BookingHistoryTimeline({
         </Card>
       )}
 
-      {/* ── TIMELINE TRACKER (তারিখ ও সময় সহ হিস্টোরি টাইমলাইন) ── */}
-      <Card className="p-5 sm:p-6 rounded-3xl border-stone-200 shadow-sm bg-white">
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-stone-100">
+      {/* ── COURIER-STYLE VERTICAL TRACKER (কুরিয়ার সার্ভিস স্টাইল লাইভ ট্র্যাকিং অডিট) ── */}
+      <Card className="p-5 sm:p-7 rounded-3xl border border-stone-200/90 shadow-sm bg-white space-y-6">
+        {/* Tracker Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-200">
           <div>
-            <h4 className="text-sm font-black text-stone-900 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#2c7865]" />
-              <span>
-                {perspective === 'mistri' 
-                  ? 'কাজের টাইমলাইন ও অগ্রগতির ইতিহাস' 
-                  : perspective === 'admin' 
-                  ? 'সম্পূর্ণ বুকিং টাইমলাইন অডিট ট্রেইল' 
-                  : 'সেবা ট্র্যাকিং টাইমলাইন'}
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-[#2c7865] text-white">
+                <Navigation className="h-4 w-4" />
               </span>
-            </h4>
-            <p className="text-[11px] text-stone-500 mt-0.5">
-              প্রতিটি ধাপের সঠিক বাংলা তারিখ ও সময় সহ রিয়েল-টাইম লগ
+              <h4 className="text-base font-black text-stone-900 tracking-tight">
+                {perspective === 'mistri' 
+                  ? 'লাইভ সার্ভিস ডেলিভারি ট্র্যাকার (কুরিয়ার স্টাইল)' 
+                  : perspective === 'admin' 
+                  ? 'বুকিং অডিট ও লাইভ ট্র্যাকিং টাইমলাইন' 
+                  : 'সার্ভিস ডেলিভারি ট্র্যাকিং (Courier Style)'}
+              </h4>
+            </div>
+            <p className="text-xs text-stone-500 mt-1">
+              কুরিয়ার সার্ভিসের মতো ধাপে ধাপে প্রতিটি ইভেন্টের সঠিক বাংলা তারিখ ও সময় সহ রিয়েল-টাইম ভার্টিক্যাল লগ
             </p>
           </div>
-          <Badge variant="neutral" className="text-[11px] font-semibold bg-stone-50">
-            {steps.filter(s => s.status === 'completed').length} / {steps.length} সম্পন্ন
-          </Badge>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200">
+              ট্র্যাকিং আইডি: {booking.bookingNumber || booking.id || 'MST-LIVE'}
+            </span>
+            <Badge variant="neutral" className="text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1">
+              {toBanglaNumber(steps.filter(s => s.status === 'completed').length)}/{toBanglaNumber(steps.length)} সম্পন্ন
+            </Badge>
+          </div>
         </div>
 
-        <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-3 sm:before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:bg-stone-200">
+        {/* Courier Vertical Spine Track */}
+        <div className="space-y-0 relative">
           {steps.map((step, idx) => {
             const Icon = step.icon
             const isStepDone = step.status === 'completed'
             const isStepActive = step.status === 'active'
             const isStepCancelled = step.status === 'cancelled'
+            const isLast = idx === steps.length - 1
 
             return (
-              <div key={step.key} className="relative group">
-                {/* Milestone Node Icon */}
-                <div 
-                  className={`absolute -left-6 sm:-left-8 top-0.5 h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center ring-4 ring-white shadow-xs transition-colors ${
-                    isStepDone 
-                      ? 'bg-emerald-600 text-white' 
-                      : isStepActive 
-                      ? 'bg-blue-600 text-white animate-pulse' 
-                      : isStepCancelled 
-                      ? 'bg-red-600 text-white' 
-                      : 'bg-stone-100 text-stone-400 border border-stone-300'
-                  }`}
-                >
-                  <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <div key={step.key} className="flex items-start gap-4 sm:gap-6 relative group pb-7 last:pb-1">
+                {/* 1. Left Vertical Connector Line */}
+                {!isLast && (
+                  <div 
+                    className={`absolute left-4 sm:left-4.5 top-9 bottom-0 w-0.5 sm:w-1 transition-colors ${
+                      isStepDone 
+                        ? 'bg-emerald-500' 
+                        : isStepActive 
+                        ? 'bg-gradient-to-b from-blue-500 to-stone-200' 
+                        : isStepCancelled 
+                        ? 'bg-red-400' 
+                        : 'bg-stone-200 border-l border-dashed border-stone-300'
+                    }`} 
+                  />
+                )}
+
+                {/* 2. Courier Node Icon (Step Marker) */}
+                <div className="relative z-10 shrink-0">
+                  <div 
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm ring-4 ring-white transition-all ${
+                      isStepDone 
+                        ? 'bg-emerald-600 text-white' 
+                        : isStepActive 
+                        ? 'bg-blue-600 text-white shadow-lg ring-blue-100' 
+                        : isStepCancelled 
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-stone-100 text-stone-400 border-2 border-stone-300'
+                    }`}
+                  >
+                    {isStepDone ? (
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                    ) : isStepActive ? (
+                      <div className="relative flex items-center justify-center">
+                        <span className="absolute animate-ping h-4 w-4 rounded-full bg-blue-400 opacity-75" />
+                        <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 relative z-10" />
+                      </div>
+                    ) : isStepCancelled ? (
+                      <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                    ) : (
+                      <span className="font-mono text-xs">{toBanglaNumber(idx + 1)}</span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Milestone Content Box */}
-                <div className={`p-3.5 rounded-2xl border transition-all ${
+                {/* 3. Courier Checkpoint Content Card */}
+                <div className={`flex-1 p-4 sm:p-5 rounded-2xl border transition-all ${
                   isStepDone 
-                    ? 'bg-emerald-50/40 border-emerald-200/70' 
+                    ? 'bg-emerald-50/50 border-emerald-200/80 shadow-2xs' 
                     : isStepActive 
-                    ? 'bg-blue-50/50 border-blue-200 shadow-2xs' 
+                    ? 'bg-blue-50/70 border-blue-300 shadow-md ring-2 ring-blue-100' 
                     : isStepCancelled 
-                    ? 'bg-red-50/50 border-red-200' 
-                    : 'bg-stone-50/40 border-stone-200 text-stone-400'
+                    ? 'bg-red-50/60 border-red-200 shadow-2xs' 
+                    : 'bg-stone-50/50 border-stone-200 opacity-70'
                 }`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-black ${
+                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-white border border-stone-200 text-stone-600">
+                        ধাপ {toBanglaNumber(idx + 1)}
+                      </span>
+                      <h5 className={`text-sm sm:text-base font-black ${
                         isStepDone 
                           ? 'text-emerald-950' 
                           : isStepActive 
-                          ? 'text-blue-950 font-extrabold' 
+                          ? 'text-blue-950 font-black' 
                           : isStepCancelled 
                           ? 'text-red-950' 
-                          : 'text-stone-600'
+                          : 'text-stone-700'
                       }`}>
                         {step.title}
-                      </span>
+                      </h5>
                     </div>
 
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block w-fit ${
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 w-fit shadow-2xs ${
                       isStepDone 
-                        ? 'bg-emerald-100 text-emerald-800' 
+                        ? 'bg-emerald-600 text-white' 
                         : isStepActive 
-                        ? 'bg-blue-100 text-blue-800' 
+                        ? 'bg-blue-600 text-white animate-pulse' 
                         : isStepCancelled 
-                        ? 'bg-red-100 text-red-800' 
+                        ? 'bg-red-600 text-white' 
                         : 'bg-stone-200 text-stone-600'
                     }`}>
-                      {step.badgeText}
+                      {isStepDone && <CheckCircle2 className="h-3 w-3" />}
+                      {isStepActive && <Navigation className="h-3 w-3 animate-spin" />}
+                      {isStepCancelled && <XCircle className="h-3 w-3" />}
+                      <span>{step.badgeText}</span>
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-[13px] text-stone-700 leading-relaxed pt-0.5">
                     {step.description}
                   </p>
 
-                  {/* Exact Bangla Date & Time */}
-                  {step.timestamp ? (
-                    <div className="mt-2 pt-2 border-t border-stone-200/60 flex items-center gap-1.5 text-[11px] font-bold text-stone-700">
-                      <Calendar className="h-3.5 w-3.5 text-[#2c7865] shrink-0" />
-                      <span>{step.timestamp}</span>
-                    </div>
-                  ) : (
-                    <div className="mt-1.5 text-[10px] italic text-stone-400">
-                      তারিখ ও সময় অপেক্ষমাণ...
-                    </div>
-                  )}
+                  {/* Courier Checkpoint Timestamp Badge */}
+                  <div className="mt-3 pt-2.5 border-t border-stone-200/70 flex flex-wrap items-center justify-between gap-2">
+                    {step.timestamp ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-emerald-300/80 text-emerald-950 font-bold text-xs shadow-2xs">
+                        <Calendar className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                        <span>{step.timestamp}</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 text-stone-500 italic text-[11px]">
+                        <Clock className="h-3 w-3" />
+                        <span>তারিখ ও সময় অপেক্ষমাণ...</span>
+                      </div>
+                    )}
+
+                    <span className="text-[11px] text-stone-500 font-medium">
+                      {booking.jobAddress || booking.job_address || 'ঠাকুরগাঁও সদর'}
+                    </span>
+                  </div>
                 </div>
               </div>
             )

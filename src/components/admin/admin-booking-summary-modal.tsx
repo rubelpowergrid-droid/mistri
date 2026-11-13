@@ -72,7 +72,7 @@ export function AdminBookingSummaryModal({
         <div className="sticky bottom-0 z-20 bg-stone-50 px-6 py-3.5 border-t border-stone-200 flex items-center justify-between">
           <button
             type="button"
-            onClick={() => handleCopy(booking.bookingNumber || booking.id)}
+            onClick={() => handleCopy(booking.bookingNumber || booking.id || '')}
             className="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 cursor-pointer"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
@@ -91,3 +91,4 @@ export function AdminBookingSummaryModal({
     </div>
   )
 }
+
