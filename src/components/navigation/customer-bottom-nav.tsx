@@ -1,22 +1,40 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Search, Calendar, Heart, User } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { cn } from '@/lib/utils'
+import { getStoredUser, AUTH_EVENT_NAME } from '@/lib/auth-client'
 
 export function CustomerBottomNav() {
   const pathname = usePathname()
   const { t } = useI18n()
+  const [userRole, setUserRole] = useState<'admin' | 'mistri' | 'customer'>('customer')
+
+  useEffect(() => {
+    const updateRole = () => {
+      const u = getStoredUser()
+      if (u?.role) setUserRole(u.role)
+    }
+    updateRole()
+    window.addEventListener(AUTH_EVENT_NAME, updateRole)
+    window.addEventListener('mistri_auth_changed', updateRole)
+    return () => {
+      window.removeEventListener(AUTH_EVENT_NAME, updateRole)
+      window.removeEventListener('mistri_auth_changed', updateRole)
+    }
+  }, [])
+
+  const profileHref = userRole === 'mistri' ? '/mistri/profile' : '/profile'
 
   const navItems = [
     { label: t('nav.home'), href: '/', icon: Home },
     { label: t('nav.search'), href: '/search', icon: Search },
     { label: t('nav.bookings'), href: '/bookings', icon: Calendar },
     { label: t('nav.favorites'), href: '/favorites', icon: Heart },
-    { label: t('nav.profile'), href: '/profile', icon: User },
+    { label: t('nav.profile'), href: profileHref, icon: User },
   ]
 
   return (

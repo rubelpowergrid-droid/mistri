@@ -3,13 +3,14 @@
 import React, { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { User, Phone, Lock, Wrench, Shield, ArrowRight } from 'lucide-react'
+import { User, Phone, Lock, Wrench, Shield, ArrowRight, AlertCircle } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
+import { setStoredUser } from '@/lib/auth-client'
 
 function RegisterContent() {
   const router = useRouter()
@@ -28,15 +29,6 @@ function RegisterContent() {
   const [upazila, setUpazila] = useState('Thakurgaon Sadar')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-
-  React.useEffect(() => {
-    const roleParam = searchParams.get('role')
-    if (roleParam === 'mistri') {
-      router.replace('/onboarding')
-    } else if (roleParam === 'customer') {
-      setRole('customer')
-    }
-  }, [searchParams, router])
 
   React.useEffect(() => {
     async function loadLiveLocations() {
@@ -103,11 +95,8 @@ function RegisterContent() {
       const data = await res.json()
       setIsLoading(false)
 
-      if (data.success) {
-        if (typeof window !== 'undefined' && data.user) {
-          localStorage.setItem('mistri_user', JSON.stringify(data.user))
-          window.dispatchEvent(new Event('mistri_auth_changed'))
-        }
+      if (data.success && data.user) {
+        setStoredUser(data.user)
         router.push(data.redirectUrl || (role === 'mistri' ? '/onboarding' : '/'))
       } else {
         setError(data.error || (isBn ? 'রেজিস্ট্রেশন করতে সমস্যা হয়েছে' : 'Failed to register'))
@@ -132,7 +121,7 @@ function RegisterContent() {
         </p>
       </div>
 
-      {/* Role Toggle in Black & White Skeuomorphism */}
+      {/* Account Type Selector */}
       <div className="space-y-1.5">
         <label className="text-xs font-semibold text-stone-700">
           {t('auth.select_account_type')}
@@ -154,7 +143,10 @@ function RegisterContent() {
 
           <button
             type="button"
-            onClick={() => router.push('/onboarding')}
+            onClick={() => {
+              setRole('mistri')
+              router.push('/onboarding')
+            }}
             className={`flex flex-col items-center justify-center p-3.5 rounded-2xl text-center transition-all cursor-pointer ${
               role === 'mistri'
                 ? 'skeuo-btn-dark ring-2 ring-stone-900 shadow-md text-white'
@@ -168,47 +160,48 @@ function RegisterContent() {
         </div>
       </div>
 
-      {/* Google Quick Sign-Up */}
-      <div className="space-y-3">
+      {/* Google Quick Sign-Up (Customer by Default) */}
+      <div className="space-y-2">
         <GoogleSignInButton mode="signup" role={role} />
+        <p className="text-[11px] text-center text-stone-500">
+          {isBn ? '💡 Gmail দিয়ে সাইন আপ করলে সরাসরি গ্রাহক একাউন্ট তৈরি হবে।' : '💡 Gmail sign-up creates a customer account by default.'}
+        </p>
         <div className="relative flex items-center justify-center my-2">
           <div className="border-t border-stone-200 w-full" />
           <span className="bg-[#fdfbf7] px-3 text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0">
-            {isBn ? 'অথবা তথ্য পূরণ করে' : 'Or with Form'}
+            {isBn ? 'অথবা মোবাইল ও তথ্য দিয়ে' : 'Or with Phone & Details'}
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-2xl bg-stone-100 p-3 text-xs font-medium text-red-600 border border-stone-300">
-          {error}
+        <div className="rounded-2xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-200 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleRegister} className="space-y-4">
-        {/* Full Name & Father Name */}
-        <div className="space-y-4">
-          <Input
-            id="fullName"
-            label={isBn ? 'আপনার পূর্ণ নাম' : 'Full Name'}
-            placeholder={isBn ? 'যেমন: মোঃ জুয়েল রানা' : 'e.g. Jewel Rana'}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            leftIcon={<User className="h-4 w-4" />}
-            required
-          />
+        <Input
+          id="fullName"
+          label={isBn ? 'আপনার পূর্ণ নাম' : 'Full Name'}
+          placeholder={isBn ? 'যেমন: মোঃ জুয়েল রানা' : 'e.g. Jewel Rana'}
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          leftIcon={<User className="h-4 w-4" />}
+          required
+        />
 
-          {role === 'mistri' && (
-            <Input
-              id="fatherName"
-              label={isBn ? 'পিতার নাম / অভিভাবক' : "Father's Name / Guardian"}
-              placeholder={isBn ? 'যেমন: মোঃ আব্দুল জলিল' : "e.g. Md. Abdul Jalil"}
-              value={fatherName}
-              onChange={(e) => setFatherName(e.target.value)}
-              leftIcon={<User className="h-4 w-4" />}
-            />
-          )}
-        </div>
+        {role === 'mistri' && (
+          <Input
+            id="fatherName"
+            label={isBn ? 'পিতার নাম / অভিভাবক' : "Father's Name / Guardian"}
+            placeholder={isBn ? 'যেমন: মোঃ আব্দুল জলিল' : "e.g. Md. Abdul Jalil"}
+            value={fatherName}
+            onChange={(e) => setFatherName(e.target.value)}
+            leftIcon={<User className="h-4 w-4" />}
+          />
+        )}
 
         <Input
           id="phone"
@@ -276,12 +269,12 @@ function RegisterContent() {
         </div>
 
         {role === 'mistri' && (
-          <div className="rounded-2xl bg-stone-100 p-3.5 text-xs text-stone-800 border border-stone-300 flex items-start gap-2.5">
-            <Shield className="h-4 w-4 shrink-0 mt-0.5 text-stone-900" />
+          <div className="rounded-2xl bg-amber-50 p-3.5 text-xs text-amber-900 border border-amber-200 flex items-start gap-2.5">
+            <Shield className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
             <span>
               {isBn
-                ? 'মিস্ত্রী অ্যাকাউন্ট চালুর জন্য পরবর্তী ধাপে আপনার জাতীয় পরিচয়পত্র (NID) ও দক্ষতার তথ্য জমা দিতে হবে।'
-                : 'To activate your Mistri account, you will provide your NID document and skill categories in the next step.'}
+                ? 'মিস্ত্রী অ্যাকাউন্ট চালুর জন্য পরবর্তী ধাপে আপনার জাতীয় পরিচয়পত্র (NID) ও দক্ষতার তথ্য জমা দিতে হবে। আবেদন জমা দেওয়ার পর তা অ্যাডমিন কর্তৃক বিবেচনাধীন থাকবে।'
+                : 'To activate your Mistri account, provide your NID and skill details in the next step. Your application will be under review.'}
             </span>
           </div>
         )}

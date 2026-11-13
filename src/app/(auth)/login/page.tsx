@@ -3,12 +3,13 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Phone, Lock, Wrench, ArrowRight, ShieldCheck, MessageCircle, MessageSquare, User } from 'lucide-react'
+import { Phone, Lock, Wrench, ArrowRight, User } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
+import { setStoredUser } from '@/lib/auth-client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,67 +18,44 @@ export default function LoginPage() {
 
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [authMode, setAuthMode] = useState<'password' | 'otp'>('otp') // Default to OTP for low-friction
-  const [otpChannel, setOtpChannel] = useState<'whatsapp' | 'sms'>('whatsapp') // Default to WhatsApp
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const cleanPhone = phone.replace(/[^0-9]/g, '')
-    if (!cleanPhone || cleanPhone.length < 11) {
-      setError(isBn ? 'সঠিক ১১-সংখ্যার মোবাইল নম্বর দিন' : 'Enter a valid 11-digit phone number')
+    const cleanPhone = phone.trim().replace(/[^0-9a-zA-Z]/g, '')
+    if (!cleanPhone || cleanPhone.length < 5) {
+      setError(isBn ? 'সঠিক মোবাইল নম্বর অথবা ইউজারনেম দিন' : 'Enter a valid mobile number or username')
+      return
+    }
+
+    if (!password) {
+      setError(isBn ? 'পাসওয়ার্ড প্রদান করুন' : 'Password is required')
       return
     }
 
     setIsLoading(true)
 
-    if (authMode === 'password') {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: cleanPhone, password }),
-        })
-        const data = await res.json()
-        setIsLoading(false)
-
-        if (data.success) {
-          if (typeof window !== 'undefined' && data.user) {
-            localStorage.setItem('mistri_user', JSON.stringify(data.user))
-            window.dispatchEvent(new Event('mistri_auth_changed'))
-          }
-          router.push(data.redirectUrl || (data.user?.role === 'mistri' ? '/mistri/profile' : '/'))
-        } else {
-          setError(data.error || (isBn ? 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন' : 'Invalid credentials'))
-        }
-      } catch {
-        setIsLoading(false)
-        setError(isBn ? 'লগইন করতে সমস্যা হয়েছে' : 'Failed to login')
-      }
-      return
-    }
-
-    // OTP Auth Mode (WhatsApp or SMS)
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, channel: otpChannel }),
+        body: JSON.stringify({ phone: cleanPhone, password }),
       })
       const data = await res.json()
       setIsLoading(false)
 
-      if (data.success) {
-        router.push(`/verify-otp?phone=${encodeURIComponent(cleanPhone)}&channel=${otpChannel}`)
+      if (data.success && data.user) {
+        setStoredUser(data.user)
+        const destination = data.redirectUrl || (data.user.role === 'mistri' ? '/mistri/profile' : '/')
+        router.push(destination)
       } else {
-        setError(data.error || 'ওটিপি পাঠাতে ব্যর্থ হয়েছে')
+        setError(data.error || (isBn ? 'ভুল পাসওয়ার্ড অথবা মোবাইল নম্বর! সঠিক তথ্য দিন।' : 'Invalid credentials'))
       }
     } catch {
       setIsLoading(false)
-      // Fallback
-      router.push(`/verify-otp?phone=${encodeURIComponent(cleanPhone)}&channel=${otpChannel}`)
+      setError(isBn ? 'লগইন করতে সমস্যা হয়েছে। ইন্টারনেট সংযোগ পরীক্ষা করুন।' : 'Failed to login')
     }
   }
 
@@ -92,55 +70,34 @@ export default function LoginPage() {
             mistri<span className="text-[#1e5548]">.</span>
           </h1>
           <p className="text-sm text-[#2c7865]/80 font-medium">
-            {isBn ? 'আপনার মোবাইল নম্বর দিয়ে সরাসরি প্রবেশ করুন' : 'Sign in to your account'}
+            {isBn ? 'আপনার অ্যাকাউন্টে সহজে প্রবেশ করুন' : 'Sign in to your account'}
           </p>
         </div>
 
-        {/* Google One-Click Sign In */}
+        {/* 1. Google One-Click Sign In (Priority) */}
         <div className="space-y-3">
           <GoogleSignInButton mode="signin" />
-          <div className="relative flex items-center justify-center my-2">
+          
+          <div className="relative flex items-center justify-center my-3">
             <div className="border-t border-stone-200 w-full" />
             <span className="bg-white px-3 text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0">
-              {isBn ? 'অথবা মোবাইল নম্বর দিয়ে' : 'Or with Mobile'}
+              {isBn ? 'অথবা মোবাইল ও পাসওয়ার্ড দিয়ে' : 'Or with Mobile & Password'}
             </span>
           </div>
         </div>
 
-        {/* Tab switch for OTP vs Password */}
-        <div className="flex rounded-xl bg-stone-200 p-1 text-xs font-semibold gap-1">
-          <button
-            type="button"
-            onClick={() => setAuthMode('otp')}
-            className={`flex-1 rounded-lg py-2 transition-all cursor-pointer font-bold ${
-              authMode === 'otp' ? 'skeuo-btn-dark' : 'text-stone-700 hover:text-stone-900'
-            }`}
-          >
-            {isBn ? 'ওটিপি যাচাই (OTP Login)' : 'With OTP'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAuthMode('password')}
-            className={`flex-1 rounded-lg py-2 transition-all cursor-pointer font-bold ${
-              authMode === 'password' ? 'skeuo-btn-dark' : 'text-stone-700 hover:text-stone-900'
-            }`}
-          >
-            {isBn ? 'পাসওয়ার্ড দিয়ে' : 'With Password'}
-          </button>
-        </div>
-
         {error && (
-          <div className="rounded-xl bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-200">
+          <div className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600 border border-red-200">
             {error}
           </div>
         )}
 
+        {/* 2. Direct Mobile + Password Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
             id="phone"
-            type="tel"
-            inputMode="tel"
-            label={isBn ? 'মোবাইল নম্বর (ইংরেজীতে)' : 'Mobile Number (English)'}
+            type="text"
+            label={isBn ? 'মোবাইল নম্বর' : 'Mobile Number'}
             placeholder="017XXXXXXXX"
             value={phone}
             onChange={(e) => {
@@ -156,104 +113,31 @@ export default function LoginPage() {
             required
           />
 
-          {authMode === 'password' ? (
-            <div className="space-y-2">
-              <Input
-                id="password"
-                type="password"
-                label={t('auth.password')}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                leftIcon={<Lock className="h-4 w-4" />}
-                required
-              />
-            </div>
-          ) : (
-            <div className="space-y-3 pt-1">
-              <label className="text-xs font-bold text-slate-700 block">
-                {isBn ? 'ওটিপি গ্রহণের মাধ্যম নির্বাচন করুন:' : 'Choose OTP Delivery Channel:'}
-              </label>
+          <Input
+            id="password"
+            type="password"
+            label={t('auth.password')}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            leftIcon={<Lock className="h-4 w-4" />}
+            required
+          />
 
-              {/* Channel Selector: WhatsApp vs SMS */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setOtpChannel('whatsapp')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all ${
-                    otpChannel === 'whatsapp'
-                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">
-                      💬
-                    </span>
-                    <span className="text-xs font-bold">WhatsApp</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                    {isBn ? 'দ্রুত ও ফ্রি (প্রস্তাবিত)' : 'Instant & Free'}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOtpChannel('sms')}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 text-center transition-all cursor-pointer ${
-                    otpChannel === 'sms'
-                      ? 'skeuo-btn-dark'
-                      : 'skeuo-btn-light'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="text-xs font-bold">{isBn ? 'সাধারণ SMS' : 'Regular SMS'}</span>
-                  </div>
-                  <span className="text-[10px] opacity-80">
-                    {isBn ? 'মোবাইল ইনবক্স' : 'Mobile Inbox'}
-                  </span>
-                </button>
-              </div>
-
-              <p className="text-[11px] text-stone-500">
-                {otpChannel === 'whatsapp'
-                  ? (isBn 
-                      ? '🔒 আপনার WhatsApp মেসেজে ৪-সংখ্যার সিকিউর ওটিপি পাঠানো হবে।' 
-                      : 'A 4-digit verification code will be sent to your WhatsApp.')
-                  : (isBn 
-                      ? '📱 সাধারণ মোবাইল এসএমএস হিসেবে কোড পাঠানো হবে।' 
-                      : 'A code will be dispatched to your phone via SMS.')}
-              </p>
-            </div>
-          )}
-
-          <Button type="submit" isLoading={isLoading} className="w-full skeuo-btn-dark py-3 text-sm font-semibold cursor-pointer">
-            <span>
-              {authMode === 'password'
-                ? t('auth.login')
-                : otpChannel === 'whatsapp'
-                ? (isBn ? '🟢 WhatsApp-এ ওটিপি পাঠান' : 'Send WhatsApp OTP')
-                : (isBn ? '✉️ SMS-এ ওটিপি পাঠান' : 'Send SMS OTP')}
-            </span>
+          <Button type="submit" isLoading={isLoading} className="w-full skeuo-btn-dark py-3.5 text-sm font-bold cursor-pointer">
+            <span>{isBn ? 'লগইন করুন' : 'Log In'}</span>
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </form>
 
-        <div className="pt-4 border-t border-[#2c7865]/20 flex items-center justify-between gap-3 text-xs">
+        {/* Footer Registration Links */}
+        <div className="pt-4 border-t border-[#2c7865]/20 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
           <Link
-            href="/register?role=mistri"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#2c7865]/30 bg-[#fefded] text-[#2c7865] hover:bg-[#2c7865] hover:text-[#fefded] font-bold transition-all shadow-xs text-center"
-          >
-            <Wrench className="h-4 w-4 shrink-0" />
-            <span>{isBn ? 'মিস্ত্রী রেজিস্ট্রেশন' : 'Mistri Register'}</span>
-          </Link>
-          <Link
-            href="/register?role=customer"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#2c7865]/30 bg-[#fefded] text-[#2c7865] hover:bg-[#2c7865] hover:text-[#fefded] font-bold transition-all shadow-xs text-center"
+            href="/register"
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-[#2c7865]/30 bg-[#fefded] text-[#2c7865] hover:bg-[#2c7865] hover:text-[#fefded] font-bold transition-all shadow-xs text-center"
           >
             <User className="h-4 w-4 shrink-0" />
-            <span>{isBn ? 'কাস্টোমার রেজিস্ট্রেশন' : 'Customer Register'}</span>
+            <span>{isBn ? 'নতুন অ্যাকাউন্ট খুলুন (রেজিস্ট্রেশন)' : 'Create New Account'}</span>
           </Link>
         </div>
       </Card>

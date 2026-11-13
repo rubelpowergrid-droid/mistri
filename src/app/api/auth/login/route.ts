@@ -112,8 +112,10 @@ export async function POST(request: NextRequest) {
               : 'আপনার আবেদনটি পর্যালোচনার জন্য জমা রয়েছে। আপনার প্রোফাইলটি নিচে দেখে নিন।',
             user: {
               id: mistriProfile?.id || dbUser.id,
+              userId: dbUser.id,
               name: mistriName,
               phone: cleanPhone,
+              email: dbUser.email || '',
               role: 'mistri',
               status: mistriProfile?.approval_status || 'approved',
             },
@@ -133,9 +135,11 @@ export async function POST(request: NextRequest) {
             role: 'customer',
             redirectUrl: '/',
             user: {
-              id: customerProfile?.id || dbUser.id,
+              id: dbUser.id,
+              userId: dbUser.id,
               name: customerProfile?.full_name || authUser?.user_metadata?.full_name || 'সম্মানিত গ্রাহক',
               phone: cleanPhone,
+              email: dbUser.email || '',
               role: 'customer',
             },
           })

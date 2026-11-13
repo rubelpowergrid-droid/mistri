@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, name, avatar, role, phone } = body
+    const { email, name, avatar, phone } = body
 
     if (!email) {
       return NextResponse.json(
@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
     const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : ''
     const supabase = createAdminClient() as any
 
-    // 1. Check if user already exists by email
+    // 1. Check if user already exists by this exact Gmail
     let { data: existingUser } = await supabase
       .from('users')
       .select('id, email, phone, role, avatar_url')
       .eq('email', cleanEmail)
       .maybeSingle()
 
-    // 2. If not found by email, check if user exists by phone
+    // 2. If not found by email, check if user exists by phone (if provided)
     if (!existingUser && cleanPhone && cleanPhone.length >= 10) {
       const { data: userByPhone } = await supabase
         .from('users')
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
       if (userByPhone) {
         existingUser = userByPhone
-        // Link email to this user
+        // Link email to this user so they can sign in with Gmail in the future
         await supabase
           .from('users')
           .update({ email: cleanEmail, updated_at: new Date().toISOString() })
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. User Exists: Handle Login
+    // 3. User Exists: Handle Returning Sign-In
     if (existingUser) {
-      // Update avatar if provided and not yet set
+      // Update avatar if not yet set
       if (avatar && !existingUser.avatar_url) {
         await supabase
           .from('users')
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           .eq('id', existingUser.id)
       }
 
-      // Check role specific details
+      // A) Mistri Role: Once a Mistri, always a Mistri (never treated as customer)
       if (existingUser.role === 'mistri') {
         const { data: mProf } = await supabase
           .from('mistri_profiles')
@@ -63,9 +63,8 @@ export async function POST(request: NextRequest) {
           .maybeSingle()
 
         const displayName = mProf?.full_name || name || 'মিস্ত্রী কারিগর'
-        const redirectUrl = mProf?.approval_status === 'approved' 
-          ? '/mistri/profile' 
-          : mProf ? '/onboarding/status' : '/onboarding'
+        const isApproved = mProf?.approval_status === 'approved'
+        const redirectUrl = isApproved ? '/mistri/profile' : '/onboarding/status'
 
         return NextResponse.json({
           success: true,
@@ -80,11 +79,12 @@ export async function POST(request: NextRequest) {
             phone: existingUser.phone || '',
             role: 'mistri',
             avatar: avatar || existingUser.avatar_url || '',
-            status: mProf?.approval_status || 'approved',
+            status: mProf?.approval_status || 'pending',
           },
         })
       }
 
+      // B) Admin Role
       if (existingUser.role === 'admin') {
         return NextResponse.json({
           success: true,
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
           redirectUrl: '/admin/dashboard',
           user: {
             id: existingUser.id,
+            userId: existingUser.id,
             name: name || 'Admin',
             email: cleanEmail,
             phone: existingUser.phone || '',
@@ -102,10 +103,17 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Customer Role Login
+      // C) Customer Role: Check if this customer has a pending mistri application
       const { data: cProf } = await supabase
         .from('customer_profiles')
         .select('id, full_name, default_address')
+        .eq('user_id', existingUser.id)
+        .maybeSingle()
+
+      // Also check if customer applied to be a mistri
+      const { data: mApp } = await supabase
+        .from('mistri_profiles')
+        .select('id, approval_status')
         .eq('user_id', existingUser.id)
         .maybeSingle()
 
@@ -116,17 +124,20 @@ export async function POST(request: NextRequest) {
         redirectUrl: '/',
         user: {
           id: existingUser.id,
+          userId: existingUser.id,
           name: cProf?.full_name || name || 'সম্মানিত গ্রাহক',
           email: cleanEmail,
-          phone: existingUser.phone || '',
+          phone: existingUser.phone?.startsWith('010') ? '' : (existingUser.phone || ''),
           role: 'customer',
           avatar: avatar || existingUser.avatar_url || '',
+          mistriApplicationStatus: mApp?.approval_status || null,
         },
       })
     }
 
-    // 4. User does NOT exist: Handle Registration with Google
-    const assignedRole = role === 'mistri' ? 'mistri' : 'customer'
+    // 4. User does NOT exist: Handle New Registration
+    // STRICT RULE: All new Gmail signups are designated as 'customer'
+    const assignedRole = 'customer'
 
     // Resolve or create auth user id directly from auth.users (foreign key requirement)
     let userId: string | null = null
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
         email: cleanEmail,
         email_confirm: true,
         user_metadata: {
-          full_name: name,
+          full_name: name || 'সম্মানিত গ্রাহক',
           role: assignedRole,
           avatar_url: avatar,
         },
@@ -164,15 +175,32 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'ইউজার অথেনটিকেশন আইডি তৈরি করা যায়নি।' },
+        { success: false, error: 'ইউজার অ্যাকাউন্ট তৈরি করা যায়নি।' },
         { status: 500 }
       )
     }
 
-    // Ensure phone is never null to satisfy NOT NULL & UNIQUE constraints
+    // Generate unique phone placeholder if phone is not provided
     const userPhone = (cleanPhone && cleanPhone.length >= 10)
       ? cleanPhone
       : `010${Math.floor(10000000 + Math.random() * 90000000)}`
+
+    // Check if real phone is already used by someone else
+    if (cleanPhone && cleanPhone.length >= 10) {
+      const { data: dupPhone } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('phone', cleanPhone)
+        .neq('id', userId)
+        .maybeSingle()
+
+      if (dupPhone) {
+        return NextResponse.json(
+          { success: false, error: 'এই মোবাইল নম্বর দিয়ে ইতিমধ্যে অন্য একটি অ্যাকাউন্ট রয়েছে।' },
+          { status: 400 }
+        )
+      }
+    }
 
     const { data: newUser, error: createErr } = await supabase
       .from('users')
@@ -195,26 +223,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (assignedRole === 'mistri') {
-      return NextResponse.json({
-        success: true,
-        isNew: true,
-        role: 'mistri',
-        redirectUrl: '/onboarding',
-        user: {
-          id: newUser.id,
-          userId: newUser.id,
-          name: name || 'মিস্ত্রী কারিগর',
-          email: cleanEmail,
-          phone: userPhone.startsWith('010') ? '' : userPhone,
-          role: 'mistri',
-          avatar: avatar || '',
-          status: 'pending',
-        },
-      })
-    }
-
-    // Customer profile creation
+    // Create customer profile
     await supabase.from('customer_profiles').upsert({
       user_id: newUser.id,
       full_name: name || 'সম্মানিত গ্রাহক',
@@ -227,6 +236,7 @@ export async function POST(request: NextRequest) {
       redirectUrl: '/',
       user: {
         id: newUser.id,
+        userId: newUser.id,
         name: name || 'সম্মানিত গ্রাহক',
         email: cleanEmail,
         phone: userPhone.startsWith('010') ? '' : userPhone,
@@ -242,4 +252,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

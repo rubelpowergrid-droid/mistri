@@ -6,7 +6,7 @@ import { addApplicantToQueue, addCustomerToStore } from '@/lib/mistri-store'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { fullName, fatherName, phone, password, role = 'mistri', district, upazila } = body
+    const { fullName, fatherName, phone, password, role = 'customer', district, upazila, email } = body
     const cleanPhone = (phone || '').replace(/[^0-9]/g, '')
 
     if (!fullName || !cleanPhone || cleanPhone.length < 11) {
@@ -23,8 +23,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const supabase = createAdminClient() as any
+
+    // 1. Strict Duplicate Check: Mobile Number can ONLY be used once
+    const { data: existingPhoneUser } = await supabase
+      .from('users')
+      .select('id, phone, role')
+      .eq('phone', cleanPhone)
+      .maybeSingle()
+
+    if (existingPhoneUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে। একই মোবাইল নম্বর দিয়ে একাধিক একাউন্ট খোলা যাবে না। দয়া করে লগইন করুন।' 
+        },
+        { status: 409 }
+      )
+    }
+
+    // 2. Strict Duplicate Check: Email can ONLY be used once (if provided)
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase()
+      const { data: existingEmailUser } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('email', cleanEmail)
+        .maybeSingle()
+
+      if (existingEmailUser) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে। একই ইমেইল দিয়ে একাধিক একাউন্ট খোলা যাবে না। দয়া করে লগইন করুন।' 
+          },
+          { status: 409 }
+        )
+      }
+    }
+
+    // 3. Handle Mistri Registration (Strict Role Exclusion: Mistri !== Customer)
     if (role === 'mistri') {
-      // 1. Add to in-memory applicant queue for instant admin verification review
       const applicantRecord = addApplicantToQueue({
         name: fullName,
         fatherName: fatherName || '',
@@ -40,7 +79,6 @@ export async function POST(request: NextRequest) {
         avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
       })
 
-      // 2. Persist to Supabase Database permanently
       let dbProfile: any = null
       try {
         dbProfile = await saveMistriToSupabase({
@@ -65,6 +103,7 @@ export async function POST(request: NextRequest) {
         redirectUrl: `/onboarding?phone=${cleanPhone}&name=${encodeURIComponent(fullName)}&fatherName=${encodeURIComponent(fatherName || '')}&district=${encodeURIComponent(district || 'Thakurgaon')}&upazila=${encodeURIComponent(upazila || 'Thakurgaon Sadar')}`,
         user: {
           id: mistriId,
+          userId: mistriId,
           name: fullName,
           fatherName: fatherName || '',
           phone: cleanPhone,
@@ -74,14 +113,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Role is customer
+    // 4. Handle Customer Registration (Default)
+    const userEmail = email ? email.trim().toLowerCase() : `customer_${cleanPhone}@mistri.app`
     let customerId = `cust-${Date.now()}`
-    try {
-      const supabase = createAdminClient() as any
-      const email = `customer_${cleanPhone}@mistri.app`
 
-      const { data: authUser } = await supabase.auth.admin.createUser({
-        email,
+    try {
+      const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
+        email: userEmail,
         password,
         email_confirm: true,
         user_metadata: {
@@ -98,7 +136,7 @@ export async function POST(request: NextRequest) {
       await supabase.from('users').upsert({
         id: userId,
         phone: cleanPhone,
-        email,
+        email: userEmail,
         role: 'customer',
         preferred_language: 'bn',
       }, { onConflict: 'phone' })
@@ -125,8 +163,10 @@ export async function POST(request: NextRequest) {
       redirectUrl: '/',
       user: {
         id: customerId,
+        userId: customerId,
         name: fullName,
         phone: cleanPhone,
+        email: userEmail,
         role: 'customer',
       },
     })

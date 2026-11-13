@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { 
   User, Phone, MapPin, Calendar, Heart, Shield, 
   Settings, LogOut, ChevronRight, Globe, Wrench, 
-  CheckCircle2, HelpCircle, ArrowLeft, LogIn, Printer 
+  CheckCircle2, HelpCircle, ArrowLeft, LogIn, Printer, Clock, AlertCircle
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -22,14 +22,37 @@ export default function CustomerProfilePage() {
 
   const [session, setSession] = useState<UserSession | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [mistriAppStatus, setMistriAppStatus] = useState<string | null>(null)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false)
 
   useEffect(() => {
     const user = getStoredUser()
     setSession(user)
     setIsLoaded(true)
 
+    // Strict Rule: Mistri is NOT a Customer
     if (user?.role === 'mistri') {
       router.replace('/mistri/profile')
+      return
+    }
+
+    // Check if this customer has applied to become a Mistri
+    if (user) {
+      setIsLoadingStatus(true)
+      const queryParams = new URLSearchParams()
+      if (user.id) queryParams.set('userId', user.id)
+      if (user.phone) queryParams.set('phone', user.phone)
+      if (user.email) queryParams.set('email', user.email)
+
+      fetch(`/api/mistris/application-status?${queryParams.toString()}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setIsLoadingStatus(false)
+          if (data.success && data.hasApplication) {
+            setMistriAppStatus(data.status || 'pending')
+          }
+        })
+        .catch(() => setIsLoadingStatus(false))
     }
   }, [router])
 
@@ -49,7 +72,7 @@ export default function CustomerProfilePage() {
     )
   }
 
-  // If user is logged out, show honest clean state - NOT a fake profile!
+  // If user is logged out, show honest clean state
   if (!session) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 space-y-6">
@@ -140,13 +163,21 @@ export default function CustomerProfilePage() {
         </div>
       </div>
 
-      {/* Main Profile Card - #2c7865 & #fefded Skeuomorphic */}
+      {/* Main Profile Card */}
       <div className="skeuo-surface-dark p-6 sm:p-7 relative overflow-hidden text-[#fefded]">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 text-center sm:text-left">
           <div className="relative">
-            <div className="h-20 w-20 rounded-2xl bg-gradient-to-b from-[#38967f] via-[#2c7865] to-[#1e5548] border-2 border-[#fefded]/40 flex items-center justify-center text-[#fefded] shadow-xl">
-              <User className="h-10 w-10 text-[#fefded]" />
-            </div>
+            {session.avatar ? (
+              <img
+                src={session.avatar}
+                alt={session.name}
+                className="h-20 w-20 rounded-2xl object-cover border-2 border-[#fefded]/40 shadow-xl"
+              />
+            ) : (
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-b from-[#38967f] via-[#2c7865] to-[#1e5548] border-2 border-[#fefded]/40 flex items-center justify-center text-[#fefded] shadow-xl">
+                <User className="h-10 w-10 text-[#fefded]" />
+              </div>
+            )}
             <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-[#2c7865] border border-[#fefded]/40 flex items-center justify-center text-[#fefded] shadow-xs">
               <CheckCircle2 className="h-3.5 w-3.5 text-[#fefded]" />
             </div>
@@ -156,14 +187,22 @@ export default function CustomerProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center sm:justify-start">
               <h2 className="text-xl font-black tracking-tight text-[#fefded]">{session.name || 'সম্মানিত গ্রাহক'}</h2>
               <Badge variant="primary" className="text-[10px] w-fit mx-auto sm:mx-0 bg-[#1e5548] text-[#fefded] border-[#38967f]">
-                🛡️ সক্রিয় গ্রাহক
+                🛡️ সক্রিয় গ্রাহক (Customer)
               </Badge>
             </div>
 
-            <p className="text-xs text-[#fefded]/90 font-mono flex items-center justify-center sm:justify-start gap-1.5 font-bold">
-              <Phone className="h-3.5 w-3.5 text-[#fefded]/70" />
-              <span>{session.phone}</span>
-            </p>
+            {session.phone && !session.phone.startsWith('010') && (
+              <p className="text-xs text-[#fefded]/90 font-mono flex items-center justify-center sm:justify-start gap-1.5 font-bold">
+                <Phone className="h-3.5 w-3.5 text-[#fefded]/70" />
+                <span>{session.phone}</span>
+              </p>
+            )}
+
+            {session.email && (
+              <p className="text-xs text-[#fefded]/80 flex items-center justify-center sm:justify-start gap-1.5">
+                <span>✉️ {session.email}</span>
+              </p>
+            )}
 
             <p className="text-xs text-[#fefded]/80 flex items-center justify-center sm:justify-start gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-[#fefded]/70" />
@@ -188,6 +227,73 @@ export default function CustomerProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Prominent Banner: Mistri Application Status (if applied) */}
+      {mistriAppStatus && (mistriAppStatus === 'pending' || mistriAppStatus === 'under_review') && (
+        <Card className="p-5 border-2 border-amber-300 bg-amber-50/95 rounded-2xl space-y-3 shadow-md">
+          <div className="flex items-start gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Clock className="h-6 w-6 animate-pulse" />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-black text-amber-950">
+                  {isBn ? 'আপনার মিস্ত্রী হওয়ার আবেদনটি বিবেচনাধীন রয়েছে' : 'Your Mistri Application is Under Review'}
+                </h3>
+                <span className="bg-amber-200 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                  ⏳ {isBn ? 'বিবেচনাধীন' : 'Under Review'}
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                {isBn 
+                  ? 'আমাদের অ্যাডমিন টিম আপনার জাতীয় পরিচয়পত্র (NID) ও তথ্য যাচাই করছে। যাচাই সম্পন্ন ও অনুমোদিত হলে আপনার অ্যাকাউন্ট মিস্ত্রী হিসেবে সক্রিয় হবে।'
+                  : 'Our admin team is verifying your NID documents and credentials. Once approved, your Mistri account will be activated.'}
+              </p>
+              <div className="pt-2 flex flex-wrap gap-2">
+                <Link href="/onboarding/status">
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 px-3 rounded-xl shadow-xs">
+                    <span>{isBn ? 'আবেদনের বর্তমান অবস্থা দেখুন' : 'Check Status'}</span>
+                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {mistriAppStatus === 'approved' && (
+        <Card className="p-5 border-2 border-emerald-300 bg-emerald-50/95 rounded-2xl space-y-3 shadow-md">
+          <div className="flex items-start gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-emerald-950">
+                  {isBn ? 'অভিনন্দন! আপনার মিস্ত্রী আবেদন অনুমোদিত হয়েছে' : 'Congratulations! Mistri Application Approved'}
+                </h3>
+                <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                  ✅ {isBn ? 'অনুমোদিত' : 'Approved'}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                {isBn 
+                  ? 'আপনার মিস্ত্রী ড্যাশবোর্ড এখন সক্রিয়। আপনি এখন সরাসরি কাস্টমার বুকিং গ্রহণ করতে পারেন।'
+                  : 'Your Mistri profile is now live and accepting customer bookings.'}
+              </p>
+              <div className="pt-2">
+                <Link href="/mistri/profile">
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-xs">
+                    <span>{isBn ? 'মিস্ত্রী প্রোফাইলে যান' : 'Go to Mistri Profile'}</span>
+                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Navigation Options Group 1: Bookings & Activity */}
       <div className="space-y-2">
@@ -237,23 +343,25 @@ export default function CustomerProfilePage() {
         </span>
 
         <Card className="divide-y divide-slate-200/80 p-0 overflow-hidden">
-          <Link
-            href="/onboarding"
-            className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-b from-stone-800 to-black text-white flex items-center justify-center shadow-xs">
-                <Wrench className="h-4 w-4" />
+          {(!mistriAppStatus || mistriAppStatus === 'rejected') && (
+            <Link
+              href="/onboarding"
+              className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-b from-stone-800 to-black text-white flex items-center justify-center shadow-xs">
+                  <Wrench className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-black block">{isBn ? 'মিস্ত্রী হিসেবে যোগ দিন' : 'Register as a Mistri'}</span>
+                  <span className="text-[11px] text-slate-500 font-medium">{isBn ? 'কাজ পেতে এনআইডি দিয়ে আবেদন করুন' : 'Offer your services and get jobs'}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-xs font-bold text-black block">{isBn ? 'মিস্ত্রী হিসেবে যোগ দিন' : 'Register as a Mistri'}</span>
-                <span className="text-[11px] text-slate-500 font-medium">{isBn ? 'কাজ পেতে এনআইডি দিয়ে আবেদন করুন' : 'Offer your services and get jobs'}</span>
-              </div>
-            </div>
-            <Badge variant="primary" className="text-[10px]">
-              {isBn ? 'আবেদন করুন' : 'Join'}
-            </Badge>
-          </Link>
+              <Badge variant="primary" className="text-[10px]">
+                {isBn ? 'আবেদন করুন' : 'Join'}
+              </Badge>
+            </Link>
+          )}
 
           <Link
             href="/admin/dashboard"
