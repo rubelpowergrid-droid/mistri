@@ -452,6 +452,13 @@ function BookingsListContent() {
                   {/* Review & Rebook if completed */}
                   {b.status === 'completed' && (
                     <>
+                      <Link href={`/bookings/${b.id}/live-track`}>
+                        <Button size="sm" variant="outline" className="skeuo-btn-light text-xs font-bold text-[#2c7865] border-[#2c7865]/30">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          <span>{isBn ? 'টাইমলাইন ও হিস্টোরি' : 'View Timeline'}</span>
+                        </Button>
+                      </Link>
+
                       <Link href={`/bookings/new/${b.mistriId}`}>
                         <Button size="sm" variant="outline" className="skeuo-btn-light text-xs font-bold">
                           <RotateCcw className="h-3.5 w-3.5 mr-1" />

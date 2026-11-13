@@ -21,6 +21,7 @@ import {
   generateGoogleMapsDirectionUrl 
 } from '@/lib/geo'
 import { formatDistance, toBanglaNumber } from '@/lib/utils'
+import { BookingHistoryTimeline } from '@/components/bookings/booking-history-timeline'
 
 const CANCELLATION_REASONS = [
   'ভুলবশত বুক করেছি',
@@ -32,6 +33,20 @@ const CANCELLATION_REASONS = [
 
 const DEFAULT_CUSTOMER_LOCATION: Coordinates = { latitude: 26.0336, longitude: 88.4617 }
 const DEFAULT_MISTRI_START: Coordinates = { latitude: 26.0425, longitude: 88.4550 }
+
+interface LiveTrackBookingState {
+  id: string
+  bookingNumber?: string
+  status: string
+  customerAddress: string
+  customerLocation: Coordinates
+  mistriName: string
+  mistriTitle: string
+  mistriPhone: string
+  category: string
+  mistriAvatar: string
+  [key: string]: any
+}
 
 function CustomerLiveTrackContent() {
   const params = useParams()
@@ -45,9 +60,10 @@ function CustomerLiveTrackContent() {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [isLoadingBooking, setIsLoadingBooking] = useState(true)
-  const [booking, setBooking] = useState({
+  const [booking, setBooking] = useState<LiveTrackBookingState>({
     id: bookingId,
-    status: initialStatus as 'pending' | 'accepted' | 'in_progress' | 'cancelled',
+    bookingNumber: bookingId,
+    status: initialStatus,
     customerAddress: 'বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর',
     customerLocation: DEFAULT_CUSTOMER_LOCATION,
     mistriName: '',
@@ -135,10 +151,12 @@ function CustomerLiveTrackContent() {
         const json = await res.json()
         if (json.success && json.data) {
           const match = json.data
-          setBooking((prev) => ({
+          setBooking((prev: any) => ({
             ...prev,
+            ...match,
             id: match.id || bookingId,
-            status: (match.status as any) || prev.status,
+            bookingNumber: match.bookingNumber || bookingId,
+            status: match.status || prev.status,
             customerAddress: match.jobAddress || match.location || prev.customerAddress,
             customerLocation: (match.latitude && match.longitude)
               ? { latitude: match.latitude, longitude: match.longitude }
@@ -495,6 +513,12 @@ function CustomerLiveTrackContent() {
           </p>
         </Card>
       </div>
+
+      {/* Customer Booking History Timeline with Bangla Date & Time */}
+      <BookingHistoryTimeline
+        booking={booking}
+        perspective="customer"
+      />
 
       {/* Cancellation Modal */}
       {isCancelModalOpen && (

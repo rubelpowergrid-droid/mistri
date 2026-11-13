@@ -26,7 +26,7 @@ export async function GET(
     }
 
     // 1. Try Supabase
-    let booking = await getBookingByIdFromSupabase(id)
+    let booking: any = await getBookingByIdFromSupabase(id)
 
     // 2. Fallback to in-memory store
     if (!booking) {

@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Search, Filter, Clock, CheckCircle2, AlertCircle, Eye, MapPin, RefreshCw } from 'lucide-react'
+import { Calendar, Search, Filter, Clock, CheckCircle2, AlertCircle, Eye, MapPin, RefreshCw, FileText } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber, formatBDT } from '@/lib/utils'
+import { AdminBookingSummaryModal } from '@/components/admin/admin-booking-summary-modal'
+import { BookingTimelineData } from '@/components/bookings/booking-history-timeline'
 
-interface BookingItem {
+interface BookingItem extends BookingTimelineData {
   id: string
   bookingNumber: string
   mistriName: string
@@ -30,6 +32,7 @@ export default function AdminBookingsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [bookings, setBookings] = useState<BookingItem[]>([])
+  const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchBookings = async () => {
@@ -139,12 +142,13 @@ export default function AdminBookingsPage() {
                 <th className="py-3.5 px-4">সেবা ও ঠিকানা</th>
                 <th className="py-3.5 px-4">মূল্য</th>
                 <th className="py-3.5 px-4">স্ট্যাটাস</th>
+                <th className="py-3.5 px-4 text-center">অ্যাকশন ও সামারি</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
                       <span>{isBn ? 'বুকিং ডাটা লোড হচ্ছে...' : 'Loading bookings...'}</span>
@@ -153,13 +157,17 @@ export default function AdminBookingsPage() {
                 </tr>
               ) : filteredBookings.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     {isBn ? 'কোনো বুকিং পাওয়া যায়নি' : 'No bookings found'}
                   </td>
                 </tr>
               ) : (
                 filteredBookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr 
+                    key={b.id} 
+                    onClick={() => setSelectedBooking(b)}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
                     <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{b.bookingNumber}</td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{b.mistriName}</td>
                     <td className="py-3.5 px-4">
@@ -176,12 +184,30 @@ export default function AdminBookingsPage() {
                         variant={b.status === 'completed' || b.status === 'accepted' ? 'success' : b.status === 'rejected' ? 'danger' : 'primary'} 
                         className="text-[10px]"
                       >
-                        {b.status === 'completed' || b.status === 'accepted' 
+                        {b.status === 'completed' 
                           ? '✓ সম্পন্ন' 
+                          : b.status === 'accepted' 
+                          ? 'অনুমোদিত' 
                           : b.status === 'rejected' 
                           ? '✕ বাতিল' 
-                          : 'সক্রিয়'}
+                          : b.status === 'in_progress'
+                          ? 'চলমান'
+                          : 'অপেক্ষমাণ'}
                       </Badge>
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedBooking(b)
+                        }}
+                        className="text-[11px] font-bold h-7 px-2.5 bg-white group-hover:bg-[#2c7865] group-hover:text-white transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        <span>সামারি ও টাইমলাইন</span>
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -190,6 +216,13 @@ export default function AdminBookingsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Admin Booking Summary & Full Timeline Modal */}
+      <AdminBookingSummaryModal
+        booking={selectedBooking}
+        isOpen={!!selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+      />
     </div>
   )
 }

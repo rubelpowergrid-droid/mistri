@@ -1117,6 +1117,9 @@ export async function updateBookingStatusInSupabase(
     if (options.proposedDate) updatePayload.preferred_date = options.proposedDate
     if (options.proposedTime) updatePayload.preferred_time = options.proposedTime
     if (status === 'accepted') updatePayload.accepted_at = new Date().toISOString()
+    if (status === 'on_the_way' || status === 'in_progress') {
+      updatePayload.started_at = new Date().toISOString()
+    }
     if (status === 'completed') updatePayload.completed_at = new Date().toISOString()
 
     if (isUuid) {
@@ -1241,7 +1244,7 @@ export async function getBookingByIdFromSupabase(idOrNumber: string) {
     
     let query = supabase
       .from('bookings')
-      .select('*, mistri_profiles(id, full_name, professional_title, location_point, users(phone, avatar_url)), customer_profiles(full_name, default_address, users(phone, avatar_url)), categories(name_bn), subcategories(name_bn)')
+      .select('*, mistri_profiles(id, full_name, professional_title, location_point, users(phone, email, avatar_url)), customer_profiles(full_name, default_address, users(phone, email, avatar_url)), categories(name_bn), subcategories(name_bn)')
     
     if (isUuid) {
       query = query.eq('id', idOrNumber)
@@ -1259,9 +1262,11 @@ export async function getBookingByIdFromSupabase(idOrNumber: string) {
       mistriName: row.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী',
       mistriTitle: row.mistri_profiles?.professional_title || row.subcategories?.name_bn || row.categories?.name_bn || 'রং মিস্ত্রী',
       mistriPhone: row.mistri_profiles?.users?.phone || '',
+      mistriEmail: row.mistri_profiles?.users?.email || '',
       mistriAvatar: row.mistri_profiles?.users?.avatar_url || '',
       customerName: row.customer_profiles?.full_name || 'সম্মানিত গ্রাহক',
       customerPhone: row.contact_phone || row.customer_profiles?.users?.phone || '',
+      customerEmail: row.customer_profiles?.users?.email || '',
       customerAddress: row.job_address || row.customer_profiles?.default_address || '',
       jobAddress: row.job_address || row.customer_profiles?.default_address || '',
       serviceName: row.subcategories?.name_bn || row.categories?.name_bn || 'সাধারণ সেবা',
@@ -1277,6 +1282,10 @@ export async function getBookingByIdFromSupabase(idOrNumber: string) {
       workPhotos: row.work_photos || [],
       cancellationReason: row.cancellation_reason || null,
       createdAt: row.created_at,
+      acceptedAt: row.accepted_at || null,
+      startedAt: row.started_at || null,
+      completedAt: row.completed_at || null,
+      updatedAt: row.updated_at || null,
     }
   } catch (err: any) {
     console.error('getBookingByIdFromSupabase error:', err.message)

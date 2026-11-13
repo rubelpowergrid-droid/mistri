@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Navigation, MapPin, Phone, User, Clock, 
   CheckCircle2, AlertTriangle, ShieldCheck, ExternalLink,
-  Play, Radio, DollarSign, Loader2, Sparkles, AlertCircle
+  Play, Radio, DollarSign, Loader2, Sparkles, AlertCircle, Wrench
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/locales'
+import { BookingHistoryTimeline } from '@/components/bookings/booking-history-timeline'
 
 export default function MistriJobDetailPage() {
   const params = useParams()
@@ -23,7 +24,7 @@ export default function MistriJobDetailPage() {
 
   const [booking, setBooking] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [jobStatus, setJobStatus] = useState<'pending' | 'accepted' | 'in_progress' | 'completed'>('accepted')
+  const [jobStatus, setJobStatus] = useState<'pending' | 'accepted' | 'on_the_way' | 'in_progress' | 'completed'>('accepted')
   
   // Real GPS tracking states
   const [isLocationSharing, setIsLocationSharing] = useState(false)
@@ -204,6 +205,29 @@ export default function MistriJobDetailPage() {
     }
   }, [])
 
+  // Handle Start Journey (En Route)
+  const handleStartJourney = async () => {
+    try {
+      await fetch(`/api/bookings/${bookingId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'on_the_way' }),
+      })
+      setJobStatus('on_the_way')
+      setBooking((prev: any) => ({
+        ...prev,
+        status: 'on_the_way',
+        journeyStartedAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+      }))
+      if (!isLocationSharing) {
+        toggleLocationSharing()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   // Handle Start Job
   const handleStartJob = async () => {
     setIsStarting(true)
@@ -214,6 +238,11 @@ export default function MistriJobDetailPage() {
         body: JSON.stringify({ status: 'in_progress' }),
       })
       setJobStatus('in_progress')
+      setBooking((prev: any) => ({
+        ...prev,
+        status: 'in_progress',
+        startedAt: prev?.startedAt || new Date().toISOString(),
+      }))
       await stopLocationWatch()
     } catch (e) {
       console.error(e)
@@ -235,6 +264,12 @@ export default function MistriJobDetailPage() {
         }),
       })
       setJobStatus('completed')
+      setBooking((prev: any) => ({
+        ...prev,
+        status: 'completed',
+        agreedPrice: finalAgreedPrice,
+        completedAt: new Date().toISOString(),
+      }))
       setShowCompletionModal(false)
       await stopLocationWatch()
     } catch (e) {
@@ -463,17 +498,41 @@ export default function MistriJobDetailPage() {
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {jobStatus === 'accepted' && (
+            <>
+              <Button
+                onClick={handleStartJourney}
+                className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 text-xs shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Navigation className="h-4 w-4" />
+                <span>{isBn ? 'আমি রওনা হয়েছি (যাত্রা শুরু)' : 'Start Journey'}</span>
+              </Button>
+              <Button
+                onClick={handleStartJob}
+                disabled={isStarting}
+                className="w-full sm:flex-1 skeuo-btn-dark py-3 text-xs font-bold cursor-pointer"
+              >
+                {isStarting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : (
+                  <Play className="h-4 w-4 mr-1.5" />
+                )}
+                <span>{isBn ? 'কাজ শুরু করেছি' : 'Mark Job Started'}</span>
+              </Button>
+            </>
+          )}
+
+          {jobStatus === 'on_the_way' && (
             <Button
               onClick={handleStartJob}
               disabled={isStarting}
-              className="w-full sm:flex-1 skeuo-btn-dark py-3 text-xs font-bold cursor-pointer"
+              className="w-full sm:flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 text-xs shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               {isStarting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Play className="h-4 w-4 mr-1.5" />
+                <Wrench className="h-4 w-4" />
               )}
-              <span>{isBn ? 'কাজ শুরু হয়েছে চিহ্নিত করুন' : 'Mark Job Started'}</span>
+              <span>{isBn ? 'ঠিকানায় পৌঁছে কাজ শুরু করেছি' : 'Arrived & Start Job'}</span>
             </Button>
           )}
 
@@ -497,6 +556,12 @@ export default function MistriJobDetailPage() {
           )}
         </div>
       </Card>
+
+      {/* Booking History Timeline with Bangla Date & Time */}
+      <BookingHistoryTimeline 
+        booking={booking} 
+        perspective="mistri" 
+      />
 
       {/* Completion Modal */}
       {showCompletionModal && (

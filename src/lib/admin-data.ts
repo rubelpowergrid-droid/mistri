@@ -35,13 +35,27 @@ export interface AdminBookingItem {
   id: string
   bookingNumber: string
   mistriName: string
+  mistriTitle?: string
+  mistriPhone?: string
+  mistriEmail?: string
   customerName: string
   customerPhone: string
+  customerEmail?: string
+  customerAddress?: string
+  jobAddress?: string
   serviceName: string
   location: string
   amount: number
+  estimatedBudget?: number | null
+  agreedPrice?: number | null
   status: string
   date: string
+  createdAt?: string | null
+  acceptedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  updatedAt?: string | null
+  cancellationReason?: string | null
 }
 
 /**
@@ -349,7 +363,7 @@ export async function getAdminBookingsData() {
   try {
     const { data } = await supabase
       .from('bookings')
-      .select('*, mistri_profiles(full_name, professional_title), customer_profiles(full_name, default_address)')
+      .select('*, mistri_profiles(full_name, professional_title, users(phone, email)), customer_profiles(full_name, default_address, users(phone, email))')
       .order('created_at', { ascending: false })
 
     if (data && Array.isArray(data)) {
@@ -368,8 +382,16 @@ export async function getAdminBookingsData() {
     if (seenNumbers.has(num)) continue
     seenNumbers.add(num)
 
-    const mistriName = b.mistri_profiles?.full_name || 'মোঃ সানোয়ার হোসেন'
+    const mistriName = b.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী'
+    const mistriTitle = b.mistri_profiles?.professional_title || 'দক্ষ মিস্ত্রী'
+    const mistriPhone = b.mistri_profiles?.users?.phone || ''
+    const mistriEmail = b.mistri_profiles?.users?.email || ''
+
     const customerName = b.customer_profiles?.full_name || 'সম্মানিত গ্রাহক'
+    const customerPhone = b.contact_phone || b.customer_profiles?.users?.phone || ''
+    const customerEmail = b.customer_profiles?.users?.email || ''
+    const customerAddress = b.customer_profiles?.default_address || ''
+    const jobAddress = b.job_address || customerAddress || 'ঠাকুরগাঁও'
 
     let formattedDate = '২০২৬-১১-১১'
     if (b.created_at) {
@@ -383,13 +405,27 @@ export async function getAdminBookingsData() {
       id: b.id,
       bookingNumber: num,
       mistriName,
+      mistriTitle,
+      mistriPhone,
+      mistriEmail,
       customerName,
-      customerPhone: b.contact_phone || '০১৭XXXXXXXX',
+      customerPhone,
+      customerEmail,
+      customerAddress,
+      jobAddress,
       serviceName: b.work_description || 'সেবা অনুরোধ',
-      location: b.job_address || 'ঠাকুরগাঁও',
+      location: jobAddress,
       amount: b.agreed_price || b.estimated_budget || 400,
+      estimatedBudget: b.estimated_budget || 400,
+      agreedPrice: b.agreed_price || null,
       status: b.status,
       date: formattedDate,
+      createdAt: b.created_at || null,
+      acceptedAt: b.accepted_at || null,
+      startedAt: b.started_at || null,
+      completedAt: b.completed_at || null,
+      updatedAt: b.updated_at || null,
+      cancellationReason: b.cancellation_reason || null,
     })
   }
 

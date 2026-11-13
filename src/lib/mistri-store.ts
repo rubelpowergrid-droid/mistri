@@ -68,11 +68,15 @@ export interface BookingRecord {
   preferredTime?: string
   proposedDate?: string | null
   proposedTime?: string | null
-  status: 'pending' | 'accepted' | 'rejected' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'disputed'
+  status: 'pending' | 'accepted' | 'rejected' | 'scheduled' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled' | 'disputed'
   date: string
   workPhotos?: string[]
   cancellationReason?: string | null
   createdAt?: string
+  acceptedAt?: string | null
+  startedAt?: string | null
+  completedAt?: string | null
+  updatedAt?: string | null
 }
 
 // Initial pending applicants - empty by default so Supabase PostgreSQL is authoritative

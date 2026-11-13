@@ -204,7 +204,7 @@ export default function MistriBookingsPage() {
               <Link href={`/bookings/${job.id}`}>
                 <Button size="sm" className="skeuo-btn-dark font-bold text-xs cursor-pointer">
                   <Navigation className="h-3.5 w-3.5 mr-1 text-amber-300" />
-                  <span>{isBn ? 'কাজ শুরু ও লাইভ জিপিএস ডেস্ক' : 'Execute Job & GPS'}</span>
+                  <span>{isBn ? 'টাইমলাইন, জিপিএস ও কাজের একশন' : 'Timeline & Actions'}</span>
                   <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </Link>

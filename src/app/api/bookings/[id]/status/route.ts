@@ -13,7 +13,7 @@ const NO_CACHE_HEADERS = {
 }
 
 const updateStatusSchema = z.object({
-  status: z.enum(['pending', 'accepted', 'rejected', 'scheduled', 'in_progress', 'completed', 'cancelled', 'disputed']),
+  status: z.enum(['pending', 'accepted', 'rejected', 'scheduled', 'on_the_way', 'in_progress', 'completed', 'cancelled', 'disputed']),
   agreedPrice: z.number().optional(),
   reason: z.string().optional(),
   proposedDate: z.string().optional(),
@@ -59,7 +59,7 @@ export async function PATCH(
 
     // 2. Update in-memory server store
     const updated = updateBookingInStore(id, {
-      status,
+      status: status as any,
       agreedPrice: agreedPrice !== undefined ? agreedPrice : undefined,
       cancellationReason: reason || null,
       proposedDate: proposedDate || null,
