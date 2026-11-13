@@ -62,6 +62,18 @@ export class EmailOtpService {
       throw new Error('এই Gmail দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে। দয়া করে সরাসরি লগইন করুন।')
     }
 
+    try {
+      const { data: authList } = await supabaseAdmin.auth.admin.listUsers()
+      const authMatch = authList?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail)
+      if (authMatch) {
+        throw new Error('এই Gmail দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রয়েছে। দয়া করে সরাসরি লগইন করুন।')
+      }
+    } catch (authErr: any) {
+      if (authErr?.message?.includes('ইতিমধ্যে একটি অ্যাকাউন্ট')) {
+        throw authErr
+      }
+    }
+
     // 3. Strict Check: Is this Phone already used? (if provided)
     if (cleanPhone && cleanPhone.length >= 11) {
       const { data: existingPhoneUser } = await supabaseAdmin
