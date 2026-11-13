@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { saveMistriToSupabase } from '@/lib/supabase-service'
 import { addApplicantToQueue, addCustomerToStore } from '@/lib/mistri-store'
+import { EmailOtpService } from '@/lib/email-otp-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,6 +61,17 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         )
       }
+
+      // 2.1 Verify OTP if provided
+      if (body.otpCode) {
+        const otpCheck = await EmailOtpService.verifyOtp(cleanEmail, body.otpCode)
+        if (!otpCheck.success) {
+          return NextResponse.json(
+            { success: false, error: otpCheck.error || 'ভুল Gmail ওটিপি কোড!' },
+            { status: 400 }
+          )
+        }
+      }
     }
 
     // 3. Handle Mistri Registration (Strict Role Exclusion: Mistri !== Customer)
@@ -80,11 +92,13 @@ export async function POST(request: NextRequest) {
       })
 
       let dbProfile: any = null
+      const cleanEmail = email ? email.trim().toLowerCase() : undefined
       try {
         dbProfile = await saveMistriToSupabase({
           fullName,
           fatherName: fatherName || '',
           phone: cleanPhone,
+          email: cleanEmail,
           password,
           district: district || 'ঠাকুরগাঁও',
           upazila: upazila || 'ঠাকুরগাঁও সদর',
@@ -100,13 +114,14 @@ export async function POST(request: NextRequest) {
         success: true,
         role: 'mistri',
         status: 'pending',
-        redirectUrl: `/onboarding?phone=${cleanPhone}&name=${encodeURIComponent(fullName)}&fatherName=${encodeURIComponent(fatherName || '')}&district=${encodeURIComponent(district || 'Thakurgaon')}&upazila=${encodeURIComponent(upazila || 'Thakurgaon Sadar')}`,
+        redirectUrl: `/onboarding?phone=${cleanPhone}&name=${encodeURIComponent(fullName)}&fatherName=${encodeURIComponent(fatherName || '')}&email=${encodeURIComponent(cleanEmail || '')}&district=${encodeURIComponent(district || 'Thakurgaon')}&upazila=${encodeURIComponent(upazila || 'Thakurgaon Sadar')}`,
         user: {
           id: mistriId,
           userId: mistriId,
           name: fullName,
           fatherName: fatherName || '',
           phone: cleanPhone,
+          email: cleanEmail,
           role: 'mistri',
           status: 'pending',
         },

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
-  Upload, Camera, AlertCircle, Lock, KeyRound, Eye, EyeOff, MessageSquare, Loader2, Mail
+  Upload, Camera, AlertCircle, Lock, KeyRound, Eye, EyeOff, Loader2, Mail
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ import { toBanglaNumber } from '@/lib/utils'
 import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 import { DEFAULT_CATEGORIES, CategoryOption, getSubcategoriesForCategory } from '@/lib/categories'
 import { getStoredUser, setStoredUser } from '@/lib/auth-client'
+import { signInWithGooglePopup } from '@/lib/firebase'
 
 function MistriOnboardingContent() {
   const router = useRouter()
@@ -22,6 +23,7 @@ function MistriOnboardingContent() {
   const paramPhone = searchParams.get('phone') || ''
   const paramName = searchParams.get('name') || ''
   const paramFather = searchParams.get('fatherName') || ''
+  const paramEmail = searchParams.get('email') || ''
   const paramDistrict = searchParams.get('district') || ''
   const paramUpazila = searchParams.get('upazila') || ''
 
@@ -107,6 +109,7 @@ function MistriOnboardingContent() {
   const [phone, setPhone] = useState(paramPhone || '')
   const [email, setEmail] = useState('')
   const [isGoogleEmail, setIsGoogleEmail] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('male')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -119,6 +122,7 @@ function MistriOnboardingContent() {
     if (activeName && !fullName) setFullName(activeName)
     if (stored?.avatar && !avatarPreview) setAvatarPreview(stored.avatar)
     if (paramFather && !fatherName) setFatherName(paramFather)
+    if (paramEmail && !email) setEmail(paramEmail)
     if (paramDistrict) setDistrict(paramDistrict)
     if (paramUpazila) setUpazila(paramUpazila)
 
@@ -126,7 +130,29 @@ function MistriOnboardingContent() {
       setEmail(stored.email)
       setIsGoogleEmail(true)
     }
-  }, [paramPhone, paramName, paramFather, paramDistrict, paramUpazila])
+  }, [paramPhone, paramName, paramFather, paramEmail, paramDistrict, paramUpazila])
+
+  const handleGoogleAutofill = async () => {
+    setIsGoogleLoading(true)
+    try {
+      const res = await signInWithGooglePopup()
+      setIsGoogleLoading(false)
+      if (res.success && res.user) {
+        if (res.user.displayName && !fullName) setFullName(res.user.displayName)
+        if (res.user.email) {
+          setEmail(res.user.email)
+          setIsGoogleEmail(true)
+        }
+        if (res.user.photoURL) setAvatarPreview(res.user.photoURL)
+        if (res.user.phoneNumber && !phone) {
+          const digits = res.user.phoneNumber.replace(/[^0-9]/g, '').slice(-11)
+          if (digits.length === 11) setPhone(digits)
+        }
+      }
+    } catch {
+      setIsGoogleLoading(false)
+    }
+  }
 
   const handlePhoneInput = (val: string) => {
     const converted = val.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
@@ -213,80 +239,10 @@ function MistriOnboardingContent() {
     )
   }
 
-  // Section 5: Password & WhatsApp OTP
+  // Section 5: Password Setup
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
-  const [isOtpSent, setIsOtpSent] = useState(false)
-  const [isOtpSending, setIsOtpSending] = useState(false)
-  const [isOtpVerified, setIsOtpVerified] = useState(false)
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
-  const [otpMessage, setOtpMessage] = useState('')
-  const [otpError, setOtpError] = useState('')
-
-  const handleSendOtp = async () => {
-    if (!phone || phone.length < 11) {
-      setOtpError(isBn ? 'সঠিক ১১ সংখ্যার মোবাইল নম্বর দিন' : 'Provide 11-digit mobile number')
-      return
-    }
-    setOtpError('')
-    setOtpMessage('')
-    setIsOtpSending(true)
-
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, channel: 'whatsapp' }),
-      })
-      const data = await res.json()
-      setIsOtpSending(false)
-
-      if (data.success) {
-        setIsOtpSent(true)
-        setOtpMessage(
-          isBn
-            ? `আপনার WhatsApp নম্বরে (${phone}) ওটিপি পাঠানো হয়েছে। কোডটি লিখে যাচাই করুন।`
-            : `OTP sent to WhatsApp (${phone}). Enter it below.`
-        )
-      } else {
-        setOtpError(data.error || 'WhatsApp ওটিপি পাঠাতে সমস্যা হয়েছে')
-      }
-    } catch {
-      setIsOtpSending(false)
-      setOtpError('ওটিপি পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।')
-    }
-  }
-
-  const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.trim().length === 0) {
-      setOtpError(isBn ? 'ওটিপি কোড লিখুন' : 'Enter OTP code')
-      return
-    }
-    setOtpError('')
-    setIsVerifyingOtp(true)
-
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code: otpCode.trim() }),
-      })
-      const data = await res.json()
-      setIsVerifyingOtp(false)
-
-      if (data.success) {
-        setIsOtpVerified(true)
-        setOtpMessage(isBn ? '✓ হোয়াটসঅ্যাপ নম্বর সফলভাবে যাচাই হয়েছে!' : '✓ WhatsApp verified successfully!')
-      } else {
-        setOtpError(data.error || 'ভুল ওটিপি কোড, আবার চেষ্টা করুন')
-      }
-    } catch {
-      setIsVerifyingOtp(false)
-      setOtpError('যাচাইকরণে ত্রুটি হয়েছে')
-    }
-  }
 
   // Unified Single-Page Form Submission
   const handleFinalSubmit = async (e: React.FormEvent) => {
@@ -473,6 +429,23 @@ function MistriOnboardingContent() {
               </p>
             </div>
           </div>
+
+          {!isGoogleEmail && (
+            <button
+              type="button"
+              onClick={handleGoogleAutofill}
+              disabled={isGoogleLoading}
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <span>{isBn ? 'Google দিয়ে ভেরিফাইড Gmail ও প্রোফাইল অটোমেটিক যুক্ত করুন' : 'Auto-fill with Google'}</span>
+            </button>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
@@ -853,7 +826,7 @@ function MistriOnboardingContent() {
           </div>
         </Card>
 
-        {/* SECTION 5: Password & WhatsApp OTP */}
+        {/* SECTION 5: Password Setup */}
         <Card className="p-6 sm:p-8 skeuo-surface border-stone-300 space-y-6">
           <div className="border-b border-stone-200 pb-3 flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2c7865] text-white font-bold text-xs shadow-xs">
@@ -861,10 +834,10 @@ function MistriOnboardingContent() {
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900">
-                {isBn ? 'পাসওয়ার্ড সেট ও হোয়াটসঅ্যাপ ওটিপি যাচাই' : '5. Password & WhatsApp OTP'}
+                {isBn ? 'পাসওয়ার্ড সেট করুন (লগইন সিকিউরিটি)' : '5. Set Account Password'}
               </h2>
               <p className="text-xs text-stone-600">
-                {isBn ? 'ভবিষ্যতে লগইন করার জন্য পাসওয়ার্ড সেট করুন এবং আপনার নম্বর নিশ্চিত করুন' : 'Set your login password & verify WhatsApp phone'}
+                {isBn ? 'ভবিষ্যতে আপনার মোবাইল নম্বর বা Gmail দিয়ে লগইন করার জন্য একটি গোপন পাসওয়ার্ড নির্ধারণ করুন' : 'Set a password to log in with your phone or Gmail'}
               </p>
             </div>
           </div>
@@ -873,7 +846,7 @@ function MistriOnboardingContent() {
           <div className="rounded-2xl skeuo-surface p-4 sm:p-5 space-y-4 border border-stone-300">
             <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
               <Lock className="h-4 w-4 text-[#2c7865]" />
-              <span>{isBn ? 'অ্যাকাউন্টের পাসওয়ার্ড নির্ধারণ করুন' : 'Set Account Password'}</span>
+              <span>{isBn ? 'গোপন পাসওয়ার্ড ও নিশ্চিতকরণ' : 'Password & Confirmation'}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -907,90 +880,9 @@ function MistriOnboardingContent() {
                 <span>{showPassword ? (isBn ? 'পাসওয়ার্ড লুকান' : 'Hide Password') : (isBn ? 'পাসওয়ার্ড দেখুন' : 'Show Password')}</span>
               </button>
               <span className="text-[11px] text-stone-500 font-mono">
-                {isBn ? `লগইন নম্বর: ${phone || 'আপনার নম্বর'}` : `Login ID: ${phone}`}
+                {isBn ? `লগইন আইডি: ${phone || 'আপনার নম্বর'}` : `Login ID: ${phone}`}
               </span>
             </div>
-          </div>
-
-          {/* WhatsApp OTP Verification Box */}
-          <div className="rounded-2xl border-2 border-stone-300 bg-stone-50 p-4 sm:p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-[#2c7865]" />
-                  <span>{isBn ? 'হোয়াটসঅ্যাপ (WhatsApp) নম্বর যাচাই' : 'WhatsApp Verification'}</span>
-                </h3>
-                <p className="text-[11px] text-stone-600 mt-0.5">
-                  {isBn ? `নম্বর: ${phone || '১১ সংখ্যার নম্বর'}` : `Number: ${phone}`}
-                </p>
-              </div>
-              {isOtpVerified && (
-                <Badge variant="neutral" className="bg-[#2c7865] text-white text-[11px] px-2.5 py-1 font-bold">
-                  ✓ {isBn ? 'যাচাইকৃত' : 'Verified'}
-                </Badge>
-              )}
-            </div>
-
-            {!isOtpVerified && (
-              <div className="space-y-3 pt-1">
-                {!isOtpSent ? (
-                  <Button
-                    type="button"
-                    onClick={handleSendOtp}
-                    isLoading={isOtpSending}
-                    className="skeuo-btn-dark text-xs font-bold py-2.5 rounded-xl cursor-pointer"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    <span>{isBn ? 'WhatsApp-এ ওটিপি কোড পাঠান' : 'Send WhatsApp OTP'}</span>
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <Input
-                        id="otpCode"
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={6}
-                        placeholder="৪-সংখ্যার কোড (যেমন: 1234)"
-                        value={otpCode}
-                        onChange={(e) => {
-                          const converted = e.target.value.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
-                          setOtpCode(converted.replace(/[^0-9]/g, ''))
-                        }}
-                        className="text-center font-mono font-bold tracking-widest text-base"
-                      />
-                      <Button
-                        type="button"
-                        onClick={handleVerifyOtp}
-                        isLoading={isVerifyingOtp}
-                        className="skeuo-btn-dark text-xs font-bold px-5 shrink-0 cursor-pointer"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span>{isBn ? 'যাচাই করুন' : 'Verify'}</span>
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-[#2c7865] font-medium">{otpMessage}</span>
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={isOtpSending}
-                        className="text-[#2c7865] hover:underline font-bold cursor-pointer"
-                      >
-                        {isBn ? 'পুনরায় পাঠান' : 'Resend OTP'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {otpError && (
-                  <div className="rounded-xl bg-red-50 p-2.5 text-xs text-red-700 border border-red-300 font-medium">
-                    {otpError}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </Card>
 

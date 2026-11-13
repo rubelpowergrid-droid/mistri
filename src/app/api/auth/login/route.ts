@@ -6,11 +6,14 @@ import { getApplicantsStore, INITIAL_APPROVED_MISTRIS } from '@/lib/mistri-store
 export async function POST(request: NextRequest) {
   try {
     const { phone, password } = await request.json()
-    const cleanPhone = (phone || '').replace(/[^0-9]/g, '')
+    const inputId = (phone || '').trim()
+    const isEmailInput = inputId.includes('@')
+    const cleanEmail = isEmailInput ? inputId.toLowerCase() : ''
+    const cleanPhone = isEmailInput ? '' : inputId.replace(/[^0-9]/g, '')
 
-    if (!cleanPhone || !password) {
+    if ((!cleanPhone && !cleanEmail) || !password) {
       return NextResponse.json(
-        { success: false, error: 'মোবাইল নম্বর ও পাসওয়ার্ড প্রদান করুন' },
+        { success: false, error: 'মোবাইল নম্বর বা Gmail এবং পাসওয়ার্ড প্রদান করুন' },
         { status: 400 }
       )
     }
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     const isAdmin =
       cleanPhone === '01700000000' ||
       cleanPhone === '01722092804' ||
-      phone.toLowerCase().includes('admin')
+      inputId.toLowerCase().includes('admin')
 
     if (isAdmin) {
       if (password === 'admin1234' || password === 'Mistri@2026') {
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
           success: true,
           role: 'admin',
           redirectUrl: '/admin/dashboard',
-          user: { phone: cleanPhone, name: 'Admin', role: 'admin' },
+          user: { phone: cleanPhone || '01700000000', name: 'Admin', role: 'admin' },
         })
       } else {
         return NextResponse.json(
@@ -47,11 +50,13 @@ export async function POST(request: NextRequest) {
     // 2. Authoritative Supabase Database Check (Mistri or Customer)
     try {
       const supabase = createAdminClient() as any
-      const { data: dbUser } = await supabase
-        .from('users')
-        .select('id, phone, email, role')
-        .eq('phone', cleanPhone)
-        .maybeSingle()
+      let query = supabase.from('users').select('id, phone, email, role')
+      if (cleanEmail) {
+        query = query.eq('email', cleanEmail)
+      } else {
+        query = query.eq('phone', cleanPhone)
+      }
+      const { data: dbUser } = await query.maybeSingle()
 
       if (dbUser) {
         // Fetch user metadata from auth
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
           authUser = authRes.data?.user
         } catch (e) {}
 
-        const userEmail = dbUser.email || `${dbUser.role}_${cleanPhone}@mistri.app`
+        const userEmail = dbUser.email || (cleanPhone ? `${dbUser.role}_${cleanPhone}@mistri.app` : cleanEmail)
 
         let isPasswordValid =
           password === 'Mistri@2026' ||

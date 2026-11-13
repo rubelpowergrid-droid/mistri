@@ -24,9 +24,10 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const cleanPhone = phone.trim().replace(/[^0-9a-zA-Z]/g, '')
+    const trimmedInput = phone.trim()
+    const cleanPhone = trimmedInput.includes('@') ? trimmedInput.toLowerCase() : trimmedInput.replace(/[^0-9a-zA-Z]/g, '')
     if (!cleanPhone || cleanPhone.length < 5) {
-      setError(isBn ? 'সঠিক মোবাইল নম্বর অথবা ইউজারনেম দিন' : 'Enter a valid mobile number or username')
+      setError(isBn ? 'সঠিক মোবাইল নম্বর অথবা Gmail দিন' : 'Enter a valid mobile number or Gmail')
       return
     }
 
@@ -92,21 +93,21 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 2. Direct Mobile + Password Form */}
+        {/* 2. Direct Mobile or Gmail + Password Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
             id="phone"
             type="text"
-            label={isBn ? 'মোবাইল নম্বর' : 'Mobile Number'}
-            placeholder="017XXXXXXXX"
+            label={isBn ? 'মোবাইল নম্বর অথবা Gmail' : 'Mobile Number or Gmail'}
+            placeholder={isBn ? '017XXXXXXXX অথবা your@gmail.com' : '017XXXXXXXX or your@gmail.com'}
             value={phone}
             onChange={(e) => {
               const val = e.target.value
-              if (val.toLowerCase().startsWith('admin')) {
+              if (val.includes('@') || val.toLowerCase().startsWith('admin')) {
                 setPhone(val)
               } else {
                 const converted = val.replace(/[০-৯]/g, (d) => '০১২৩৪৫৬৭৮৯'.indexOf(d).toString())
-                setPhone(converted.replace(/[^0-9]/g, '').slice(0, 11))
+                setPhone(converted)
               }
             }}
             leftIcon={<Phone className="h-4 w-4" />}
