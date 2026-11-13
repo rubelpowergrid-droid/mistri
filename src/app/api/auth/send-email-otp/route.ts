@@ -20,7 +20,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: result.message,
+      code: result.code,
       previewCode: result.previewCode,
+      rateLimited: result.rateLimited,
     })
   } catch (error: any) {
     console.error('Error in send-email-otp:', error)
@@ -30,3 +32,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

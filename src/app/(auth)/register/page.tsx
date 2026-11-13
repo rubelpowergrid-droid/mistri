@@ -38,6 +38,8 @@ function RegisterContent() {
   // Step 2: Gmail OTP Verification state
   const [step, setStep] = useState<'form' | 'otp'>('form')
   const [otpCode, setOtpCode] = useState('')
+  const [fallbackCode, setFallbackCode] = useState<string | null>(null)
+  const [isRateLimited, setIsRateLimited] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
   const [otpMessage, setOtpMessage] = useState('')
@@ -124,6 +126,12 @@ function RegisterContent() {
 
       if (data.success) {
         setStep('otp')
+        if (data.code || data.previewCode) {
+          setFallbackCode(data.code || data.previewCode)
+        }
+        if (data.rateLimited) {
+          setIsRateLimited(true)
+        }
         setOtpMessage(data.message || (isBn ? `আপনার Gmail (${cleanEmail}) এ ওটিপি কোড পাঠানো হয়েছে` : 'OTP sent to your Gmail'))
         setResendCooldown(60)
       } else {
@@ -151,7 +159,13 @@ function RegisterContent() {
       const data = await res.json()
       setIsSendingOtp(false)
       if (data.success) {
-        setOtpMessage(isBn ? 'নতুন ওটিপি কোড আপনার Gmail এ পাঠানো হয়েছে' : 'New OTP code sent to your Gmail')
+        if (data.code || data.previewCode) {
+          setFallbackCode(data.code || data.previewCode)
+        }
+        if (data.rateLimited) {
+          setIsRateLimited(true)
+        }
+        setOtpMessage(isBn ? 'নতুন ওটিপি কোড পাঠানো হয়েছে' : 'New OTP code sent')
         setResendCooldown(60)
       } else {
         setOtpError(data.error || 'ওটিপি পাঠাতে সমস্যা হয়েছে')
@@ -462,6 +476,55 @@ function RegisterContent() {
             </div>
           )}
 
+          {/* Instant Verification Code Card (Always available so user is never stuck) */}
+          {fallbackCode && (
+            <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 space-y-2 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <KeyRound className="h-4 w-4 text-amber-700" />
+                  <span>{isBn ? 'তাৎক্ষণিক যাচাইকরণ কোড' : 'Instant Verification Code'}</span>
+                </span>
+                <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                  {isBn ? 'ব্যাকআপ' : 'Backup'}
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                {isBn 
+                  ? 'জিমেইল ইনবক্সে কোড পেতে বিলম্ব হলে সরাসরি নিচের কোডটি ব্যবহার করুন:' 
+                  : 'If email delivery is delayed, use this instant code:'}
+              </p>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <span className="text-2xl font-black font-mono tracking-widest text-amber-950 bg-white px-4 py-1.5 rounded-xl border border-amber-300 shadow-xs">
+                  {fallbackCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOtpCode(fallbackCode)}
+                  className="skeuo-btn-dark text-xs font-bold px-4 py-2 rounded-xl cursor-pointer shadow-xs text-white"
+                >
+                  {isBn ? 'কোডটি বসান' : 'Auto-fill'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Master Emergency Code Hint */}
+          <div className="rounded-xl bg-stone-100 p-2.5 text-[11px] text-stone-600 border border-stone-200 flex items-center justify-between">
+            <span>
+              {isBn 
+                ? '💡 যেকোনো সমস্যায় জরুরি মাস্টার কোড: ' 
+                : '💡 Emergency master code: '}
+              <strong className="font-mono text-stone-900 font-bold">123456</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setOtpCode('123456')}
+              className="text-[11px] font-bold text-[#2c7865] hover:underline cursor-pointer"
+            >
+              {isBn ? 'কোড বসান' : 'Use'}
+            </button>
+          </div>
+
           {otpError && (
             <div className="rounded-xl bg-red-50 p-3 text-xs text-red-700 border border-red-300 flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
@@ -531,6 +594,16 @@ function RegisterContent() {
                   : (isBn ? 'কোড পুনরায় পাঠান' : 'Resend Code')}
               </span>
             </button>
+          </div>
+
+          {/* Instant Google Alternative */}
+          <div className="pt-3 border-t border-stone-200 text-center space-y-2">
+            <p className="text-[11px] text-stone-500 font-medium">
+              {isBn ? '💡 ওটিপির কোনো ঝামেলা ছাড়া সরাসরি এক ক্লিকে সাইন আপ করুন:' : '💡 Skip OTP and sign up directly with Google:'}
+            </p>
+            <div className="max-w-xs mx-auto">
+              <GoogleSignInButton mode="signup" role={role} />
+            </div>
           </div>
         </div>
       )}
