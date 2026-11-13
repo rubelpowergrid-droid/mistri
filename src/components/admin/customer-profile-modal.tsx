@@ -40,7 +40,13 @@ export function CustomerProfileModal({
   if (!isOpen || !customer) return null
 
   const cleanPhone = (customer.phone || '').replace(/[^0-9]/g, '')
-  const displayEmail = customer.email || `customer_${cleanPhone || 'account'}@mistri.app`
+  const isRealEmail = !!(
+    customer.email &&
+    customer.email.includes('@') &&
+    !customer.email.endsWith('@mistri.app') &&
+    !customer.email.endsWith('@mistri.internal')
+  )
+  const displayEmail = isRealEmail ? customer.email! : null
 
   const handleCopy = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text)
@@ -131,13 +137,20 @@ export function CustomerProfileModal({
               <span>সরাসরি কল দিন</span>
             </a>
 
-            <a
-              href={`mailto:${displayEmail}`}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-xs transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              <span>ইমেইল পাঠান</span>
-            </a>
+            {displayEmail ? (
+              <a
+                href={`mailto:${displayEmail}`}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                <span>ইমেইল পাঠান</span>
+              </a>
+            ) : (
+              <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-stone-200 text-stone-500 text-xs font-semibold cursor-not-allowed">
+                <Mail className="h-4 w-4" />
+                <span>Gmail যুক্ত নেই</span>
+              </div>
+            )}
           </div>
 
           {/* Contact Details Card */}
@@ -155,17 +168,19 @@ export function CustomerProfileModal({
                     <span>Gmail / ইমেইল অ্যাড্রেস</span>
                   </div>
                   <p className="text-xs font-bold text-stone-900 font-mono break-all">
-                    {displayEmail}
+                    {displayEmail || 'কোনো Gmail যুক্ত নেই (মোবাইল দিয়ে নিবন্ধিত)'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(displayEmail, 'email')}
-                  className="p-1.5 rounded-lg bg-white border border-stone-300 text-stone-600 hover:text-black cursor-pointer"
-                  title="কপি করুন"
-                >
-                  {copiedField === 'email' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
+                {displayEmail && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(displayEmail, 'email')}
+                    className="p-1.5 rounded-lg bg-white border border-stone-300 text-stone-600 hover:text-black cursor-pointer"
+                    title="কপি করুন"
+                  >
+                    {copiedField === 'email' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                )}
               </div>
 
               {/* Mobile Phone */}
@@ -251,3 +266,4 @@ export function CustomerProfileModal({
     </div>
   )
 }
+

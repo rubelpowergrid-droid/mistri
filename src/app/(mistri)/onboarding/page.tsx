@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   User, Shield, MapPin, Wrench, CheckCircle2, 
-  Upload, Camera, AlertCircle, Lock, KeyRound, Eye, EyeOff, MessageSquare, Loader2
+  Upload, Camera, AlertCircle, Lock, KeyRound, Eye, EyeOff, MessageSquare, Loader2, Mail
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { toBanglaNumber } from '@/lib/utils'
 import { DEFAULT_DISTRICTS, DistrictOption, getUpazilasForDistrict } from '@/lib/locations'
 import { DEFAULT_CATEGORIES, CategoryOption, getSubcategoriesForCategory } from '@/lib/categories'
-import { getStoredUser } from '@/lib/auth-client'
+import { getStoredUser, setStoredUser } from '@/lib/auth-client'
 
 function MistriOnboardingContent() {
   const router = useRouter()
@@ -105,20 +105,27 @@ function MistriOnboardingContent() {
   const [fullName, setFullName] = useState(paramName || '')
   const [fatherName, setFatherName] = useState(paramFather || '')
   const [phone, setPhone] = useState(paramPhone || '')
+  const [email, setEmail] = useState('')
+  const [isGoogleEmail, setIsGoogleEmail] = useState(false)
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('male')
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   useEffect(() => {
     const stored = getStoredUser()
-    const activePhone = paramPhone || (stored?.role === 'mistri' ? stored.phone : '')
-    const activeName = paramName || (stored?.role === 'mistri' ? stored.name : '')
-    if (activePhone && !phone) setPhone(activePhone)
+    const activePhone = paramPhone || stored?.phone || ''
+    const activeName = paramName || stored?.name || ''
+    if (activePhone && !phone && !activePhone.startsWith('01000000000')) setPhone(activePhone)
     if (activeName && !fullName) setFullName(activeName)
     if (stored?.avatar && !avatarPreview) setAvatarPreview(stored.avatar)
     if (paramFather && !fatherName) setFatherName(paramFather)
     if (paramDistrict) setDistrict(paramDistrict)
     if (paramUpazila) setUpazila(paramUpazila)
+
+    if (stored?.email && !stored.email.endsWith('@mistri.app') && !stored.email.endsWith('@mistri.internal')) {
+      setEmail(stored.email)
+      setIsGoogleEmail(true)
+    }
   }, [paramPhone, paramName, paramFather, paramDistrict, paramUpazila])
 
   const handlePhoneInput = (val: string) => {
@@ -329,6 +336,10 @@ function MistriOnboardingContent() {
     setIsSubmitting(true)
 
     try {
+      const stored = getStoredUser()
+      const cleanEmail = email.trim().toLowerCase() || (stored?.email && !stored.email.endsWith('@mistri.app') ? stored.email.toLowerCase() : '')
+      const activeUserId = (stored as any)?.userId || stored?.id || undefined
+
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -336,6 +347,8 @@ function MistriOnboardingContent() {
           fullName: fullName.trim(),
           fatherName: fatherName.trim(),
           phone,
+          email: cleanEmail,
+          userId: activeUserId,
           password,
           dateOfBirth,
           gender,
@@ -364,14 +377,16 @@ function MistriOnboardingContent() {
       if (data.success) {
         if (typeof window !== 'undefined') {
           const applicantUser = {
-            id: data.applicant?.id || `mst-${Date.now()}`,
+            id: data.applicant?.id || stored?.id || `mst-${Date.now()}`,
+            userId: activeUserId || data.applicant?.userId,
             name: fullName.trim(),
             phone,
+            email: cleanEmail || undefined,
+            avatar: avatarPreview || stored?.avatar || '',
             role: 'mistri' as const,
             status: 'pending',
           }
-          localStorage.setItem('mistri_user', JSON.stringify(applicantUser))
-          window.dispatchEvent(new Event('mistri_auth_changed'))
+          setStoredUser(applicantUser as any)
         }
         // Direct redirect to Mistri Profile & Dashboard (Zero multi-page jump!)
         router.push('/mistri/profile')
@@ -477,7 +492,7 @@ function MistriOnboardingContent() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Input
                 id="phone"
@@ -493,6 +508,36 @@ function MistriOnboardingContent() {
               </span>
             </div>
 
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label htmlFor="email" className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-blue-600" />
+                  <span>{isBn ? 'Gmail / ইমেইল ঠিকানা' : 'Gmail / Email'}</span>
+                </label>
+                {isGoogleEmail && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                    {isBn ? '✓ গুগল ভেরিফাইড' : '✓ Google Verified'}
+                  </span>
+                )}
+              </div>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={isBn ? 'আপনার Gmail (যেমন: name@gmail.com)' : 'Your Gmail (e.g. name@gmail.com)'}
+                readOnly={isGoogleEmail}
+                className={isGoogleEmail ? 'bg-stone-100 font-mono text-stone-700 cursor-not-allowed' : ''}
+              />
+              <span className="text-[10px] text-stone-500">
+                {isGoogleEmail 
+                  ? (isBn ? 'আপনার লগইন করা গুগল অ্যাকাউন্ট থেকে নেওয়া হয়েছে' : 'Linked from your Google account')
+                  : (isBn ? 'আপনার সক্রিয় Gmail অ্যাড্রেস' : 'Active Gmail address')}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               id="dob"
               type="date"

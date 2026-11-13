@@ -133,6 +133,8 @@ export async function saveMistriToSupabase(data: {
   fullName: string
   fatherName?: string
   phone: string
+  email?: string
+  userId?: string
   password?: string
   nidNumber?: string
   nidFrontUrl?: string
@@ -157,16 +159,30 @@ export async function saveMistriToSupabase(data: {
   try {
     const supabase = createAdminClient() as any
     const cleanPhone = (data.phone || '').replace(/[^0-9]/g, '')
-    const email = `mistri_${cleanPhone}@mistri.app`
+    const cleanEmail = (data.email && data.email.includes('@') && !data.email.endsWith('@mistri.app'))
+      ? data.email.trim().toLowerCase()
+      : null
+    const email = cleanEmail || `mistri_${cleanPhone}@mistri.app`
 
-    let userId: string | null = null
+    let userId: string | null = data.userId || null
 
-    // Check if user already exists in users table
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('phone', cleanPhone)
-      .maybeSingle()
+    // 1. If userId provided, check if valid
+    if (userId) {
+      const { data: uById } = await supabase.from('users').select('id, email').eq('id', userId).maybeSingle()
+      if (!uById) userId = null
+    }
+
+    // 2. If not found by id, check by cleanEmail if available
+    if (!userId && cleanEmail) {
+      const { data: uByEmail } = await supabase.from('users').select('id, email').eq('email', cleanEmail).maybeSingle()
+      if (uByEmail?.id) userId = uByEmail.id
+    }
+
+    // 3. If not found, check by phone
+    if (!userId && cleanPhone) {
+      const { data: uByPhone } = await supabase.from('users').select('id, email').eq('phone', cleanPhone).maybeSingle()
+      if (uByPhone?.id) userId = uByPhone.id
+    }
 
     const metaPayload: any = {
       phone: cleanPhone,
@@ -186,13 +202,18 @@ export async function saveMistriToSupabase(data: {
       service_radius_km: Number(data.serviceRadiusKm) || 15,
       role: 'mistri',
     }
+    if (cleanEmail) {
+      metaPayload.email = cleanEmail
+    }
     if (data.password) {
       metaPayload.plain_pass = data.password
     }
 
-    if (existingUser?.id) {
-      userId = existingUser.id
-      const userUpdates: any = { role: 'mistri' }
+    if (userId) {
+      const userUpdates: any = { role: 'mistri', phone: cleanPhone }
+      if (cleanEmail) {
+        userUpdates.email = cleanEmail
+      }
       if (data.avatarUrl) {
         userUpdates.avatar_url = data.avatarUrl
       }
@@ -203,6 +224,7 @@ export async function saveMistriToSupabase(data: {
         const oldMeta = authUserRes.data?.user?.user_metadata || {}
         await supabase.auth.admin.updateUserById(userId, {
           ...(data.password ? { password: data.password } : {}),
+          ...(cleanEmail ? { email: cleanEmail } : {}),
           email_confirm: true,
           user_metadata: {
             ...oldMeta,
@@ -244,7 +266,7 @@ export async function saveMistriToSupabase(data: {
           await supabase.from('users').upsert({
             id: userId,
             phone: cleanPhone,
-            email,
+            email: cleanEmail || email,
             role: 'mistri',
             preferred_language: 'bn',
             ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}),
@@ -262,7 +284,7 @@ export async function saveMistriToSupabase(data: {
         await supabase.from('users').insert({
           id: userId,
           phone: cleanPhone,
-          email,
+          email: cleanEmail || email,
           role: 'mistri',
           preferred_language: 'bn',
           ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}),
