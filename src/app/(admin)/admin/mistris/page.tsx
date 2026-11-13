@@ -14,21 +14,35 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber, formatBDT } from '@/lib/utils'
+import { MistriProfileModal, MistriProfileData } from '@/components/admin/mistri-profile-modal'
 
 interface MistriWorker {
   id: string
+  userId?: string
   name: string
   phone: string
+  email?: string
   title: string
   category: string
   district: string
   upazila: string
+  streetAddress?: string
+  serviceRadiusKm?: number
   experienceYears: number
+  chargeType?: string
+  baseCharge?: number
+  bio?: string
+  gender?: string
+  dateOfBirth?: string
   rating: number
   reviewsCount: number
   completedJobs: number
   status: 'approved' | 'pending' | 'suspended' | 'trash'
   avatar: string
+  nidNumber?: string
+  nidFront?: string
+  nidBack?: string
+  createdAt?: string
 }
 
 function AdminMistrisContent() {
@@ -47,6 +61,7 @@ function AdminMistrisContent() {
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Modals state
+  const [selectedMistriForProfile, setSelectedMistriForProfile] = useState<MistriProfileData | null>(null)
   const [selectedMistriForTrash, setSelectedMistriForTrash] = useState<MistriWorker | null>(null)
   const [selectedMistriForPermanentDelete, setSelectedMistriForPermanentDelete] = useState<MistriWorker | null>(null)
   const [isProcessingAction, setIsProcessingAction] = useState(false)
@@ -395,7 +410,15 @@ function AdminMistrisContent() {
                 />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-stone-900">{m.name}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMistriForProfile(m as any)}
+                      className="text-sm font-bold text-stone-900 hover:text-[#2c7865] hover:underline cursor-pointer text-left flex items-center gap-1.5 group"
+                      title={isBn ? 'সম্পূর্ণ প্রোফাইল ও Gmail/মোবাইল নম্বর প্রিভিউ দেখতে ক্লিক করুন' : 'Click to preview full profile'}
+                    >
+                      <span>{m.name}</span>
+                      <Eye className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 text-[#2c7865] transition-opacity shrink-0" />
+                    </button>
                     <Badge variant="primary" className="text-[10px] bg-[#2c7865] text-[#fefded]">
                       {m.category}
                     </Badge>
@@ -464,6 +487,18 @@ function AdminMistrisContent() {
                   </>
                 ) : (
                   <>
+                    {/* View Full Profile Modal Button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedMistriForProfile(m as any)}
+                      className="text-xs font-semibold text-stone-800 border-stone-300 hover:bg-stone-100 px-3 py-1.5 rounded-xl cursor-pointer"
+                      title={isBn ? 'মিস্ত্রীর পূর্ণাঙ্গ প্রোফাইল, Gmail ও ফোন নম্বর দেখুন' : 'View Full Profile'}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1 text-[#2c7865]" />
+                      <span>{isBn ? 'প্রোফাইল দেখুন' : 'View Profile'}</span>
+                    </Button>
+
                     {/* Suspend / Reactivate Button */}
                     <Button
                       size="sm"
@@ -612,6 +647,14 @@ function AdminMistrisContent() {
           </Card>
         </div>
       )}
+      {/* Mistri Full Profile Preview Modal */}
+      <MistriProfileModal
+        mistri={selectedMistriForProfile}
+        isOpen={!!selectedMistriForProfile}
+        onClose={() => setSelectedMistriForProfile(null)}
+        onToggleSuspend={toggleSuspend}
+        onTrash={(m) => setSelectedMistriForTrash(m as any)}
+      />
     </div>
   )
 }

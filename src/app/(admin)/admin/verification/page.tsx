@@ -12,12 +12,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber } from '@/lib/utils'
+import { MistriProfileModal, MistriProfileData } from '@/components/admin/mistri-profile-modal'
 
 export default function VerificationQueuePage() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
   const [applicants, setApplicants] = useState<any[]>([])
+  const [selectedApplicantForProfile, setSelectedApplicantForProfile] = useState<MistriProfileData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [districtFilter, setDistrictFilter] = useState('all')
@@ -249,7 +251,35 @@ export default function VerificationQueuePage() {
                           className="h-10 w-10 rounded-xl object-cover border border-slate-200 shrink-0"
                         />
                         <div>
-                          <span className="font-bold text-slate-900 text-xs block">{app.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedApplicantForProfile({
+                              id: app.id,
+                              name: app.name,
+                              phone: app.phone,
+                              email: app.email,
+                              title: app.category,
+                              category: app.category,
+                              district: app.district,
+                              upazila: app.upazila,
+                              streetAddress: app.streetAddress,
+                              experienceYears: app.experienceYears || 5,
+                              rating: 5.0,
+                              reviewsCount: 1,
+                              completedJobs: 0,
+                              status: app.status || 'pending',
+                              avatar: app.avatar,
+                              nidNumber: app.nidNumber,
+                              nidFront: app.nidFront,
+                              nidBack: app.nidBack,
+                              createdAt: app.submittedAt,
+                            })}
+                            className="font-bold text-slate-900 text-xs hover:text-blue-600 hover:underline cursor-pointer text-left flex items-center gap-1 group"
+                            title={isBn ? 'সম্পূর্ণ প্রোফাইল ও Gmail দেখতে ক্লিক করুন' : 'Click to preview profile'}
+                          >
+                            <span>{app.name}</span>
+                            <Eye className="h-3 w-3 opacity-60 group-hover:opacity-100 text-blue-600 transition-opacity shrink-0" />
+                          </button>
                           <span className="text-[11px] text-slate-500 font-mono block">{app.phone}</span>
                           <span className="text-[10px] text-slate-400 font-mono block">NID: {app.nidNumber}</span>
                         </div>
@@ -344,6 +374,13 @@ export default function VerificationQueuePage() {
           </table>
         </div>
       </Card>
+
+      {/* Applicant Full Profile Modal */}
+      <MistriProfileModal
+        mistri={selectedApplicantForProfile}
+        isOpen={!!selectedApplicantForProfile}
+        onClose={() => setSelectedApplicantForProfile(null)}
+      />
     </div>
   )
 }

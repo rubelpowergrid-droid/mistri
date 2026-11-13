@@ -20,11 +20,13 @@ export interface AdminCustomerItem {
   id: string
   name: string
   phone: string
+  email?: string
   district: string
   upazila: string
   address: string
   totalBookings: number
   lastBookingDate: string
+  createdAt?: string
   status: 'active' | 'inactive'
   avatar: string
 }
@@ -127,11 +129,13 @@ export async function getAdminCustomersData() {
       id: u.id,
       name,
       phone: u.phone,
+      email: u.email || '',
       district,
       upazila,
       address,
       totalBookings,
       lastBookingDate,
+      createdAt: u.created_at || '',
       status: u.is_active !== false ? 'active' : 'inactive',
       avatar: u.avatar_url || demoMatch?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
     })
@@ -146,11 +150,13 @@ export async function getAdminCustomersData() {
         id: demo.id,
         name: demo.name,
         phone: demo.phone,
+        email: `customer_${phone}@mistri.app`,
         district: demo.district,
         upazila: demo.upazila,
         address: demo.address,
         totalBookings: demo.totalBookings,
         lastBookingDate: demo.lastBookingDate,
+        createdAt: '',
         status: demo.status,
         avatar: demo.avatar,
       })

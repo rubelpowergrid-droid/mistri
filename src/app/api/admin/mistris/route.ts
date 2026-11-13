@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       const supabase = createAdminClient() as any
       const { data } = await supabase
         .from('mistri_profiles')
-        .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
+        .select('*, users(phone, email, avatar_url, created_at), districts(name_bn, name_en), upazilas(name_bn, name_en), mistri_documents(*)')
       
       if (data && Array.isArray(data)) {
         supabaseMistris = data
@@ -61,20 +61,35 @@ export async function GET(request: NextRequest) {
               computedStatus = 'suspended'
             }
 
+            const doc = Array.isArray(row.mistri_documents) ? row.mistri_documents[0] : row.mistri_documents
+
             return {
               id: row.id,
+              userId: row.user_id,
               name: row.full_name,
               phone: row.users?.phone || '017XXXXXXXX',
+              email: row.users?.email || '',
               title: row.professional_title || 'দক্ষ মিস্ত্রী',
               category: catInfo.category_name_bn,
               district: row.districts?.name_bn || 'ঠাকুরগাঁও',
               upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
+              streetAddress: row.street_address || '',
+              serviceRadiusKm: row.max_service_distance_km || 15,
               experienceYears: row.experience_years || 5,
+              chargeType: row.charge_type || 'আলোচনা সাপেক্ষে',
+              baseCharge: row.base_charge || 400,
+              bio: row.bio || '',
+              gender: row.gender || '',
+              dateOfBirth: row.date_of_birth || '',
               rating: row.average_rating || 5.0,
               reviewsCount: row.total_reviews || 1,
               completedJobs: row.total_completed_jobs || 0,
               status: computedStatus,
               avatar: row.users?.avatar_url || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80',
+              nidNumber: doc?.nid_number || '',
+              nidFront: doc?.nid_front_storage_path || '',
+              nidBack: doc?.nid_back_storage_path || '',
+              createdAt: row.created_at || row.users?.created_at || '',
             }
           })
       }
@@ -117,18 +132,31 @@ export async function GET(request: NextRequest) {
 
         combined.push({
           id: lm.id,
+          userId: lm.userId || lm.id,
           name: lm.name_bn || lm.name,
           phone: lm.phone,
+          email: lm.email || `mistri_${cleanPhone}@mistri.app`,
           title: lm.title || lm.professional_title,
           category: lm.category_name_bn || lm.category,
           district: lm.district_bn || lm.district,
           upazila: lm.upazila_bn || lm.upazila,
+          streetAddress: lm.streetAddress || lm.address || `${lm.upazila_bn || lm.upazila}, ${lm.district_bn || lm.district}`,
+          serviceRadiusKm: lm.serviceRadiusKm || 15,
           experienceYears: lm.experience_years || lm.experienceYears || 5,
+          chargeType: lm.chargeType || 'আলোচনা সাপেক্ষে',
+          baseCharge: lm.baseCharge || 400,
+          bio: lm.bio || 'দক্ষ ও অভিজ্ঞ কারিগর',
+          gender: lm.gender || 'male',
+          dateOfBirth: lm.dateOfBirth || '',
           rating: lm.average_rating || lm.rating || 5.0,
           reviewsCount: lm.total_reviews || lm.reviewsCount || 1,
           completedJobs: lm.total_completed_jobs || lm.completedJobs || 0,
           status: computedStatus,
           avatar: lm.avatar,
+          nidNumber: lm.nidNumber || '৮২০৩৪৫৮৭৪৩',
+          nidFront: lm.nidFront || '',
+          nidBack: lm.nidBack || '',
+          createdAt: lm.createdAt || '',
         })
       }
     }
@@ -148,18 +176,31 @@ export async function GET(request: NextRequest) {
 
         combined.push({
           id: app.id,
+          userId: app.id,
           name: app.name,
           phone: app.phone,
+          email: app.email || `mistri_${cleanPhone}@mistri.app`,
           title: app.category,
           category: app.category,
           district: app.district,
           upazila: app.upazila,
+          streetAddress: app.streetAddress || `${app.upazila}, ${app.district}`,
+          serviceRadiusKm: app.serviceRadiusKm || 15,
           experienceYears: app.experienceYears,
+          chargeType: app.chargeType || 'আলোচনা সাপেক্ষে',
+          baseCharge: app.baseCharge || 400,
+          bio: app.bio || 'দক্ষ ও অভিজ্ঞ কারিগর',
+          gender: app.gender || 'male',
+          dateOfBirth: app.dateOfBirth || '',
           rating: 5.0,
           reviewsCount: 1,
           completedJobs: 0,
           status: computedStatus,
           avatar: app.avatar,
+          nidNumber: app.nidNumber || '',
+          nidFront: app.nidFrontUrl || app.nidFront || '',
+          nidBack: app.nidBackUrl || app.nidBack || '',
+          createdAt: app.submittedAt || '',
         })
       }
     }

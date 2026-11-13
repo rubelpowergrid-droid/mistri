@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Users, Search, Filter, Phone, MapPin, Calendar, 
-  CheckCircle2, ArrowLeft, Star, ShoppingBag, RefreshCw 
+  CheckCircle2, ArrowLeft, Star, ShoppingBag, RefreshCw,
+  Eye, Mail 
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -12,16 +13,19 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber } from '@/lib/utils'
+import { CustomerProfileModal, CustomerProfileData } from '@/components/admin/customer-profile-modal'
 
 interface CustomerItem {
   id: string
   name: string
   phone: string
+  email?: string
   district: string
   upazila: string
   address: string
   totalBookings: number
   lastBookingDate: string
+  createdAt?: string
   status: 'active' | 'inactive'
   avatar: string
 }
@@ -33,6 +37,7 @@ export default function AdminCustomersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [districtFilter, setDistrictFilter] = useState('all')
   const [customersList, setCustomersList] = useState<CustomerItem[]>([])
+  const [selectedCustomerForProfile, setSelectedCustomerForProfile] = useState<CustomerProfileData | null>(null)
   const [activeCount, setActiveCount] = useState(0)
   const [totalCompletedBookings, setTotalCompletedBookings] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -205,7 +210,15 @@ export default function AdminCustomersPage() {
                           className="h-10 w-10 rounded-xl object-cover border border-slate-200 shrink-0"
                         />
                         <div>
-                          <span className="font-bold text-slate-900 text-xs block">{c.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCustomerForProfile(c as any)}
+                            className="font-bold text-slate-900 text-xs hover:text-blue-600 hover:underline cursor-pointer text-left flex items-center gap-1 group"
+                            title={isBn ? 'কাস্টমারের সম্পূর্ণ প্রোফাইল ও Gmail দেখতে ক্লিক করুন' : 'Click to view full customer profile'}
+                          >
+                            <span>{c.name}</span>
+                            <Eye className="h-3 w-3 opacity-60 group-hover:opacity-100 text-blue-600 transition-opacity shrink-0" />
+                          </button>
                           <span className="text-[11px] text-slate-500 font-mono block">{c.phone}</span>
                         </div>
                       </div>
@@ -239,15 +252,26 @@ export default function AdminCustomersPage() {
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
-                      <a
-                        href={`https://wa.me/88${(c.phone || '').replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-emerald-700 font-bold hover:underline bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
-                      >
-                        <Phone className="h-3 w-3" />
-                        <span>WhatsApp চ্যাট</span>
-                      </a>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomerForProfile(c as any)}
+                          className="inline-flex items-center gap-1 text-xs text-slate-700 font-bold hover:text-blue-700 hover:bg-blue-50 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300 cursor-pointer transition-colors"
+                          title={isBn ? 'প্রোফাইল দেখুন' : 'View Profile'}
+                        >
+                          <Eye className="h-3 w-3 text-blue-600" />
+                          <span>{isBn ? 'প্রোফাইল' : 'Profile'}</span>
+                        </button>
+                        <a
+                          href={`https://wa.me/88${(c.phone || '').replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-emerald-700 font-bold hover:underline bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                        >
+                          <Phone className="h-3 w-3" />
+                          <span>WhatsApp</span>
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -256,6 +280,13 @@ export default function AdminCustomersPage() {
           </table>
         </div>
       </Card>
+
+      {/* Customer Full Profile Modal */}
+      <CustomerProfileModal
+        customer={selectedCustomerForProfile}
+        isOpen={!!selectedCustomerForProfile}
+        onClose={() => setSelectedCustomerForProfile(null)}
+      />
     </div>
   )
 }

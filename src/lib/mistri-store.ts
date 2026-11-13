@@ -5,6 +5,7 @@ export interface ApplicantRecord {
   name: string
   fatherName?: string
   phone: string
+  email?: string
   password?: string
   nidNumber: string
   dateOfBirth?: string
@@ -26,6 +27,8 @@ export interface ApplicantRecord {
   avatar: string
   nidFrontUrl?: string
   nidBackUrl?: string
+  nidFront?: string
+  nidBack?: string
 }
 
 export interface CustomerRecord {
