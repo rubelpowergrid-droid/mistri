@@ -63,9 +63,11 @@ export function Header() {
           {/* Brand */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-b from-[#38967f] via-[#2c7865] to-[#1e5548] text-[#fefded] shadow-md border-t border-[#fefded]/30 border-b-[#14382f] transition-transform group-hover:scale-105">
-                <Wrench className="h-5 w-5 text-[#fefded]" />
-              </div>
+              <img
+                src="/mistri24.webp"
+                alt="mistri24"
+                className="h-10 w-10 rounded-xl object-contain shadow-sm border border-[#2c7865]/20 bg-white transition-transform group-hover:scale-105"
+              />
               <div>
                 <span className="text-xl font-black tracking-tight text-[#2c7865]">
                   mistri<span className="text-[#1e5548] font-extrabold">24.</span>

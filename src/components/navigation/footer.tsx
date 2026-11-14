@@ -16,9 +16,11 @@ export function Footer() {
           {/* 1. Company Information */}
           <div className="space-y-3.5">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2c7865] text-[#fefded] shadow-md border border-[#378b75]">
-                <Wrench className="h-5 w-5 text-[#fefded]" />
-              </div>
+              <img
+                src="/mistri24.webp"
+                alt="mistri24"
+                className="h-10 w-10 rounded-xl object-contain shadow-md border border-[#378b75] bg-white"
+              />
               <div className="flex flex-col">
                 <span className="text-xl font-black text-[#fefded] tracking-tight leading-none">
                   mistri<span className="text-[#378b75]">24.</span>

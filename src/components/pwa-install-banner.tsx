@@ -64,9 +64,9 @@ export function PwaInstallBanner() {
       <div className="skeuo-surface-dark bg-gradient-to-r from-[#2c7865] to-[#1c5245] text-[#fefded] p-3.5 rounded-2xl shadow-2xl border border-[#38967f]/40 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <img
-            src="/icons/icon-192x192.png"
+            src="/mistri24.webp"
             alt="mistri24"
-            className="h-10 w-10 rounded-xl border border-[#fefded]/30 shadow-md shrink-0 object-cover"
+            className="h-10 w-10 rounded-xl border border-[#fefded]/30 shadow-md shrink-0 object-contain bg-white"
           />
           <div className="min-w-0">
             <h4 className="text-xs font-black tracking-tight text-[#fefded] truncate">
