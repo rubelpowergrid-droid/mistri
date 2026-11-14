@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Navigation, MapPin, Phone, User, Clock, 
   CheckCircle2, AlertTriangle, ShieldCheck, ExternalLink,
-  Play, Radio, DollarSign, Loader2, Sparkles, AlertCircle, Wrench
+  Play, Radio, DollarSign, Loader2, Sparkles, AlertCircle, Wrench, X
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +24,7 @@ export default function MistriJobDetailPage() {
 
   const [booking, setBooking] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [jobStatus, setJobStatus] = useState<'pending' | 'accepted' | 'on_the_way' | 'in_progress' | 'completed'>('accepted')
+  const [jobStatus, setJobStatus] = useState<'pending' | 'accepted' | 'on_the_way' | 'in_progress' | 'completed' | 'rejected' | 'cancelled'>('accepted')
   
   // Real GPS tracking states
   const [isLocationSharing, setIsLocationSharing] = useState(false)
@@ -40,6 +40,21 @@ export default function MistriJobDetailPage() {
   const [isStarting, setIsStarting] = useState(false)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+
+  // Decision States for Pending Request
+  const [isAcceptingDirect, setIsAcceptingDirect] = useState(false)
+  const [showDeclineModal, setShowDeclineModal] = useState(false)
+  const [declineReason, setDeclineReason] = useState('আমি বর্তমানে অন্য কাজে ব্যস্ত আছি')
+  const [customDeclineReason, setCustomDeclineReason] = useState('')
+  const [isSubmittingDecline, setIsSubmittingDecline] = useState(false)
+
+  const [showProposalModal, setShowProposalModal] = useState(false)
+  const [proposedDate, setProposedDate] = useState('')
+  const [proposedTime, setProposedTime] = useState('সকাল ১১:০০ - দুপুর ১:০০')
+  const [proposedPrice, setProposedPrice] = useState<number | ''>(400)
+  const [proposalNotes, setProposalNotes] = useState('')
+  const [isSubmittingProposal, setIsSubmittingProposal] = useState(false)
+  const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
   const lastPosRef = useRef<{ lat: number; lng: number; speed: number | null; heading: number | null; accuracy: number | null } | null>(null)
@@ -61,7 +76,11 @@ export default function MistriJobDetailPage() {
             const b = json.data
             setBooking(b)
             setJobStatus(b.status || 'accepted')
-            setFinalAgreedPrice(b.agreedPrice || b.estimatedBudget || b.amount || 400)
+            const price = b.agreedPrice || b.estimatedBudget || b.amount || 400
+            setFinalAgreedPrice(price)
+            setProposedPrice(price)
+            setProposedDate(b.preferredDate || new Date().toISOString().slice(0, 10))
+            if (b.preferredTime) setProposedTime(b.preferredTime)
           } else {
             setErrorMessage(json.error || (isBn ? 'বুকিংয়ের তথ্য পাওয়া যায়নি' : 'Booking not found'))
           }
@@ -279,6 +298,101 @@ export default function MistriJobDetailPage() {
     }
   }
 
+  // Handle Direct Accept for Pending Request
+  const handleDirectAccept = async () => {
+    setIsAcceptingDirect(true)
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'accepted' }),
+      })
+      const data = await res.json()
+      if (data.success || res.ok) {
+        setJobStatus('accepted')
+        setBooking((prev: any) => ({
+          ...prev,
+          status: 'accepted',
+          acceptedAt: new Date().toISOString(),
+        }))
+        setActionSuccessToast(isBn ? '✓ বুকিং অনুরোধটি সরাসরি গ্রহণ করা হয়েছে!' : 'Booking accepted!')
+        setTimeout(() => setActionSuccessToast(null), 4000)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsAcceptingDirect(false)
+    }
+  }
+
+  // Handle Decline for Pending Request
+  const handleConfirmDecline = async () => {
+    setIsSubmittingDecline(true)
+    const finalReason = customDeclineReason.trim() || declineReason
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'rejected',
+          reason: finalReason,
+        }),
+      })
+      const data = await res.json()
+      if (data.success || res.ok) {
+        setJobStatus('rejected' as any)
+        setBooking((prev: any) => ({
+          ...prev,
+          status: 'rejected',
+          cancellationReason: finalReason,
+        }))
+        setShowDeclineModal(false)
+        setActionSuccessToast(isBn ? '✓ বুকিং অনুরোধটি ব্যস্ততা জানিয়ে বাতিল করা হয়েছে।' : 'Request declined.')
+        setTimeout(() => setActionSuccessToast(null), 4000)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSubmittingDecline(false)
+    }
+  }
+
+  // Handle Propose Time / Price for Pending Request
+  const handleConfirmProposal = async () => {
+    setIsSubmittingProposal(true)
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'accepted',
+          proposedDate: proposedDate || booking?.preferredDate,
+          proposedTime: proposedTime,
+          agreedPrice: proposedPrice ? Number(proposedPrice) : finalAgreedPrice,
+          reason: proposalNotes || 'মিস্ত্রী সুবিধাজনক নতুন সময় প্রস্তাব করেছেন',
+        }),
+      })
+      const data = await res.json()
+      if (data.success || res.ok) {
+        setJobStatus('accepted')
+        setBooking((prev: any) => ({
+          ...prev,
+          status: 'accepted',
+          preferredDate: proposedDate || prev?.preferredDate,
+          preferredTime: proposedTime,
+          agreedPrice: proposedPrice ? Number(proposedPrice) : finalAgreedPrice,
+        }))
+        setShowProposalModal(false)
+        setActionSuccessToast(isBn ? '✓ নতুন সময় প্রস্তাব সহ বুকিং গ্রহণ করা হয়েছে! গ্রাহককে জানানো হয়েছে।' : 'Accepted with proposed time!')
+        setTimeout(() => setActionSuccessToast(null), 4000)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSubmittingProposal(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-24 flex flex-col items-center justify-center gap-3 text-stone-500 text-xs">
@@ -331,6 +445,10 @@ export default function MistriJobDetailPage() {
                   ? 'bg-emerald-600 text-white' 
                   : jobStatus === 'in_progress' 
                   ? 'bg-amber-500 text-slate-950' 
+                  : jobStatus === 'pending'
+                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 animate-pulse'
+                  : jobStatus === 'rejected'
+                  ? 'bg-rose-600 text-white'
                   : 'bg-[#2c7865] text-[#fefded]'
               }`}
             >
@@ -338,6 +456,10 @@ export default function MistriJobDetailPage() {
                 ? (isBn ? 'কাজ সম্পন্ন' : 'Completed') 
                 : jobStatus === 'in_progress' 
                 ? (isBn ? 'কাজ চলমান' : 'In Progress') 
+                : jobStatus === 'pending'
+                ? (isBn ? 'নতুন কাজের অনুরোধ' : 'Pending Request')
+                : jobStatus === 'rejected'
+                ? (isBn ? 'অনুরোধ বাতিল' : 'Declined')
                 : (isBn ? 'অনুরোধ গৃহীত' : 'Accepted')}
             </Badge>
           </div>
@@ -349,6 +471,14 @@ export default function MistriJobDetailPage() {
           </span>
         </div>
       </div>
+
+      {/* Action Success Toast */}
+      {actionSuccessToast && (
+        <div className="rounded-2xl bg-[#2c7865] text-[#fefded] p-4 text-xs font-bold flex items-center gap-2 shadow-md">
+          <CheckCircle2 className="h-5 w-5 text-[#fefded]" />
+          <span>{actionSuccessToast}</span>
+        </div>
+      )}
 
       {/* Permission Error Warning */}
       {permissionError && (
@@ -497,6 +627,60 @@ export default function MistriJobDetailPage() {
         </h3>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
+          {jobStatus === 'pending' && (
+            <div className="w-full space-y-3">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs">
+                <span className="font-bold block text-sm mb-1">
+                  {isBn ? '🔔 এটি একটি নতুন কাজের অনুরোধ!' : '🔔 New Incoming Job Request!'}
+                </span>
+                <span>
+                  {isBn
+                    ? 'গ্রাহক আপনার জন্য এই কাজটি পাঠিয়েছেন। সরাসরি কাজ গ্রহণ করতে পারেন, সুবিধাজনক নতুন সময় প্রস্তাব করতে পারেন অথবা ব্যস্ত থাকলে কারণ জানিয়ে বাতিল করতে পারেন।'
+                    : 'Customer sent this request to you. You can accept directly, propose an alternate schedule, or decline.'}
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <Button
+                  onClick={handleDirectAccept}
+                  disabled={isAcceptingDirect}
+                  className="w-full sm:flex-1 bg-[#2c7865] hover:bg-[#1e5548] text-white font-bold py-3 text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isAcceptingDirect ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                  )}
+                  <span>{isBn ? 'সরাসরি বুকিং গ্রহণ করুন' : 'Accept Booking'}</span>
+                </Button>
+
+                <Button
+                  onClick={() => setShowProposalModal(true)}
+                  className="w-full sm:flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 text-xs shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>{isBn ? 'সুবিধাজনক সময় প্রস্তাব' : 'Propose Schedule'}</span>
+                </Button>
+
+                <Button
+                  onClick={() => setShowDeclineModal(true)}
+                  variant="outline"
+                  className="w-full sm:w-auto border-rose-300 text-rose-700 hover:bg-rose-50 font-semibold py-3 text-xs cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <AlertTriangle className="h-4 w-4 text-rose-600" />
+                  <span>{isBn ? 'ব্যস্ততা জানিয়ে বাতিল' : 'Decline'}</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {jobStatus === 'rejected' && (
+            <div className="w-full p-4 rounded-xl bg-rose-50 border border-rose-200 text-center text-xs text-rose-800">
+              <span className="font-bold block text-sm mb-1">{isBn ? 'এই অনুরোধটি বাতিল করা হয়েছে' : 'This request was declined'}</span>
+              <span>{booking.cancellationReason || (isBn ? 'মিস্ত্রী ব্যস্ত থাকায় অনুরোধটি গ্রহণ করতে পারেননি।' : 'Mistri was unavailable.')}</span>
+            </div>
+          )}
+
           {jobStatus === 'accepted' && (
             <>
               <Button
@@ -601,6 +785,180 @@ export default function MistriJobDetailPage() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Decline Modal */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-6 space-y-4 skeuo-surface border-stone-400 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-rose-600" />
+                <span>{isBn ? 'অনুরোধটি বাতিল করতে চান?' : 'Decline Booking Request?'}</span>
+              </h3>
+              <button 
+                onClick={() => setShowDeclineModal(false)}
+                className="p-1 text-stone-400 hover:text-stone-700 rounded-full cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-600">
+              {isBn 
+                ? 'গ্রাহককে অবহিত করার জন্য বাতিলের কারণ নির্বাচন করুন অথবা নিজের মতো লিখে দিন:' 
+                : 'Select or write a reason to inform the customer:'}
+            </p>
+
+            <div className="space-y-3">
+              <select
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-rose-600 focus:outline-none"
+              >
+                <option value="আমি বর্তমানে অন্য কাজে ব্যস্ত আছি">{isBn ? 'আমি বর্তমানে অন্য কাজে ব্যস্ত আছি' : 'Currently busy with another job'}</option>
+                <option value="আজকের দিনের সব শিডিউল পূর্ণ">{isBn ? 'আজকের দিনের সব শিডিউল পূর্ণ' : 'Fully booked today'}</option>
+                <option value="কাজের স্থান অনেক দূরে">{isBn ? 'কাজের স্থান অনেক দূরে' : 'Location too far away'}</option>
+                <option value="প্রস্তাবিত বাজেট কম">{isBn ? 'প্রস্তাবিত বাজেট কম' : 'Proposed budget too low'}</option>
+                <option value="জরুরি কারণে আজ কাজ নিতে পারছি না">{isBn ? 'জরুরি কারণে আজ কাজ নিতে পারছি না' : 'Unavailable due to emergency'}</option>
+              </select>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-stone-700">
+                  {isBn ? 'অথবা নিজের মন্তব্য লিখুন (ঐচ্ছিক):' : 'Or write custom reason (Optional):'}
+                </label>
+                <input
+                  type="text"
+                  value={customDeclineReason}
+                  onChange={(e) => setCustomDeclineReason(e.target.value)}
+                  placeholder={isBn ? 'যেমন: ভাই আমি বিকালে বিজি, কাল সকালে পারব...' : 'Custom note...'}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-rose-600 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-stone-200">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDeclineModal(false)}
+                className="skeuo-btn-light text-xs font-bold cursor-pointer"
+              >
+                {isBn ? 'ফিরে যান' : 'Back'}
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleConfirmDecline}
+                disabled={isSubmittingDecline}
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer"
+              >
+                {isSubmittingDecline ? <Loader2 className="h-4 w-4 animate-spin" /> : (isBn ? 'বাতিল নিশ্চিত করুন' : 'Confirm Decline')}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Proposal Modal */}
+      {showProposalModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-6 space-y-4 skeuo-surface border-stone-400 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-[#2c7865]" />
+                <span>{isBn ? 'সুবিধাজনক সময় প্রস্তাব দিয়ে গ্রহণ' : 'Propose New Time & Accept'}</span>
+              </h3>
+              <button 
+                onClick={() => setShowProposalModal(false)}
+                className="p-1 text-stone-400 hover:text-stone-700 rounded-full cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-600">
+              {isBn 
+                ? 'গ্রাহকের অনুরোধটি আপনি গ্রহণ করছেন, তবে আপনার সুবিধাজনক তারিখ ও সময় নিচে নির্ধারণ করে দিন:' 
+                : 'Accept this job by proposing your convenient alternative date and time:'}
+            </p>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700">
+                  {isBn ? 'প্রস্তাবিত কাজের তারিখ' : 'Proposed Date'}
+                </label>
+                <input
+                  type="date"
+                  value={proposedDate}
+                  onChange={(e) => setProposedDate(e.target.value)}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700">
+                  {isBn ? 'প্রস্তাবিত সময়' : 'Proposed Time Slot'}
+                </label>
+                <select
+                  value={proposedTime}
+                  onChange={(e) => setProposedTime(e.target.value)}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
+                >
+                  <option value="সকাল ৯:০০ - ১১:০০">সকাল ৯:০০ - ১১:০০</option>
+                  <option value="সকাল ১১:০০ - দুপুর ১:০০">সকাল ১১:০০ - দুপুর ১:০০</option>
+                  <option value="দুপুর ২:০০ - বিকাল ৪:০০">দুপুর ২:০০ - বিকাল ৪:০০</option>
+                  <option value="বিকাল ৪:০০ - সন্ধ্যা ৬:০০">বিকাল ৪:০০ - সন্ধ্যা ৬:০০</option>
+                  <option value="সন্ধ্যা ৬:০০ - রাত ৮:০০">সন্ধ্যা ৬:০০ - রাত ৮:০০</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700">
+                  {isBn ? 'সম্মানী / মজুরি (টাকা)' : 'Fee / Wage (BDT)'}
+                </label>
+                <input
+                  type="number"
+                  value={proposedPrice}
+                  onChange={(e) => setProposedPrice(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-stone-700">
+                  {isBn ? 'গ্রাহকের উদ্দেশ্যে বিশেষ বার্তা (ঐচ্ছিক):' : 'Message to Customer (Optional):'}
+                </label>
+                <input
+                  type="text"
+                  value={proposalNotes}
+                  onChange={(e) => setProposalNotes(e.target.value)}
+                  placeholder={isBn ? 'যেমন: আমি এই সময়ে এসে প্রয়োজনীয় যন্ত্রাংশ নিয়ে চেক করব...' : 'Note for customer...'}
+                  className="w-full rounded-xl border border-stone-300 bg-white p-2.5 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-stone-200">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowProposalModal(false)}
+                className="skeuo-btn-light text-xs font-bold cursor-pointer"
+              >
+                {isBn ? 'বাতিল' : 'Cancel'}
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleConfirmProposal}
+                disabled={isSubmittingProposal}
+                className="skeuo-btn-dark text-xs font-bold px-4 cursor-pointer"
+              >
+                {isSubmittingProposal ? <Loader2 className="h-4 w-4 animate-spin" /> : (isBn ? 'প্রস্তাব সহ গ্রহণ করুন' : 'Accept with Proposal')}
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

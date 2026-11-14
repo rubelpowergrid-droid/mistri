@@ -1143,7 +1143,7 @@ export async function saveBookingToSupabase(data: {
         phone: mistriPhone,
         title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
         body: `গ্রাহক ${data.customerName || data.contactPhone} আপনার জন্য একটি নতুন কাজের অনুরোধ পাঠিয়েছেন (${data.subcategory})।`,
-        url: insertedBooking?.id ? `/mistri/bookings/${insertedBooking.id}` : '/requests',
+        url: insertedBooking?.id ? `/bookings/${insertedBooking.id}` : '/requests',
         tag: `booking-${insertedBooking?.id || Date.now()}`,
       })
     } catch (pErr: any) {

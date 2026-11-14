@@ -1,5 +1,5 @@
 // MISTRI24 Service Worker for Offline & Background Push Notifications
-const CACHE_NAME = 'mistri24-pwa-v2'
+const CACHE_NAME = 'mistri24-pwa-v3'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -95,7 +95,7 @@ self.addEventListener('push', (event) => {
     renotify: true,
     requireInteraction: true,
     data: {
-      url: data.url || '/mistri/profile',
+      url: data.url || '/mistri/bookings',
       timestamp: Date.now(),
     },
     actions: [
@@ -110,7 +110,12 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const targetUrl = event.notification.data?.url || '/mistri/profile'
+  let targetUrl = event.notification.data?.url || '/mistri/bookings'
+
+  // Normalize legacy url if it had /mistri/bookings/<uuid>
+  if (targetUrl.startsWith('/mistri/bookings/')) {
+    targetUrl = targetUrl.replace('/mistri/bookings/', '/bookings/')
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   X,
   Bell,
@@ -35,6 +36,7 @@ interface NotificationDrawerProps {
 }
 
 export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: NotificationDrawerProps) {
+  const router = useRouter()
   const { lang, t } = useI18n()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [activeTab, setActiveTab] = useState<'all' | 'booking' | 'verification' | 'system'>('all')
@@ -176,6 +178,9 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
         body.includes('আপনার কাজের অনুরোধ গ্রহণ')
 
       if (isCustomerBookingUpdate) {
+        if (item.reference_id) {
+          return `/bookings/${item.reference_id}/live-track`
+        }
         return '/bookings'
       }
 
@@ -187,7 +192,14 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
         body.includes('নতুন বুকিং অনুরোধ')
 
       if (isMistriIncomingRequest) {
+        if (item.reference_id) {
+          return `/bookings/${item.reference_id}`
+        }
         return '/requests'
+      }
+
+      if (item.reference_id) {
+        return `/bookings/${item.reference_id}`
       }
 
       // If mistri role, default to mistri bookings
@@ -350,7 +362,13 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
                 return (
                   <div
                     key={item.id}
-                    className={`relative rounded-xl border p-3.5 transition-all ${
+                    onClick={() => {
+                      if (linkHref && linkHref !== '#') {
+                        onClose()
+                        router.push(linkHref)
+                      }
+                    }}
+                    className={`relative rounded-xl border p-3.5 transition-all cursor-pointer hover:shadow-md ${
                       item.is_read
                         ? 'bg-white border-slate-100 hover:border-slate-200'
                         : 'bg-blue-50/40 border-blue-100 shadow-xs'
@@ -383,20 +401,21 @@ export function NotificationDrawer({ isOpen, onClose, onUnreadCountChange }: Not
 
                           <div className="flex items-center gap-2">
                             {linkHref !== '#' && (
-                              <Link
-                                href={linkHref}
-                                onClick={onClose}
+                              <span
                                 className="font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
                               >
                                 <span>{lang === 'bn' ? 'বিস্তারিত' : 'View'}</span>
                                 <ExternalLink className="h-3 w-3" />
-                              </Link>
+                              </span>
                             )}
 
                             {!item.is_read && (
                               <button
-                                onClick={() => markAsRead(item.id)}
-                                className="text-slate-500 hover:text-slate-800 flex items-center gap-0.5 font-medium ml-2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  markAsRead(item.id)
+                                }}
+                                className="text-slate-500 hover:text-slate-800 flex items-center gap-0.5 font-medium ml-2 cursor-pointer"
                                 title="পঠিত হিসেবে চিহ্নিত করুন"
                               >
                                 <CheckCircle className="h-3 w-3" />

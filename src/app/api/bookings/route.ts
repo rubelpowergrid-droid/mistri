@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
         phone: resolvedMistriPhone || parsed.data.mistriId,
         title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
         body: `${newBooking.customerName || 'গ্রাহক'} একটি কাজের অনুরোধ পাঠিয়েছেন (${newBooking.serviceName})`,
-        url: newBooking.id ? `/mistri/bookings/${newBooking.id}` : '/requests',
+        url: newBooking.id ? `/bookings/${newBooking.id}` : '/requests',
         tag: `booking-${newBooking.id}`,
       }).catch(() => {})
     } catch {}

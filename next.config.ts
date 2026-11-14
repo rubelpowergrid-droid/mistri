@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/mistri/bookings/:id',
+        destination: '/bookings/:id',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
