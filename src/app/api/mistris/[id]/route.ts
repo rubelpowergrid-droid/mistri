@@ -52,7 +52,8 @@ export async function GET(
   const applicants = getApplicantsStore()
   const applicant = applicants.find((a: any) => a.id === id || `m-live-${a.id}` === id || (a.phone && a.phone.replace(/[^0-9]/g, '') === id.replace(/[^0-9]/g, '')))
   if (applicant) {
-    const catInfo = resolveCategoryFromTitle(applicant.category || '')
+    const catInfo = resolveCategoryFromTitle(applicant.category || '', applicant.categorySlug)
+    const finalCatName = applicant.category || catInfo.category_name_bn
     const applicantData = {
       id: applicant.id,
       name_bn: applicant.name,
@@ -60,7 +61,7 @@ export async function GET(
       phone: applicant.phone,
       professional_title: applicant.category,
       category_slug: catInfo.category_slug,
-      category_name_bn: catInfo.category_name_bn,
+      category_name_bn: finalCatName,
       category_name_en: catInfo.category_name_en,
       subcategories: applicant.subcategories?.length ? applicant.subcategories : catInfo.subcategories,
       district: applicant.district || 'Thakurgaon',
@@ -140,18 +141,20 @@ export async function GET(
     }
 
     if (profile) {
-      const catInfo = resolveCategoryFromTitle((profile.professional_title || '') + ' ' + (profile.bio || ''))
+      const matchedApp = applicants.find(a => a.id === profile.id || (a.phone && a.phone.replace(/[^0-9]/g, '') === (profile.users?.phone || '').replace(/[^0-9]/g, '')))
+      const catInfo = resolveCategoryFromTitle(profile.professional_title || '', matchedApp?.categorySlug)
+      const finalCatName = matchedApp?.category || catInfo.category_name_bn
 
       const mistriData = {
         id: profile.id,
         name_bn: profile.full_name,
         name_en: profile.full_name,
         phone: profile.users?.phone || '',
-        professional_title: profile.professional_title || 'দক্ষ কারিগর',
+        professional_title: profile.professional_title || finalCatName,
         category_slug: catInfo.category_slug,
-        category_name_bn: catInfo.category_name_bn,
+        category_name_bn: finalCatName,
         category_name_en: catInfo.category_name_en,
-        subcategories: catInfo.subcategories,
+        subcategories: (matchedApp?.subcategories && matchedApp.subcategories.length > 0) ? matchedApp.subcategories : catInfo.subcategories,
         district: profile.districts?.name_en || 'Thakurgaon',
         district_bn: profile.districts?.name_bn || 'ঠাকুরগাঁও',
         upazila: profile.upazilas?.name_en || 'Thakurgaon Sadar',

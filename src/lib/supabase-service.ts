@@ -1,9 +1,37 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEFAULT_CATEGORIES, findCategoryByAny } from '@/lib/categories'
+import { getApplicantsStore } from '@/lib/mistri-store'
 
-export function resolveCategoryFromTitle(title: string = '') {
+export function resolveCategoryFromTitle(title: string = '', explicitSlug?: string) {
+  // 0. If explicit slug provided, match directly
+  if (explicitSlug) {
+    const fromSlug = findCategoryByAny(explicitSlug)
+    if (fromSlug) {
+      return {
+        category_slug: fromSlug.slug,
+        category_name_bn: fromSlug.name_bn,
+        category_name_en: fromSlug.name_en,
+        subcategories: fromSlug.subcategories?.map(s => s.name_bn) || [],
+      }
+    }
+  }
+
+  // 1. If title matches a category directly
+  if (title) {
+    const directMatch = findCategoryByAny(title)
+    if (directMatch) {
+      return {
+        category_slug: directMatch.slug,
+        category_name_bn: directMatch.name_bn,
+        category_name_en: directMatch.name_en,
+        subcategories: directMatch.subcategories?.map(s => s.name_bn) || [],
+      }
+    }
+  }
+
   const t = title.toLowerCase()
 
-  // 1. থাই গ্লাস ও অ্যালুমিনিয়াম
+  // 2. থাই গ্লাস ও অ্যালুমিনিয়াম
   if (
     t.includes('থাই') || 
     t.includes('গ্লাস') || 
@@ -30,7 +58,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 2. টিনের কাজ
+  // 3. টিনের কাজ
   if (t.includes('টিন') || t.includes('চাল') || t.includes('টিনশেড') || t.includes('ট্রাস') || t.includes('tin') || t.includes('roof')) {
     return {
       category_slug: 'tin-roofing-services',
@@ -40,8 +68,8 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 3. কাঠের কাজ ও ফার্নিচার
-  if (t.includes('কাঠ') || t.includes('ফার্নিচার') || t.includes('ছুতোর') || t.includes('wood') || t.includes('carpenter') || t.includes('furniture')) {
+  // 4. কাঠের কাজ
+  if (t.includes('কাঠ') || t.includes('ছুতোর') || t.includes('wood') || t.includes('carpenter')) {
     return {
       category_slug: 'carpentry-services',
       category_name_bn: 'কাঠের কাজ',
@@ -50,7 +78,17 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 4. প্লাম্বিং সার্ভিস
+  // 5. ফার্নিচারের কাজ
+  if (t.includes('ফার্নিচার') || t.includes('সোফা') || t.includes('খাট') || t.includes('ওয়ারড্রব') || t.includes('furniture')) {
+    return {
+      category_slug: 'furniture-services',
+      category_name_bn: 'ফার্নিচারের কাজ',
+      category_name_en: 'Furniture Services',
+      subcategories: ['ফার্নিচার অ্যাসেম্বলি', 'সোফা রিপেয়ার ও পলিশ', 'কাস্টম খাট ও ওয়ারড্রব'],
+    }
+  }
+
+  // 6. প্লাম্বিং সার্ভিস
   if (t.includes('প্লাম্ব') || t.includes('পাইপ') || t.includes('মোটর') || t.includes('পাম্প') || t.includes('স্যানিটারি') || t.includes('বাথরুম') || t.includes('ট্যাপ') || t.includes('plumb') || t.includes('pipe')) {
     return {
       category_slug: 'plumbing-services',
@@ -60,7 +98,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 5. রং করার কাজ
+  // 7. রং করার কাজ
   if (t.includes('রং') || t.includes('পেইন্ট') || t.includes('বার্নিশ') || t.includes('পলিশ') || t.includes('paint') || t.includes('color')) {
     return {
       category_slug: 'painting-services',
@@ -70,7 +108,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 6. রাজমিস্ত্রীর কাজ
+  // 8. রাজমিস্ত্রীর কাজ
   if (t.includes('রাজ') || t.includes('টাইলস') || t.includes('মার্বেল') || t.includes('ঢালাই') || t.includes('গাঁথুনি') || t.includes('প্লাস্টার') || t.includes('ইট') || t.includes('mason') || t.includes('tile')) {
     return {
       category_slug: 'masonry-services',
@@ -80,8 +118,20 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 7. এঙ্গেল মিস্ত্রী ও গ্রিল / এসএস
-  if (t.includes('গ্রিল') || t.includes('ওয়েল্ডিং') || t.includes('এসএস') || t.includes('এঙ্গেল') || t.includes('মেটাল') || t.includes('লোহা') || t.includes('গেট') || t.includes('grill') || t.includes('metal')) {
+  // 9. এঙ্গেল মিস্ত্রী ও গ্রিল / এসএস
+  if (
+    t.includes('গ্রিল') || 
+    t.includes('ওয়েল্ডিং') || 
+    t.includes('এসএস') || 
+    t.includes('এঙ্গেল') || 
+    t.includes('মেটাল') || 
+    t.includes('লোহা') || 
+    t.includes('গেট') || 
+    t.includes('grill') || 
+    t.includes('metal') ||
+    t.includes('fabrication') ||
+    t.includes('welding')
+  ) {
     return {
       category_slug: 'metal-fabrication',
       category_name_bn: 'এঙ্গেল মিস্ত্রী ও গ্রিল',
@@ -90,7 +140,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 8. ঘরের সিলিং কাজ
+  // 10. ঘরের সিলিং কাজ
   if (t.includes('সিলিং') || t.includes('জিপসাম') || t.includes('পিভিসি সিলিং') || t.includes('ceiling')) {
     return {
       category_slug: 'ceiling-services',
@@ -100,7 +150,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 9. এসি ও রেফ্রিজারেশন
+  // 11. এসি ও রেফ্রিজারেশন
   if (t.includes('এসি') || t.includes('ফ্রিজ') || t.includes('রেফ্রিজারেটর') || t.includes('রেফ্রিজারেশন') || t.includes('ac') || t.includes('fridge')) {
     return {
       category_slug: 'ac-repair-services',
@@ -110,7 +160,7 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 10. দৈনিক লেবার
+  // 12. দৈনিক লেবার
   if (t.includes('লেবার') || t.includes('মজুর') || t.includes('শ্রমিক') || t.includes('মাটি কাটা') || t.includes('labour') || t.includes('labor')) {
     return {
       category_slug: 'daily-labour',
@@ -120,7 +170,17 @@ export function resolveCategoryFromTitle(title: string = '') {
     }
   }
 
-  // 11. ইলেকট্রিক্যাল কাজ (Default for electrician/wiring or general)
+  // 13. ইলেকট্রিক্যাল কাজ
+  if (t.includes('ইলেকট্রিক') || t.includes('ওয়্যারিং') || t.includes('বিদ্যুৎ') || t.includes('কারেন্ট') || t.includes('ব্রেকার') || t.includes('electric') || t.includes('wiring')) {
+    return {
+      category_slug: 'electrical-services',
+      category_name_bn: 'ইলেকট্রিক্যাল কাজ',
+      category_name_en: 'Electrical Services',
+      subcategories: ['বাসা-বাড়ির ওয়্যারিং', 'ফ্যান ও লাইটিং ফিটিং', 'সুইচ ও সকেট মেরামত', 'সার্কিট ব্রেকার ও ডিবি বোর্ড'],
+    }
+  }
+
+  // 14. Default fallback
   return {
     category_slug: 'electrical-services',
     category_name_bn: 'ইলেকট্রিক্যাল কাজ',
@@ -420,16 +480,21 @@ export async function getApplicantsFromSupabase(statusParam = 'all') {
 
     if (error || !data) return []
 
+    const localApplicants = getApplicantsStore()
+
     return data.map((row: any) => {
-      const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+      const cleanP = (row.users?.phone || '').replace(/[^0-9]/g, '')
+      const matchedLocal = localApplicants.find(a => (a.phone && a.phone.replace(/[^0-9]/g, '') === cleanP) || a.id === row.id)
+      const catInfo = resolveCategoryFromTitle(row.professional_title || '', matchedLocal?.categorySlug)
+      const finalCategoryName = matchedLocal?.category || catInfo.category_name_bn
       const doc = Array.isArray(row.mistri_documents) ? row.mistri_documents[0] : row.mistri_documents
       return {
         id: row.id,
         name: row.full_name,
         phone: row.users?.phone || '017XXXXXXXX',
-        category: row.professional_title || catInfo.category_name_bn,
+        category: finalCategoryName,
         categorySlug: catInfo.category_slug,
-        subcategories: catInfo.subcategories,
+        subcategories: (matchedLocal?.subcategories && matchedLocal.subcategories.length > 0) ? matchedLocal.subcategories : catInfo.subcategories,
         experienceYears: row.experience_years || 5,
         district: row.districts?.name_bn || 'ঠাকুরগাঁও',
         upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
@@ -466,20 +531,25 @@ export async function getApprovedMistrisFromSupabase() {
 
     if (error || !data) return []
 
+    const localApplicants = getApplicantsStore()
+
     return data.map((row: any) => {
-      const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+      const cleanP = (row.users?.phone || '').replace(/[^0-9]/g, '')
+      const matchedLocal = localApplicants.find(a => (a.phone && a.phone.replace(/[^0-9]/g, '') === cleanP) || a.id === row.id)
+      const catInfo = resolveCategoryFromTitle(row.professional_title || '', matchedLocal?.categorySlug)
+      const finalCategoryName = matchedLocal?.category || catInfo.category_name_bn
       return {
         id: row.id,
         name_bn: row.full_name,
         name_en: row.full_name,
         phone: row.users?.phone || '017XXXXXXXX',
-        professional_title: row.professional_title || 'দক্ষ মিস্ত্রী',
-        title: row.professional_title || 'দক্ষ মিস্ত্রী',
-        category: catInfo.category_name_bn,
+        professional_title: row.professional_title || finalCategoryName,
+        title: row.professional_title || finalCategoryName,
+        category: finalCategoryName,
         category_slug: catInfo.category_slug,
-        category_name_bn: catInfo.category_name_bn,
+        category_name_bn: finalCategoryName,
         category_name_en: catInfo.category_name_en,
-        subcategories: catInfo.subcategories,
+        subcategories: (matchedLocal?.subcategories && matchedLocal.subcategories.length > 0) ? matchedLocal.subcategories : catInfo.subcategories,
         district: row.districts?.name_en || 'Thakurgaon',
         district_bn: row.districts?.name_bn || 'ঠাকুরগাঁও',
         upazila: row.upazilas?.name_en || 'Thakurgaon Sadar',

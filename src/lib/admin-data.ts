@@ -206,10 +206,15 @@ export async function getAdminMistrisData() {
       .select('*, users(phone, avatar_url), districts(name_bn, name_en), upazilas(name_bn, name_en)')
 
     if (data && Array.isArray(data)) {
+      const applicants = getApplicantsStore()
       supabaseMistris = data
         .filter((row: any) => !deletedIds.has(row.id))
         .map((row: any) => {
-          const catInfo = resolveCategoryFromTitle(row.professional_title || '')
+          const cleanP = (row.users?.phone || '').replace(/[^0-9]/g, '')
+          const matchedLocal = applicants.find(a => (a.phone && a.phone.replace(/[^0-9]/g, '') === cleanP) || a.id === row.id)
+          const catInfo = resolveCategoryFromTitle(row.professional_title || '', matchedLocal?.categorySlug)
+          const finalCategory = matchedLocal?.category || catInfo.category_name_bn
+
           let computedStatus: 'approved' | 'suspended' | 'trash' = 'approved'
           if (row.deleted_at || trashedIds.has(row.id)) {
             computedStatus = 'trash'
@@ -221,8 +226,8 @@ export async function getAdminMistrisData() {
             id: row.id,
             name: row.full_name,
             phone: row.users?.phone || '017XXXXXXXX',
-            title: row.professional_title || 'দক্ষ মিস্ত্রী',
-            category: catInfo.category_name_bn,
+            title: row.professional_title || finalCategory,
+            category: finalCategory,
             district: row.districts?.name_bn || 'ঠাকুরগাঁও',
             upazila: row.upazilas?.name_bn || 'ঠাকুরগাঁও সদর',
             experienceYears: row.experience_years || 5,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getApplicantsStore, updateApplicantStatus } from '@/lib/mistri-store'
-import { updateMistriStatusInSupabase } from '@/lib/supabase-service'
+import { updateMistriStatusInSupabase, resolveCategoryFromTitle } from '@/lib/supabase-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const verificationActionSchema = z.object({
@@ -40,6 +40,9 @@ export async function GET(
 
           const doc = Array.isArray(profile.mistri_documents) ? profile.mistri_documents[0] : profile.mistri_documents
 
+          const catInfo = resolveCategoryFromTitle(profile.professional_title || '', authMeta?.category_slug)
+          const resolvedCategory = authMeta?.category_slug ? catInfo.category_name_bn : (authMeta?.category || catInfo.category_name_bn || profile.professional_title || 'দক্ষ কারিগর')
+
           applicant = {
             id: profile.id,
             name: profile.full_name || authMeta?.full_name || '',
@@ -53,9 +56,9 @@ export async function GET(
             area: authMeta?.area || '',
             streetAddress: profile.street_address || authMeta?.street_address || '',
             serviceRadiusKm: profile.max_service_distance_km || authMeta?.service_radius_km || 15,
-            category: authMeta?.category || profile.professional_title || 'দক্ষ কারিগর',
-            categorySlug: authMeta?.category_slug || 'electrical-services',
-            subcategories: Array.isArray(authMeta?.subcategories) && authMeta.subcategories.length > 0 ? authMeta.subcategories : [],
+            category: resolvedCategory,
+            categorySlug: catInfo.category_slug,
+            subcategories: Array.isArray(authMeta?.subcategories) && authMeta.subcategories.length > 0 ? authMeta.subcategories : catInfo.subcategories,
             experienceYears: profile.experience_years || authMeta?.experience_years || 5,
             chargeType: profile.charge_type || authMeta?.charge_type || 'আলোচনা সাপেক্ষে (Negotiable)',
             baseCharge: profile.base_charge || authMeta?.base_charge || 400,

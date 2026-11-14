@@ -229,3 +229,23 @@ export function getSubcategoriesForCategory(
   return found ? (found.subcategories || []) : []
 }
 
+export function findCategoryByAny(
+  identifier?: string,
+  customCategories?: CategoryOption[]
+): CategoryOption | undefined {
+  if (!identifier) return undefined
+  const list = customCategories && customCategories.length > 0 ? customCategories : getCategoriesStore()
+  const target = identifier.trim().toLowerCase()
+
+  return list.find(
+    (c) =>
+      c.id.toLowerCase() === target ||
+      c.slug.toLowerCase() === target ||
+      c.name_en.toLowerCase() === target ||
+      c.name_bn.trim() === identifier.trim() ||
+      target.includes(c.slug.toLowerCase()) ||
+      identifier.includes(c.name_bn)
+  )
+}
+
+

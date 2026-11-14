@@ -206,10 +206,10 @@ function MistriOnboardingContent() {
 
   // Section 4: Skills & Pricing
   const [categoriesList, setCategoriesList] = useState<CategoryOption[]>(DEFAULT_CATEGORIES)
-  const [selectedCategory, setSelectedCategory] = useState('painting-services')
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORIES[0]?.slug || 'electrical-services')
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
   const [experienceYears, setExperienceYears] = useState(5)
-  const [professionalTitle, setProfessionalTitle] = useState('রং মিস্ত্রী')
+  const [professionalTitle, setProfessionalTitle] = useState(DEFAULT_CATEGORIES[0]?.name_bn || 'ইলেকট্রিক্যাল কাজ')
   const [bio, setBio] = useState('')
   const [chargeType, setChargeType] = useState('negotiable')
   const [baseCharge, setBaseCharge] = useState(400)
@@ -296,6 +296,11 @@ function MistriOnboardingContent() {
       const cleanEmail = email.trim().toLowerCase() || (stored?.email && !stored.email.endsWith('@mistri.app') ? stored.email.toLowerCase() : '')
       const activeUserId = (stored as any)?.userId || stored?.id || undefined
 
+      const matchedCat = categoriesList.find(c => c.slug === selectedCategory || c.id === selectedCategory) 
+        || DEFAULT_CATEGORIES.find(c => c.slug === selectedCategory || c.id === selectedCategory)
+      const canonicalCategoryName = matchedCat?.name_bn || 'দক্ষ কারিগর'
+      const canonicalCategorySlug = matchedCat?.slug || selectedCategory
+
       const res = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,10 +322,13 @@ function MistriOnboardingContent() {
           area,
           streetAddress,
           serviceRadiusKm: maxRadiusKm,
-          selectedCategory,
+          selectedCategory: canonicalCategorySlug,
+          categorySlug: canonicalCategorySlug,
+          categoryName: canonicalCategoryName,
+          category: canonicalCategoryName,
           selectedSubcategories,
           experienceYears,
-          professionalTitle: professionalTitle.trim() || 'রং মিস্ত্রী',
+          professionalTitle: professionalTitle.trim() || canonicalCategoryName,
           bio,
           chargeType,
           baseCharge,
@@ -718,11 +726,13 @@ function MistriOnboardingContent() {
               <select
                 value={selectedCategory}
                 onChange={(e) => {
-                  setSelectedCategory(e.target.value)
-                  const cat = categoriesList.find(c => c.slug === e.target.value || c.id === e.target.value)
-                  if (cat && !professionalTitle) {
+                  const newCatSlug = e.target.value
+                  setSelectedCategory(newCatSlug)
+                  const cat = categoriesList.find(c => c.slug === newCatSlug || c.id === newCatSlug) || DEFAULT_CATEGORIES.find(c => c.slug === newCatSlug || c.id === newCatSlug)
+                  if (cat) {
                     setProfessionalTitle(cat.name_bn)
                   }
+                  setSelectedSubcategories([])
                 }}
                 className="w-full rounded-xl border border-stone-300 bg-white py-2.5 px-3 text-xs text-stone-900 focus:border-[#2c7865] focus:outline-none font-medium"
               >

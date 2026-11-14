@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { addApplicantToQueue } from '@/lib/mistri-store'
 import { saveMistriToSupabase } from '@/lib/supabase-service'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DEFAULT_CATEGORIES, findCategoryByAny } from '@/lib/categories'
 
 async function uploadBase64ToStorage(
   supabase: any,
@@ -98,6 +99,19 @@ export async function POST(request: NextRequest) {
     const finalNidFront = uploadedNidFrontUrl || (nidFront && nidFront.startsWith('http') ? nidFront : '')
     const finalNidBack = uploadedNidBackUrl || (nidBack && nidBack.startsWith('http') ? nidBack : '')
 
+    const rawCat = body.selectedCategory || body.categorySlug || body.category || ''
+    const matchedCategory = findCategoryByAny(rawCat) 
+      || findCategoryByAny(body.categoryName)
+      || DEFAULT_CATEGORIES.find(c => c.slug === 'electrical-services')
+
+    const canonicalCategoryName = matchedCategory ? matchedCategory.name_bn : (body.categoryName || 'দক্ষ কারিগর')
+    const canonicalCategorySlug = matchedCategory ? matchedCategory.slug : (rawCat || 'electrical-services')
+
+    const rawTitle = (professionalTitle || '').trim()
+    const finalProfessionalTitle = rawTitle && rawTitle !== canonicalCategoryName
+      ? (rawTitle.includes(canonicalCategoryName) ? rawTitle : `${canonicalCategoryName} (${rawTitle})`)
+      : canonicalCategoryName
+
     const newRecord = addApplicantToQueue({
       name: fullName,
       fatherName: fatherName || '',
@@ -115,8 +129,8 @@ export async function POST(request: NextRequest) {
       area,
       streetAddress,
       serviceRadiusKm: Number(serviceRadiusKm) || 15,
-      category: professionalTitle || selectedCategory || 'দক্ষ কারিগর',
-      categorySlug: selectedCategory || '',
+      category: canonicalCategoryName,
+      categorySlug: canonicalCategorySlug,
       subcategories: selectedSubcategories || [],
       experienceYears: Number(experienceYears) || 5,
       bio,
@@ -143,10 +157,10 @@ export async function POST(request: NextRequest) {
         district: district || 'ঠাকুরগাঁও',
         upazila: upazila || 'ঠাকুরগাঁও সদর',
         streetAddress,
-        category: professionalTitle || selectedCategory || 'দক্ষ কারিগর',
-        categorySlug: selectedCategory || '',
+        category: canonicalCategoryName,
+        categorySlug: canonicalCategorySlug,
         subcategories: Array.isArray(selectedSubcategories) ? selectedSubcategories : [],
-        professionalTitle: professionalTitle || selectedCategory || 'দক্ষ কারিগর',
+        professionalTitle: finalProfessionalTitle,
         bio,
         experienceYears: Number(experienceYears) || 5,
         serviceRadiusKm: Number(serviceRadiusKm) || 15,
