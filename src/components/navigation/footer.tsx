@@ -17,9 +17,9 @@ export function Footer() {
           <div className="space-y-3.5">
             <Link href="/" className="flex items-center gap-2.5">
               <img
-                src="/mistri24.webp"
+                src="/mistri24.png"
                 alt="mistri24"
-                className="h-10 w-10 rounded-xl object-contain shadow-md border border-[#378b75] bg-white"
+                className="h-10 w-10 rounded-xl object-contain shadow-md"
               />
               <div className="flex flex-col">
                 <span className="text-xl font-black text-[#fefded] tracking-tight leading-none">

@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   description: 'ঠাকুরগাঁও, পঞ্চগড় ও দিনাজপুরের সেরা হোম ও প্রফেশনাল কারিগর সার্ভিস মার্কেটপ্লেস',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icons/icon-192x192.png',
-    shortcut: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/mistri24.png',
+    shortcut: '/mistri24.png',
+    apple: '/mistri24.png',
   },
   appleWebApp: {
     capable: true,

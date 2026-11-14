@@ -64,9 +64,9 @@ export function Header() {
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
               <img
-                src="/mistri24.webp"
+                src="/mistri24.png"
                 alt="mistri24"
-                className="h-10 w-10 rounded-xl object-contain shadow-sm border border-[#2c7865]/20 bg-white transition-transform group-hover:scale-105"
+                className="h-10 w-10 rounded-xl object-contain shadow-sm transition-transform group-hover:scale-105"
               />
               <div>
                 <span className="text-xl font-black tracking-tight text-[#2c7865]">
