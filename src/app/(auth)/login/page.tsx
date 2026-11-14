@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Wrench, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { signInWithGooglePopup } from '@/lib/firebase'
 import { setStoredUser } from '@/lib/auth-client'
@@ -91,9 +91,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-10 sm:py-16">
       <div className="w-full max-w-[440px] rounded-[32px] bg-[#fdfcf7] border border-[#2c7865]/15 p-8 sm:p-10 shadow-[0_10px_35px_rgba(44,120,101,0.06)] space-y-7 text-center">
-        {/* Top Icon Badge */}
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#1b5e4c] text-white shadow-md border-2 border-white/40 transition-transform hover:scale-105">
-          <Wrench className="h-8 w-8 text-white stroke-[2.2]" />
+        {/* Main App Logo */}
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl overflow-hidden shadow-md transition-transform hover:scale-105">
+          <img
+            src="/mistri24.png"
+            alt="mistri24"
+            className="h-full w-full object-contain rounded-2xl"
+          />
         </div>
 
         {/* Title & Subtitle */}
@@ -127,7 +131,7 @@ export default function LoginPage() {
             ) : (
               <GoogleIcon className="h-5 w-5 shrink-0 group-hover:scale-110 transition-transform" />
             )}
-            <span>Sign in WIth Google</span>
+            <span>Sign in With Google</span>
           </button>
 
           {/* Button 2: Sign Up With Google */}
@@ -142,7 +146,7 @@ export default function LoginPage() {
             ) : (
               <GoogleIcon className="h-5 w-5 shrink-0 group-hover:scale-110 transition-transform" />
             )}
-            <span>Sign Up WIth Google</span>
+            <span>Sign Up With Google</span>
           </button>
         </div>
       </div>
