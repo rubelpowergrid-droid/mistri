@@ -1,12 +1,11 @@
 // MISTRI24 Service Worker for Offline & Background Push Notifications
-const CACHE_NAME = 'mistri24-pwa-v1'
+const CACHE_NAME = 'mistri24-pwa-v2'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
+  '/mistri24.png',
   '/search',
   '/categories',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
 ]
 
 self.addEventListener('install', (event) => {
@@ -38,8 +37,16 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   const url = new URL(event.request.url)
 
-  // Do not cache API requests or tracking calls
-  if (url.pathname.startsWith('/api/')) return
+  // Do not cache API requests, auth, admin or dynamic onboarding pages
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/register') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/onboarding')
+  ) {
+    return
+  }
 
   event.respondWith(
     fetch(event.request)
