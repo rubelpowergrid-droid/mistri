@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import * as LucideIcons from 'lucide-react'
 import { 
   Layers, Plus, Trash2, Check, X, 
   ChevronDown, ChevronRight, Eye, EyeOff,
@@ -48,7 +49,12 @@ const ICON_MAP: Record<string, any> = {
 
 function getCategoryIcon(iconName?: string) {
   if (!iconName) return Layers
-  return ICON_MAP[iconName] || Layers
+  if (ICON_MAP[iconName]) return ICON_MAP[iconName]
+  const match = (LucideIcons as Record<string, any>)[iconName]
+  if (match && (typeof match === 'function' || typeof match === 'object')) {
+    return match
+  }
+  return Layers
 }
 
 export default function AdminCategoriesPage() {
@@ -418,11 +424,11 @@ export default function AdminCategoriesPage() {
               />
 
               {/* Icon Selection Palette */}
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-2 pt-1">
                 <label className="text-xs font-semibold text-stone-700 block">
-                  {isBn ? 'ক্যাটাগরি আইকন নির্বাচন করুন:' : 'Select Category Icon:'}
+                  {isBn ? 'ক্যাটাগরি আইকন নির্বাচন করুন (অথবা নিজের ইচ্ছা মত সেট করুন):' : 'Select Category Icon (or enter custom):'}
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 p-2 rounded-xl border border-stone-200 bg-stone-50 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 p-2 rounded-xl border border-stone-200 bg-stone-50 max-h-36 overflow-y-auto">
                   {AVAILABLE_ICONS.map((item) => {
                     const IconComp = item.icon
                     const isSelected = newCatIcon === item.name
@@ -444,11 +450,43 @@ export default function AdminCategoriesPage() {
                     )
                   })}
                 </div>
-                <div className="flex items-center gap-2 pt-0.5 text-xs text-stone-500">
-                  <span>{isBn ? 'নির্বাচিত আইকন:' : 'Selected:'}</span>
-                  <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-                    {newCatIcon}
-                  </span>
+
+                {/* Choose icon box */}
+                <div className="space-y-1.5 pt-1.5 border-t border-stone-200">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="chooseIcon" className="text-xs font-bold text-stone-800">
+                      Choose icon
+                    </label>
+                    <span className="text-[10px] text-stone-500 font-medium">
+                      {isBn ? 'বা নিজের পছন্দের Lucide আইকন নাম লিখুন' : 'Or type any custom icon name'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        id="chooseIcon"
+                        placeholder={isBn ? 'যেমন: Zap, Camera, Laptop, Wrench, Shield, Car ইত্যাদি' : 'e.g. Zap, Camera, Laptop, Wrench, Car...'}
+                        value={newCatIcon}
+                        onChange={(e) => setNewCatIcon(e.target.value.trim())}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                    <div 
+                      className="w-10 h-10 rounded-xl border border-stone-300 bg-stone-100 flex items-center justify-center text-stone-800 shadow-2xs shrink-0" 
+                      title={isBn ? `নির্বাচিত আইকন: ${newCatIcon}` : `Selected Icon: ${newCatIcon}`}
+                    >
+                      {(() => {
+                        const IconPreview = getCategoryIcon(newCatIcon)
+                        return <IconPreview className="h-5 w-5 text-stone-900" />
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-stone-500">
+                    <span>{isBn ? 'নির্বাচিত আইকন:' : 'Selected:'}</span>
+                    <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200 text-xs">
+                      {newCatIcon || 'Layers'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

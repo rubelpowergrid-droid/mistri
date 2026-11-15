@@ -92,10 +92,10 @@ export function Footer() {
                     {isBn ? 'ইমেইল অ্যাড্রেস' : 'Email Address'}
                   </span>
                   <a
-                    href="mailto:rubelinnovator@gmail.com"
+                    href="mailto:support.mistri24@gmail.com"
                     className="font-medium text-[#fefded] hover:underline"
                   >
-                    rubelinnovator@gmail.com
+                    support.mistri24@gmail.com
                   </a>
                 </div>
               </div>

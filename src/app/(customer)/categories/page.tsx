@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import * as LucideIcons from 'lucide-react'
 import { 
   Zap, Wrench, Paintbrush, Hammer, Home, Axe, 
   Armchair, ShieldAlert, Layers, Maximize, Users, 
@@ -41,7 +42,12 @@ const ICON_MAP: Record<string, any> = {
 
 function getCategoryIcon(iconName?: string) {
   if (!iconName) return Layers
-  return ICON_MAP[iconName] || Layers
+  if (ICON_MAP[iconName]) return ICON_MAP[iconName]
+  const match = (LucideIcons as Record<string, any>)[iconName]
+  if (match && (typeof match === 'function' || typeof match === 'object')) {
+    return match
+  }
+  return Layers
 }
 
 export default function CategoriesDirectoryPage() {
