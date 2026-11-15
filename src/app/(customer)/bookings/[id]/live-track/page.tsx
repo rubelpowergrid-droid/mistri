@@ -144,36 +144,74 @@ function CustomerLiveTrackContent() {
       } catch {}
     }
 
-    // Fetch from API
-    const fetchFromApi = async () => {
+    // Fetch from API with real-time polling
+    const fetchFromApi = async (isFirst = false) => {
       try {
         const res = await fetch(`/api/bookings/${bookingId}`, { cache: 'no-store' })
         const json = await res.json()
         if (json.success && json.data) {
           const match = json.data
-          setBooking((prev: any) => ({
-            ...prev,
-            ...match,
-            id: match.id || bookingId,
-            bookingNumber: match.bookingNumber || bookingId,
-            status: match.status || prev.status,
-            customerAddress: match.jobAddress || match.location || prev.customerAddress,
-            customerLocation: (match.latitude && match.longitude)
-              ? { latitude: match.latitude, longitude: match.longitude }
-              : prev.customerLocation,
-            mistriName: match.mistriName || prev.mistriName,
-            mistriTitle: match.mistriTitle || prev.mistriTitle,
-            mistriPhone: match.mistriPhone || prev.mistriPhone,
-            category: match.serviceName || match.category || prev.category,
-            mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
-          }))
+          setBooking((prev: any) => {
+            const updated = {
+              ...prev,
+              ...match,
+              id: match.id || bookingId,
+              bookingNumber: match.bookingNumber || bookingId,
+              status: match.status || prev.status,
+              customerAddress: match.jobAddress || match.location || prev.customerAddress,
+              customerLocation: (match.latitude && match.longitude)
+                ? { latitude: match.latitude, longitude: match.longitude }
+                : prev.customerLocation,
+              mistriName: match.mistriName || prev.mistriName,
+              mistriTitle: match.mistriTitle || prev.mistriTitle,
+              mistriPhone: match.mistriPhone || prev.mistriPhone,
+              category: match.serviceName || match.category || prev.category,
+              mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
+              preferredDate: match.preferredDate || prev.preferredDate,
+              preferredTime: match.preferredTime || prev.preferredTime,
+              proposedDate: match.proposedDate || prev.proposedDate,
+              proposedTime: match.proposedTime || prev.proposedTime,
+              agreedPrice: match.agreedPrice !== undefined ? match.agreedPrice : prev.agreedPrice,
+              createdAt: match.createdAt || prev.createdAt,
+              acceptedAt: match.acceptedAt || prev.acceptedAt,
+              startedAt: match.startedAt || prev.startedAt,
+              completedAt: match.completedAt || prev.completedAt,
+              updatedAt: match.updatedAt || prev.updatedAt,
+            }
+
+            // Sync to localStorage
+            if (typeof window !== 'undefined') {
+              try {
+                const stored = localStorage.getItem('mistri_customer_bookings')
+                if (stored) {
+                  const list = JSON.parse(stored) as any[]
+                  const idx = list.findIndex((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
+                  if (idx !== -1) {
+                    list[idx] = { ...list[idx], ...updated }
+                    localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
+                  }
+                }
+              } catch {}
+            }
+
+            return updated
+          })
         }
-      } catch {}
-      setIsLoadingBooking(false)
+      } catch (err) {
+        console.warn('Booking details poll error:', err)
+      } finally {
+        if (isFirst) setIsLoadingBooking(false)
+      }
     }
 
-    fetchFromApi()
-    if (found) setIsLoadingBooking(false)
+    fetchFromApi(true)
+    const bookingPollInterval = setInterval(() => fetchFromApi(false), 3000)
+    window.addEventListener('focus', () => fetchFromApi(false))
+
+    return () => {
+      clearInterval(bookingPollInterval)
+      window.removeEventListener('focus', () => fetchFromApi(false))
+    }
   }, [bookingId, initialStatus])
 
   // ── 3. Realtime GPS Polling for Mistri's Live Movement ─────────────────────

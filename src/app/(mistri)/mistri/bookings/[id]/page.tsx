@@ -11,3 +11,4 @@ export default async function MistriBookingDetailRedirectPage({
   }
   redirect('/mistri/bookings')
 }
+

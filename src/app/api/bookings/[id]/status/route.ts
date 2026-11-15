@@ -58,13 +58,22 @@ export async function PATCH(
     }
 
     // 2. Update in-memory server store
-    const updated = updateBookingInStore(id, {
+    const nowIso = new Date().toISOString()
+    const memoryUpdates: any = {
       status: status as any,
       agreedPrice: agreedPrice !== undefined ? agreedPrice : undefined,
       cancellationReason: reason || null,
       proposedDate: proposedDate || null,
       proposedTime: proposedTime || null,
-    })
+      updatedAt: nowIso,
+    }
+    if (proposedDate) memoryUpdates.preferredDate = proposedDate
+    if (proposedTime) memoryUpdates.preferredTime = proposedTime
+    if (status === 'accepted') memoryUpdates.acceptedAt = nowIso
+    if (status === 'on_the_way' || status === 'in_progress') memoryUpdates.startedAt = nowIso
+    if (status === 'completed') memoryUpdates.completedAt = nowIso
+
+    const updated = updateBookingInStore(id, memoryUpdates)
 
     // 3. Send Web Push to Customer on status transitions
     if (updated?.customerPhone) {

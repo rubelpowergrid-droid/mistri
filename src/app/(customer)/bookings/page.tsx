@@ -116,6 +116,11 @@ function BookingsListContent() {
                 agreedPrice: item.agreedPrice,
                 estimatedBudget: item.estimatedBudget || item.amount,
                 cancellationReason: item.cancellationReason,
+                createdAt: item.createdAt || item.created_at,
+                acceptedAt: item.acceptedAt || item.accepted_at,
+                startedAt: item.startedAt || item.started_at,
+                completedAt: item.completedAt || item.completed_at,
+                updatedAt: item.updatedAt || item.updated_at,
                 hasReviewed: false,
               })
             }

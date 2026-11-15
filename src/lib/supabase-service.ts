@@ -1192,13 +1192,16 @@ export async function updateBookingStatusInSupabase(
     }
     if (status === 'completed') updatePayload.completed_at = new Date().toISOString()
 
+    let query = supabase.from('bookings').update(updatePayload)
     if (isUuid) {
-      const { data: updated, error } = await supabase
-        .from('bookings')
-        .update(updatePayload)
-        .eq('id', id)
-        .select('*, customer_profiles(user_id, full_name), mistri_profiles(full_name)')
-        .maybeSingle()
+      query = query.eq('id', id)
+    } else {
+      query = query.eq('booking_number', id)
+    }
+
+    const { data: updated, error } = await query
+      .select('*, customer_profiles(user_id, full_name), mistri_profiles(full_name)')
+      .maybeSingle()
 
       if (!error && updated) {
         const custUserId = updated.customer_profiles?.user_id
@@ -1230,8 +1233,7 @@ export async function updateBookingStatusInSupabase(
           }
         }
       }
-    }
-  } catch (err: any) {
+    } catch (err: any) {
     console.error('updateBookingStatusInSupabase exception:', err.message)
   }
 }

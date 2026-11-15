@@ -47,12 +47,37 @@ export interface BookingTimelineData {
   serviceName?: string | null
   description?: string | null
   work_description?: string | null
+  preferredDate?: string | null
+  preferredTime?: string | null
+  proposedDate?: string | null
+  proposedTime?: string | null
+  date?: string | null
 }
 
 const banglaMonths = [
   'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
   'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
 ]
+
+export function formatBanglaDateOnly(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  try {
+    const clean = dateStr.slice(0, 10)
+    const parts = clean.split('-')
+    if (parts.length === 3) {
+      const year = toBanglaNumber(parts[0])
+      const mIdx = parseInt(parts[1], 10) - 1
+      const month = banglaMonths[mIdx] || parts[1]
+      const day = toBanglaNumber(parseInt(parts[2], 10))
+      return `${day} ${month} ${year}`
+    }
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    return `${toBanglaNumber(d.getDate())} ${banglaMonths[d.getMonth()]} ${toBanglaNumber(d.getFullYear())}`
+  } catch {
+    return dateStr || ''
+  }
+}
 
 export function formatBanglaDateTime(isoString?: string | null): string {
   if (!isoString) return ''
@@ -125,10 +150,10 @@ export function BookingHistoryTimeline({
   const isAccepted = status === 'accepted' || isOnTheWay || isInProgress || isCompleted
 
   const createdAt = booking.createdAt || booking.created_at || null
-  const acceptedAt = booking.acceptedAt || booking.accepted_at || (isAccepted ? createdAt : null)
-  const journeyStartedAt = booking.journeyStartedAt || booking.startedAt || booking.started_at || (isOnTheWay || isInProgress || isCompleted ? acceptedAt : null)
-  const startedAt = booking.startedAt || booking.started_at || (isInProgress || isCompleted ? journeyStartedAt : null)
-  const completedAt = booking.completedAt || booking.completed_at || (isCompleted ? booking.updatedAt || booking.updated_at || startedAt : null)
+  const acceptedAt = booking.acceptedAt || booking.accepted_at || (isAccepted ? (booking.updatedAt || booking.updated_at || createdAt) : null)
+  const journeyStartedAt = booking.journeyStartedAt || booking.startedAt || booking.started_at || (isOnTheWay || isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || acceptedAt) : null)
+  const startedAt = booking.startedAt || booking.started_at || (isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || journeyStartedAt) : null)
+  const completedAt = booking.completedAt || booking.completed_at || (isCompleted ? (booking.updatedAt || booking.updated_at || startedAt) : null)
   const cancelledAt = isCancelled ? (booking.updatedAt || booking.updated_at || createdAt) : null
 
   const amountVal = booking.agreedPrice ?? booking.agreed_price ?? booking.estimatedBudget ?? booking.estimated_budget ?? booking.amount ?? 400
@@ -176,7 +201,9 @@ export function BookingHistoryTimeline({
         ? 'বুকিং নিশ্চিত ও গ্রহণ করেছেন'
         : 'মিস্ত্রী কাজের অনুরোধ গ্রহণ করেছেন',
       description: isAccepted
-        ? 'কাজের শর্ত ও প্রাথমিক সময় অনুযায়ী নিশ্চিত করা হয়েছে'
+        ? (booking.proposedTime 
+            ? `মিস্ত্রী নতুন সময় প্রস্তাব সহ গ্রহণ করেছেন (${booking.proposedTime}${booking.proposedDate ? ` - ${formatBanglaDateOnly(booking.proposedDate)}` : ''})` 
+            : 'কাজের শর্ত ও নির্ধারিত সময় অনুযায়ী নিশ্চিত করা হয়েছে')
         : 'মিস্ত্রী বর্তমানে অনুরোধটি বিবেচনা করছেন',
       timestamp: isAccepted ? formatBanglaDateTime(acceptedAt) : null,
       status: isAccepted ? 'completed' : 'active',
@@ -401,6 +428,28 @@ export function BookingHistoryTimeline({
             </Badge>
           </div>
         </div>
+
+        {/* Scheduled Service Time & Date Bar */}
+        {(booking.preferredDate || booking.date || booking.preferredTime) && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-stone-50 border border-emerald-200/90 text-xs shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[#2c7865] shrink-0" />
+                <span className="font-bold text-stone-900">
+                  নির্ধারিত কাজের তারিখ ও সময়:
+                </span>
+                <span className="font-bold text-[#2c7865] bg-white px-2.5 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+                  {formatBanglaDateOnly(booking.preferredDate || booking.date)}, {booking.preferredTime || 'সুবিধাজনক সময়'}
+                </span>
+              </div>
+              {(booking.proposedTime || booking.proposedDate) && (
+                <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md w-fit">
+                  মিস্ত্রী কর্তৃক প্রস্তাবিত নতুন সময়
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Courier Vertical Spine Track */}
         <div className="space-y-0 relative">

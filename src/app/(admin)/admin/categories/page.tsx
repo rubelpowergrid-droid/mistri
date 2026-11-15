@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { 
   Layers, Plus, Trash2, Check, X, 
-  ChevronDown, ChevronRight, Eye, EyeOff
+  ChevronDown, ChevronRight, Eye, EyeOff,
+  Zap, Wrench, Paintbrush, Hammer, Home, Axe,
+  Armchair, ShieldAlert, Maximize, Users, Scissors,
+  Truck, Sparkles, Cpu, Flame, Tv, Settings, Package,
+  Lightbulb, ShieldCheck
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -12,6 +16,40 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toBanglaNumber } from '@/lib/utils'
 import { DEFAULT_CATEGORIES, CategoryOption, SubcategoryOption } from '@/lib/categories'
+
+const AVAILABLE_ICONS = [
+  { name: 'Zap', label: 'ইলেকট্রিক', icon: Zap },
+  { name: 'Wrench', label: 'প্লাম্বিং', icon: Wrench },
+  { name: 'Paintbrush', label: 'রং মিস্ত্রী', icon: Paintbrush },
+  { name: 'Hammer', label: 'রাজমিস্ত্রী', icon: Hammer },
+  { name: 'Home', label: 'ঘরের কাজ', icon: Home },
+  { name: 'Axe', label: 'কাঠের কাজ', icon: Axe },
+  { name: 'Armchair', label: 'ফার্নিচার', icon: Armchair },
+  { name: 'ShieldAlert', label: 'গ্রিল ও মেটাল', icon: ShieldAlert },
+  { name: 'Layers', label: 'থাই গ্লাস', icon: Layers },
+  { name: 'Maximize', label: 'সিলিং', icon: Maximize },
+  { name: 'Users', label: 'দৈনিক লেবার', icon: Users },
+  { name: 'Flame', label: 'এসি ও গ্যাস', icon: Flame },
+  { name: 'Tv', label: 'ইলেকট্রনিক্স', icon: Tv },
+  { name: 'Scissors', label: 'টেইলার্স', icon: Scissors },
+  { name: 'Truck', label: 'পরিবহন', icon: Truck },
+  { name: 'Sparkles', label: 'ক্লিনিং', icon: Sparkles },
+  { name: 'Settings', label: 'সার্ভিসিং', icon: Settings },
+  { name: 'Lightbulb', label: 'লাইট ফিটিং', icon: Lightbulb },
+  { name: 'Package', label: 'অন্যান্য', icon: Package },
+]
+
+const ICON_MAP: Record<string, any> = {
+  Zap, Wrench, Paintbrush, Hammer, Home, Axe,
+  Armchair, ShieldAlert, Layers, Maximize, Users,
+  Flame, Tv, Scissors, Truck, Sparkles, Settings,
+  Lightbulb, Package, ShieldCheck
+}
+
+function getCategoryIcon(iconName?: string) {
+  if (!iconName) return Layers
+  return ICON_MAP[iconName] || Layers
+}
 
 export default function AdminCategoriesPage() {
   const { lang } = useI18n()
@@ -26,6 +64,7 @@ export default function AdminCategoriesPage() {
   const [newCatBn, setNewCatBn] = useState('')
   const [newCatEn, setNewCatEn] = useState('')
   const [newCatSlug, setNewCatSlug] = useState('')
+  const [newCatIcon, setNewCatIcon] = useState('Zap')
 
   // Add new subcategory state
   const [targetCatIdForSub, setTargetCatIdForSub] = useState<string | null>(null)
@@ -114,6 +153,7 @@ export default function AdminCategoriesPage() {
           name_bn: newCatBn,
           name_en: newCatEn,
           slug,
+          icon: newCatIcon || 'Layers',
         }),
       })
       const data = await res.json()
@@ -125,7 +165,7 @@ export default function AdminCategoriesPage() {
           name_bn: newCatBn,
           name_en: newCatEn,
           slug,
-          icon: 'Layers',
+          icon: newCatIcon || 'Layers',
           display_order: categories.length + 1,
           is_active: true,
           subcategories: [],
@@ -139,6 +179,7 @@ export default function AdminCategoriesPage() {
     setNewCatBn('')
     setNewCatEn('')
     setNewCatSlug('')
+    setNewCatIcon('Zap')
     setIsAddModalOpen(false)
   }
 
@@ -229,6 +270,7 @@ export default function AdminCategoriesPage() {
         {categories.map((cat) => {
           const isExpanded = expandedCatId === cat.id || expandedCatId === cat.slug
           const catKey = cat.id || cat.slug
+          const CategoryIcon = getCategoryIcon(cat.icon)
           return (
             <Card key={catKey} className="p-0 overflow-hidden border-stone-300 shadow-xs">
               {/* Category Header Row */}
@@ -239,7 +281,7 @@ export default function AdminCategoriesPage() {
                   className="flex items-center gap-3 text-left flex-1"
                 >
                   <div className={`p-2 rounded-xl border ${cat.is_active ? 'bg-stone-900 text-white border-black' : 'bg-stone-100 text-stone-400 border-stone-200'}`}>
-                    <Layers className="h-4 w-4" />
+                    <CategoryIcon className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -374,6 +416,42 @@ export default function AdminCategoriesPage() {
                 value={newCatSlug}
                 onChange={(e) => setNewCatSlug(e.target.value)}
               />
+
+              {/* Icon Selection Palette */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-semibold text-stone-700 block">
+                  {isBn ? 'ক্যাটাগরি আইকন নির্বাচন করুন:' : 'Select Category Icon:'}
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 p-2 rounded-xl border border-stone-200 bg-stone-50 max-h-40 overflow-y-auto">
+                  {AVAILABLE_ICONS.map((item) => {
+                    const IconComp = item.icon
+                    const isSelected = newCatIcon === item.name
+                    return (
+                      <button
+                        type="button"
+                        key={item.name}
+                        onClick={() => setNewCatIcon(item.name)}
+                        className={`p-1.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-stone-900 text-white border-black shadow-xs ring-2 ring-stone-900'
+                            : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 hover:border-stone-400'
+                        }`}
+                        title={item.label}
+                      >
+                        <IconComp className="h-4 w-4" />
+                        <span className="text-[9px] font-semibold truncate max-w-full">{item.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-2 pt-0.5 text-xs text-stone-500">
+                  <span>{isBn ? 'নির্বাচিত আইকন:' : 'Selected:'}</span>
+                  <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+                    {newCatIcon}
+                  </span>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" size="sm" type="button" onClick={() => setIsAddModalOpen(false)}>
                   {isBn ? 'বাতিল' : 'Cancel'}

@@ -58,6 +58,10 @@ export async function GET(
           workPhotos: found.workPhotos || [],
           cancellationReason: found.cancellationReason || null,
           createdAt: found.createdAt || new Date().toISOString(),
+          acceptedAt: (found as any).acceptedAt || null,
+          startedAt: (found as any).startedAt || null,
+          completedAt: (found as any).completedAt || null,
+          updatedAt: (found as any).updatedAt || null,
         }
       }
     }
