@@ -1178,8 +1178,9 @@ export async function updateBookingStatusInSupabase(
     const supabase = createAdminClient() as any
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 
+    const dbStatus = status === 'on_the_way' ? 'in_progress' : status
     const updatePayload: any = {
-      status,
+      status: dbStatus,
       updated_at: new Date().toISOString(),
     }
     if (options.agreedPrice !== undefined) updatePayload.agreed_price = options.agreedPrice
@@ -1349,12 +1350,17 @@ export async function getBookingByIdFromSupabase(idOrNumber: string) {
       agreedPrice: row.agreed_price ? Number(row.agreed_price) : null,
       preferredDate: row.preferred_date || '',
       preferredTime: row.preferred_time || '',
+      proposedDate: row.preferred_date || null,
+      proposedTime: row.preferred_time || null,
       status: row.status,
       date: row.preferred_date || new Date(row.created_at).toISOString().slice(0, 10),
       workPhotos: row.work_photos || [],
       cancellationReason: row.cancellation_reason || null,
+      latitude: 26.0336,
+      longitude: 88.4617,
       createdAt: row.created_at,
       acceptedAt: row.accepted_at || null,
+      journeyStartedAt: row.started_at || null,
       startedAt: row.started_at || null,
       completedAt: row.completed_at || null,
       updatedAt: row.updated_at || null,

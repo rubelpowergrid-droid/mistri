@@ -16,7 +16,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
+    const id = decodeURIComponent(rawId || '')
 
     if (!id) {
       return NextResponse.json(
@@ -53,12 +54,17 @@ export async function GET(
           agreedPrice: found.agreedPrice || null,
           preferredDate: found.preferredDate || found.date || '',
           preferredTime: found.preferredTime || '',
+          proposedDate: (found as any).proposedDate || null,
+          proposedTime: (found as any).proposedTime || null,
           status: found.status,
           date: found.date || found.preferredDate || '',
           workPhotos: found.workPhotos || [],
           cancellationReason: found.cancellationReason || null,
+          latitude: found.latitude || 26.0336,
+          longitude: found.longitude || 88.4617,
           createdAt: found.createdAt || new Date().toISOString(),
           acceptedAt: (found as any).acceptedAt || null,
+          journeyStartedAt: (found as any).journeyStartedAt || null,
           startedAt: (found as any).startedAt || null,
           completedAt: (found as any).completedAt || null,
           updatedAt: (found as any).updatedAt || null,

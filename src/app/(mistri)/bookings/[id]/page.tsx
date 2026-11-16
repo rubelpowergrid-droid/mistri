@@ -224,8 +224,47 @@ export default function MistriJobDetailPage() {
     }
   }, [])
 
+  // Cross-tab and real-time notification broadcaster
+  const notifyBookingUpdated = useCallback((id: string, updatedFields: any) => {
+    if (typeof window === 'undefined') return
+    const nowIso = new Date().toISOString()
+    const payload = {
+      ...updatedFields,
+      id,
+      bookingId: id,
+      updatedAt: nowIso,
+    }
+
+    // 1. BroadcastChannel for 0ms cross-tab sync
+    try {
+      const bc = new BroadcastChannel('mistri_booking_events')
+      bc.postMessage({
+        type: 'BOOKING_STATUS_CHANGED',
+        bookingId: id,
+        status: updatedFields.status,
+        bookingData: payload,
+        timestamp: nowIso,
+      })
+      bc.close()
+    } catch {}
+
+    // 2. LocalStorage sync to trigger storage events on other tabs/windows
+    try {
+      const stored = localStorage.getItem('mistri_customer_bookings')
+      if (stored) {
+        const list = JSON.parse(stored) as any[]
+        const idx = list.findIndex((b: any) => b.id === id || b.bookingNumber === id)
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...payload }
+          localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
+        }
+      }
+    } catch {}
+  }, [])
+
   // Handle Start Journey (En Route)
   const handleStartJourney = async () => {
+    const nowIso = new Date().toISOString()
     try {
       await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
@@ -233,12 +272,16 @@ export default function MistriJobDetailPage() {
         body: JSON.stringify({ status: 'on_the_way' }),
       })
       setJobStatus('on_the_way')
+      const updatedFields = {
+        status: 'on_the_way',
+        journeyStartedAt: nowIso,
+        startedAt: nowIso,
+      }
       setBooking((prev: any) => ({
         ...prev,
-        status: 'on_the_way',
-        journeyStartedAt: new Date().toISOString(),
-        startedAt: new Date().toISOString(),
+        ...updatedFields,
       }))
+      notifyBookingUpdated(bookingId, updatedFields)
       if (!isLocationSharing) {
         toggleLocationSharing()
       }
@@ -250,6 +293,7 @@ export default function MistriJobDetailPage() {
   // Handle Start Job
   const handleStartJob = async () => {
     setIsStarting(true)
+    const nowIso = new Date().toISOString()
     try {
       await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
@@ -257,11 +301,15 @@ export default function MistriJobDetailPage() {
         body: JSON.stringify({ status: 'in_progress' }),
       })
       setJobStatus('in_progress')
+      const updatedFields = {
+        status: 'in_progress',
+        startedAt: booking?.startedAt || nowIso,
+      }
       setBooking((prev: any) => ({
         ...prev,
-        status: 'in_progress',
-        startedAt: prev?.startedAt || new Date().toISOString(),
+        ...updatedFields,
       }))
+      notifyBookingUpdated(bookingId, updatedFields)
       await stopLocationWatch()
     } catch (e) {
       console.error(e)
@@ -273,6 +321,7 @@ export default function MistriJobDetailPage() {
   // Handle Mark Completed
   const handleConfirmCompletion = async () => {
     setIsCompleting(true)
+    const nowIso = new Date().toISOString()
     try {
       await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
@@ -283,12 +332,16 @@ export default function MistriJobDetailPage() {
         }),
       })
       setJobStatus('completed')
-      setBooking((prev: any) => ({
-        ...prev,
+      const updatedFields = {
         status: 'completed',
         agreedPrice: finalAgreedPrice,
-        completedAt: new Date().toISOString(),
+        completedAt: nowIso,
+      }
+      setBooking((prev: any) => ({
+        ...prev,
+        ...updatedFields,
       }))
+      notifyBookingUpdated(bookingId, updatedFields)
       setShowCompletionModal(false)
       await stopLocationWatch()
     } catch (e) {
@@ -301,6 +354,7 @@ export default function MistriJobDetailPage() {
   // Handle Direct Accept for Pending Request
   const handleDirectAccept = async () => {
     setIsAcceptingDirect(true)
+    const nowIso = new Date().toISOString()
     try {
       const res = await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
@@ -310,11 +364,15 @@ export default function MistriJobDetailPage() {
       const data = await res.json()
       if (data.success || res.ok) {
         setJobStatus('accepted')
+        const updatedFields = {
+          status: 'accepted',
+          acceptedAt: nowIso,
+        }
         setBooking((prev: any) => ({
           ...prev,
-          status: 'accepted',
-          acceptedAt: new Date().toISOString(),
+          ...updatedFields,
         }))
+        notifyBookingUpdated(bookingId, updatedFields)
         setActionSuccessToast(isBn ? '✓ বুকিং অনুরোধটি সরাসরি গ্রহণ করা হয়েছে!' : 'Booking accepted!')
         setTimeout(() => setActionSuccessToast(null), 4000)
       }
@@ -329,6 +387,7 @@ export default function MistriJobDetailPage() {
   const handleConfirmDecline = async () => {
     setIsSubmittingDecline(true)
     const finalReason = customDeclineReason.trim() || declineReason
+    const nowIso = new Date().toISOString()
     try {
       const res = await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
@@ -341,11 +400,15 @@ export default function MistriJobDetailPage() {
       const data = await res.json()
       if (data.success || res.ok) {
         setJobStatus('rejected' as any)
-        setBooking((prev: any) => ({
-          ...prev,
+        const updatedFields = {
           status: 'rejected',
           cancellationReason: finalReason,
+        }
+        setBooking((prev: any) => ({
+          ...prev,
+          ...updatedFields,
         }))
+        notifyBookingUpdated(bookingId, updatedFields)
         setShowDeclineModal(false)
         setActionSuccessToast(isBn ? '✓ বুকিং অনুরোধটি ব্যস্ততা জানিয়ে বাতিল করা হয়েছে।' : 'Request declined.')
         setTimeout(() => setActionSuccessToast(null), 4000)
@@ -360,28 +423,38 @@ export default function MistriJobDetailPage() {
   // Handle Propose Time / Price for Pending Request
   const handleConfirmProposal = async () => {
     setIsSubmittingProposal(true)
+    const nowIso = new Date().toISOString()
+    const finalPropDate = proposedDate || booking?.preferredDate
+    const finalPropPrice = proposedPrice ? Number(proposedPrice) : finalAgreedPrice
     try {
       const res = await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'accepted',
-          proposedDate: proposedDate || booking?.preferredDate,
+          proposedDate: finalPropDate,
           proposedTime: proposedTime,
-          agreedPrice: proposedPrice ? Number(proposedPrice) : finalAgreedPrice,
+          agreedPrice: finalPropPrice,
           reason: proposalNotes || 'মিস্ত্রী সুবিধাজনক নতুন সময় প্রস্তাব করেছেন',
         }),
       })
       const data = await res.json()
       if (data.success || res.ok) {
         setJobStatus('accepted')
+        const updatedFields = {
+          status: 'accepted',
+          preferredDate: finalPropDate,
+          preferredTime: proposedTime,
+          proposedDate: finalPropDate,
+          proposedTime: proposedTime,
+          agreedPrice: finalPropPrice,
+          acceptedAt: nowIso,
+        }
         setBooking((prev: any) => ({
           ...prev,
-          status: 'accepted',
-          preferredDate: proposedDate || prev?.preferredDate,
-          preferredTime: proposedTime,
-          agreedPrice: proposedPrice ? Number(proposedPrice) : finalAgreedPrice,
+          ...updatedFields,
         }))
+        notifyBookingUpdated(bookingId, updatedFields)
         setShowProposalModal(false)
         setActionSuccessToast(isBn ? '✓ নতুন সময় প্রস্তাব সহ বুকিং গ্রহণ করা হয়েছে! গ্রাহককে জানানো হয়েছে।' : 'Accepted with proposed time!')
         setTimeout(() => setActionSuccessToast(null), 4000)

@@ -32,7 +32,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
+    const id = decodeURIComponent(rawId || '')
     const body = await request.json()
     const parsed = updateStatusSchema.safeParse(body)
 
@@ -70,7 +71,13 @@ export async function PATCH(
     if (proposedDate) memoryUpdates.preferredDate = proposedDate
     if (proposedTime) memoryUpdates.preferredTime = proposedTime
     if (status === 'accepted') memoryUpdates.acceptedAt = nowIso
-    if (status === 'on_the_way' || status === 'in_progress') memoryUpdates.startedAt = nowIso
+    if (status === 'on_the_way') {
+      memoryUpdates.journeyStartedAt = nowIso
+      memoryUpdates.startedAt = nowIso
+    }
+    if (status === 'in_progress') {
+      memoryUpdates.startedAt = nowIso
+    }
     if (status === 'completed') memoryUpdates.completedAt = nowIso
 
     const updated = updateBookingInStore(id, memoryUpdates)
@@ -117,6 +124,11 @@ export async function PATCH(
       proposedDate: proposedDate || null,
       proposedTime: proposedTime || null,
       booking: updated,
+      acceptedAt: memoryUpdates.acceptedAt || null,
+      journeyStartedAt: memoryUpdates.journeyStartedAt || null,
+      startedAt: memoryUpdates.startedAt || null,
+      completedAt: memoryUpdates.completedAt || null,
+      updatedAt: nowIso,
       message: `Booking transitioned to ${status}`,
     }, { headers: NO_CACHE_HEADERS })
   } catch (err: any) {

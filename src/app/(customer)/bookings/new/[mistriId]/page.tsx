@@ -225,6 +225,8 @@ export default function NewBookingPage() {
               agreedPrice: null,
               estimatedBudget: estimatedBudget || null,
               hasReviewed: false,
+              createdAt: data.booking.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             }
             localStorage.setItem('mistri_customer_bookings', JSON.stringify([newBookingItem, ...existing]))
           } catch (e) {

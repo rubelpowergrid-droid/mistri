@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { 
   Navigation, Phone, ShieldCheck, ArrowLeft, Clock, 
   MapPin, Wrench, ExternalLink, AlertCircle, Compass,
@@ -55,7 +56,8 @@ function CustomerLiveTrackContent() {
   const { lang } = useI18n()
   const isBn = lang === 'bn'
 
-  const bookingId = (params?.id as string) || ''
+  const rawId = (params?.id as string) || ''
+  const bookingId = decodeURIComponent(rawId)
   const initialStatus = searchParams.get('status') || 'pending'
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ function CustomerLiveTrackContent() {
     mistriPhone: '',
     category: '',
     mistriAvatar: '',
+    createdAt: new Date().toISOString(),
   })
 
   const [customerGpsAccuracy, setCustomerGpsAccuracy] = useState<number | null>(null)
@@ -110,13 +113,62 @@ function CustomerLiveTrackContent() {
     )
   }, [])
 
-  // ── 2. Load real booking data from localStorage + API ─────────────────────
+  // ── 2. Load real booking data from localStorage + API + Realtime Channels ────
   useEffect(() => {
     if (!bookingId) return
 
-    let found = false
+    // Helper to safely merge updated booking record
+    const applyBookingUpdate = (newData: any) => {
+      if (!newData) return
+      setBooking((prev: any) => {
+        const updated = {
+          ...prev,
+          ...newData,
+          id: newData.id || bookingId,
+          bookingNumber: newData.bookingNumber || newData.booking_number || prev.bookingNumber || bookingId,
+          status: newData.status || prev.status,
+          customerAddress: newData.jobAddress || newData.job_address || newData.location || prev.customerAddress,
+          customerLocation: (newData.latitude && newData.longitude)
+            ? { latitude: Number(newData.latitude), longitude: Number(newData.longitude) }
+            : prev.customerLocation,
+          mistriName: newData.mistriName || newData.mistri_name || prev.mistriName,
+          mistriTitle: newData.mistriTitle || newData.mistri_title || prev.mistriTitle,
+          mistriPhone: newData.mistriPhone || newData.mistri_phone || prev.mistriPhone,
+          category: newData.serviceName || newData.category || prev.category,
+          mistriAvatar: newData.mistriAvatar || newData.mistri_avatar || prev.mistriAvatar,
+          preferredDate: newData.preferredDate || newData.preferred_date || prev.preferredDate,
+          preferredTime: newData.preferredTime || newData.preferred_time || prev.preferredTime,
+          proposedDate: newData.proposedDate || newData.proposed_date || prev.proposedDate,
+          proposedTime: newData.proposedTime || newData.proposed_time || prev.proposedTime,
+          agreedPrice: newData.agreedPrice !== undefined ? newData.agreedPrice : prev.agreedPrice,
+          createdAt: newData.createdAt || newData.created_at || prev.createdAt,
+          acceptedAt: newData.acceptedAt || newData.accepted_at || prev.acceptedAt,
+          journeyStartedAt: newData.journeyStartedAt || newData.startedAt || prev.journeyStartedAt,
+          startedAt: newData.startedAt || newData.started_at || prev.startedAt,
+          completedAt: newData.completedAt || newData.completed_at || prev.completedAt,
+          updatedAt: newData.updatedAt || newData.updated_at || prev.updatedAt,
+        }
 
-    // Try localStorage
+        // Sync to localStorage for consistency across pages
+        if (typeof window !== 'undefined') {
+          try {
+            const stored = localStorage.getItem('mistri_customer_bookings')
+            if (stored) {
+              const list = JSON.parse(stored) as any[]
+              const idx = list.findIndex((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
+              if (idx !== -1) {
+                list[idx] = { ...list[idx], ...updated }
+                localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
+              }
+            }
+          } catch {}
+        }
+
+        return updated
+      })
+    }
+
+    // Try initial localStorage read
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('mistri_customer_bookings')
@@ -124,21 +176,7 @@ function CustomerLiveTrackContent() {
           const list = JSON.parse(stored) as any[]
           const match = list.find((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
           if (match) {
-            setBooking((prev) => ({
-              ...prev,
-              id: match.id || bookingId,
-              status: (match.status as any) || initialStatus,
-              customerAddress: match.jobAddress || prev.customerAddress,
-              customerLocation: (match.latitude && match.longitude) 
-                ? { latitude: match.latitude, longitude: match.longitude } 
-                : prev.customerLocation,
-              mistriName: match.mistriName || '',
-              mistriTitle: match.mistriTitle || '',
-              mistriPhone: match.mistriPhone || '',
-              category: match.category || '',
-              mistriAvatar: match.mistriAvatar || '',
-            }))
-            found = true
+            applyBookingUpdate(match)
           }
         }
       } catch {}
@@ -150,52 +188,7 @@ function CustomerLiveTrackContent() {
         const res = await fetch(`/api/bookings/${bookingId}`, { cache: 'no-store' })
         const json = await res.json()
         if (json.success && json.data) {
-          const match = json.data
-          setBooking((prev: any) => {
-            const updated = {
-              ...prev,
-              ...match,
-              id: match.id || bookingId,
-              bookingNumber: match.bookingNumber || bookingId,
-              status: match.status || prev.status,
-              customerAddress: match.jobAddress || match.location || prev.customerAddress,
-              customerLocation: (match.latitude && match.longitude)
-                ? { latitude: match.latitude, longitude: match.longitude }
-                : prev.customerLocation,
-              mistriName: match.mistriName || prev.mistriName,
-              mistriTitle: match.mistriTitle || prev.mistriTitle,
-              mistriPhone: match.mistriPhone || prev.mistriPhone,
-              category: match.serviceName || match.category || prev.category,
-              mistriAvatar: match.mistriAvatar || prev.mistriAvatar,
-              preferredDate: match.preferredDate || prev.preferredDate,
-              preferredTime: match.preferredTime || prev.preferredTime,
-              proposedDate: match.proposedDate || prev.proposedDate,
-              proposedTime: match.proposedTime || prev.proposedTime,
-              agreedPrice: match.agreedPrice !== undefined ? match.agreedPrice : prev.agreedPrice,
-              createdAt: match.createdAt || prev.createdAt,
-              acceptedAt: match.acceptedAt || prev.acceptedAt,
-              startedAt: match.startedAt || prev.startedAt,
-              completedAt: match.completedAt || prev.completedAt,
-              updatedAt: match.updatedAt || prev.updatedAt,
-            }
-
-            // Sync to localStorage
-            if (typeof window !== 'undefined') {
-              try {
-                const stored = localStorage.getItem('mistri_customer_bookings')
-                if (stored) {
-                  const list = JSON.parse(stored) as any[]
-                  const idx = list.findIndex((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
-                  if (idx !== -1) {
-                    list[idx] = { ...list[idx], ...updated }
-                    localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
-                  }
-                }
-              } catch {}
-            }
-
-            return updated
-          })
+          applyBookingUpdate(json.data)
         }
       } catch (err) {
         console.warn('Booking details poll error:', err)
@@ -205,14 +198,82 @@ function CustomerLiveTrackContent() {
     }
 
     fetchFromApi(true)
-    const bookingPollInterval = setInterval(() => fetchFromApi(false), 3000)
-    window.addEventListener('focus', () => fetchFromApi(false))
+    // Fast 2-second polling for real-time smoothness
+    const bookingPollInterval = setInterval(() => fetchFromApi(false), 2000)
+
+    // Listen to tab focus for instant update
+    const handleFocus = () => fetchFromApi(false)
+    window.addEventListener('focus', handleFocus)
+
+    // 1. Cross-tab BroadcastChannel listener (0ms instant sync)
+    let bc: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('mistri_booking_events')
+        bc.onmessage = (event) => {
+          if (event.data?.bookingId === bookingId || event.data?.id === bookingId) {
+            if (event.data?.bookingData) {
+              applyBookingUpdate(event.data.bookingData)
+            }
+            fetchFromApi(false)
+          }
+        }
+      }
+    } catch {}
+
+    // 2. Cross-tab LocalStorage storage event listener
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key === 'mistri_customer_bookings' && e.newValue) {
+        try {
+          const list = JSON.parse(e.newValue) as any[]
+          const match = list.find((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
+          if (match) {
+            applyBookingUpdate(match)
+          }
+        } catch {}
+        fetchFromApi(false)
+      }
+    }
+    window.addEventListener('storage', handleStorageEvent)
+
+    // 3. Supabase Realtime Channel Subscription
+    let supabaseChannel: any = null
+    try {
+      const supabase = createClient()
+      supabaseChannel = supabase
+        .channel(`booking-live-channel-${bookingId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'bookings',
+            filter: `id=eq.${bookingId}`,
+          },
+          (payload) => {
+            fetchFromApi(false)
+          }
+        )
+        .subscribe()
+    } catch (err) {
+      console.warn('Supabase realtime channel failed:', err)
+    }
 
     return () => {
       clearInterval(bookingPollInterval)
-      window.removeEventListener('focus', () => fetchFromApi(false))
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('storage', handleStorageEvent)
+      if (bc) {
+        try { bc.close() } catch {}
+      }
+      if (supabaseChannel) {
+        try {
+          const supabase = createClient()
+          supabase.removeChannel(supabaseChannel)
+        } catch {}
+      }
     }
-  }, [bookingId, initialStatus])
+  }, [bookingId])
 
   // ── 3. Realtime GPS Polling for Mistri's Live Movement ─────────────────────
   useEffect(() => {

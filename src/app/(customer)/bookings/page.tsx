@@ -146,12 +146,34 @@ function BookingsListContent() {
     }
 
     syncBookings()
-    const interval = setInterval(syncBookings, 4000)
+    const interval = setInterval(syncBookings, 3000)
     window.addEventListener('focus', syncBookings)
+
+    // Cross-tab BroadcastChannel listener
+    let bc: BroadcastChannel | null = null
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('mistri_booking_events')
+        bc.onmessage = () => {
+          syncBookings()
+        }
+      }
+    } catch {}
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mistri_customer_bookings') {
+        syncBookings()
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
 
     return () => {
       clearInterval(interval)
       window.removeEventListener('focus', syncBookings)
+      window.removeEventListener('storage', handleStorageChange)
+      if (bc) {
+        try { bc.close() } catch {}
+      }
     }
   }, [])
 

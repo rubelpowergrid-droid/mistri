@@ -149,9 +149,9 @@ export function BookingHistoryTimeline({
   const isOnTheWay = status === 'on_the_way'
   const isAccepted = status === 'accepted' || isOnTheWay || isInProgress || isCompleted
 
-  const createdAt = booking.createdAt || booking.created_at || null
+  const createdAt = booking.createdAt || booking.created_at || (booking as any).date || new Date().toISOString()
   const acceptedAt = booking.acceptedAt || booking.accepted_at || (isAccepted ? (booking.updatedAt || booking.updated_at || createdAt) : null)
-  const journeyStartedAt = booking.journeyStartedAt || booking.startedAt || booking.started_at || (isOnTheWay || isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || acceptedAt) : null)
+  const journeyStartedAt = booking.journeyStartedAt || (isOnTheWay || isInProgress || isCompleted ? (booking.startedAt || booking.started_at || booking.updatedAt || booking.updated_at || acceptedAt) : null)
   const startedAt = booking.startedAt || booking.started_at || (isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || journeyStartedAt) : null)
   const completedAt = booking.completedAt || booking.completed_at || (isCompleted ? (booking.updatedAt || booking.updated_at || startedAt) : null)
   const cancelledAt = isCancelled ? (booking.updatedAt || booking.updated_at || createdAt) : null
@@ -173,7 +173,7 @@ export function BookingHistoryTimeline({
     description: perspective === 'mistri'
       ? `${booking.customerName || 'গ্রাহক'} কাজের নতুন অনুরোধ পাঠিয়েছেন`
       : `${booking.mistriName || 'মিস্ত্রী'} বরাবর সেবার অনুরোধ দাখিল করা হয়েছে`,
-    timestamp: formatBanglaDateTime(createdAt),
+    timestamp: formatBanglaDateTime(createdAt) || formatBanglaDateTime(new Date().toISOString()),
     status: 'completed',
     icon: Calendar,
     badgeText: 'সম্পন্ন',
@@ -419,13 +419,39 @@ export function BookingHistoryTimeline({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>লাইভ সিঙ্ক সক্রিয়</span>
+            </span>
             <span className="text-xs font-mono font-bold text-stone-600 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200">
               ট্র্যাকিং আইডি: {booking.bookingNumber || booking.id || 'MST-LIVE'}
             </span>
             <Badge variant="neutral" className="text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1">
               {toBanglaNumber(steps.filter(s => s.status === 'completed').length)}/{toBanglaNumber(steps.length)} সম্পন্ন
             </Badge>
+          </div>
+        </div>
+
+        {/* Real-time Smooth Progress Bar */}
+        <div className="space-y-1.5 bg-stone-50/80 p-3 rounded-2xl border border-stone-200">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-stone-700 flex items-center gap-1.5">
+              <span>সার্ভিস অগ্রগতি</span>
+              <span className="text-[10px] text-stone-500 font-normal">(রিয়েল-টাইমে আপডেট হচ্ছে)</span>
+            </span>
+            <span className="font-mono font-bold text-[#2c7865]">
+              {toBanglaNumber(Math.round((steps.filter(s => s.status === 'completed').length / steps.length) * 100))}% সম্পন্ন
+            </span>
+          </div>
+          <div className="w-full bg-stone-200/80 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-emerald-500 to-[#2c7865] h-full transition-all duration-700 ease-out rounded-full shadow-xs"
+              style={{ width: `${Math.round((steps.filter(s => s.status === 'completed').length / steps.length) * 100)}%` }}
+            />
           </div>
         </div>
 
@@ -465,7 +491,7 @@ export function BookingHistoryTimeline({
                 {/* 1. Left Vertical Connector Line */}
                 {!isLast && (
                   <div 
-                    className={`absolute left-4 sm:left-4.5 top-9 bottom-0 w-0.5 sm:w-1 transition-colors ${
+                    className={`absolute left-4 sm:left-4.5 top-9 bottom-0 w-0.5 sm:w-1 transition-all duration-500 ${
                       isStepDone 
                         ? 'bg-emerald-500' 
                         : isStepActive 
@@ -480,11 +506,11 @@ export function BookingHistoryTimeline({
                 {/* 2. Courier Node Icon (Step Marker) */}
                 <div className="relative z-10 shrink-0">
                   <div 
-                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm ring-4 ring-white transition-all ${
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm ring-4 ring-white transition-all duration-500 ${
                       isStepDone 
                         ? 'bg-emerald-600 text-white' 
                         : isStepActive 
-                        ? 'bg-blue-600 text-white shadow-lg ring-blue-100' 
+                        ? 'bg-blue-600 text-white shadow-lg ring-blue-100 animate-pulse' 
                         : isStepCancelled 
                         ? 'bg-red-600 text-white' 
                         : 'bg-stone-100 text-stone-400 border-2 border-stone-300'
@@ -494,7 +520,7 @@ export function BookingHistoryTimeline({
                       <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : isStepActive ? (
                       <div className="relative flex items-center justify-center">
-                        <span className="absolute animate-ping h-4 w-4 rounded-full bg-blue-400 opacity-75" />
+                        <span className="absolute animate-ping h-4 w-4 rounded-full bg-blue-300 opacity-80" />
                         <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 relative z-10" />
                       </div>
                     ) : isStepCancelled ? (
@@ -506,11 +532,11 @@ export function BookingHistoryTimeline({
                 </div>
 
                 {/* 3. Courier Checkpoint Content Card */}
-                <div className={`flex-1 p-4 sm:p-5 rounded-2xl border transition-all ${
+                <div className={`flex-1 p-4 sm:p-5 rounded-2xl border transition-all duration-500 ease-out ${
                   isStepDone 
                     ? 'bg-emerald-50/50 border-emerald-200/80 shadow-2xs' 
                     : isStepActive 
-                    ? 'bg-blue-50/70 border-blue-300 shadow-md ring-2 ring-blue-100' 
+                    ? 'bg-blue-50/80 border-blue-400 shadow-md ring-4 ring-blue-100/70' 
                     : isStepCancelled 
                     ? 'bg-red-50/60 border-red-200 shadow-2xs' 
                     : 'bg-stone-50/50 border-stone-200 opacity-70'
