@@ -1261,14 +1261,18 @@ export async function getBookingsFromSupabase(filter: {
 
     return data
       .filter((row: any) => {
-        if (filter.mistriPhone) {
-          const mPhone = (row.mistri_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
-          const cleanFilterPhone = filter.mistriPhone.replace(/[^0-9]/g, '')
-          if (mPhone && cleanFilterPhone && mPhone.slice(-10) !== cleanFilterPhone.slice(-10)) return false
-        }
-        if (filter.mistriId) {
-          if (row.mistri_id !== filter.mistriId && row.mistri_profiles?.id !== filter.mistriId) {
-            return false
+        if (filter.mistriPhone || filter.mistriId) {
+          const cleanFilterPhone = (filter.mistriPhone || '').replace(/[^0-9]/g, '')
+          const mPhone = (row.mistri_profiles?.users?.phone || row.contact_phone || '').replace(/[^0-9]/g, '')
+          const matchPhone = Boolean(cleanFilterPhone && mPhone && (mPhone.slice(-10) === cleanFilterPhone.slice(-10)))
+          const matchId = Boolean(filter.mistriId && (
+            row.mistri_id === filter.mistriId || 
+            row.mistri_profiles?.id === filter.mistriId ||
+            row.mistri_profiles?.user_id === filter.mistriId
+          ))
+
+          if (cleanFilterPhone || filter.mistriId) {
+            if (!matchPhone && !matchId) return false
           }
         }
         if (filter.customerPhone) {
@@ -1303,6 +1307,10 @@ export async function getBookingsFromSupabase(filter: {
         workPhotos: row.work_photos || [],
         cancellationReason: row.cancellation_reason || null,
         createdAt: row.created_at,
+        acceptedAt: row.accepted_at || null,
+        startedAt: row.started_at || null,
+        completedAt: row.completed_at || null,
+        updatedAt: row.updated_at || null,
       }))
   } catch (err: any) {
     console.error('getBookingsFromSupabase error:', err.message)

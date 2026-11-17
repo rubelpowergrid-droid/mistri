@@ -82,6 +82,32 @@ export async function savePushSubscription(params: {
       if (u?.id) targetUserId = u.id
     }
 
+    // Try finding via mistri_profiles if still not found
+    if (!targetUserId && cleanPhone) {
+      const { data: mp } = await supabase
+        .from('mistri_profiles')
+        .select('user_id')
+        .ilike('contact_phone', `%${cleanPhone.slice(-10)}%`)
+        .maybeSingle()
+      if (mp?.user_id) targetUserId = mp.user_id
+    }
+
+    // If still not in users table, insert user record to satisfy device_tokens foreign key
+    if (!targetUserId && cleanPhone) {
+      try {
+        const { data: newUser } = await supabase
+          .from('users')
+          .insert({
+            phone: cleanPhone,
+            role: role || 'mistri',
+            is_active: true,
+          })
+          .select('id')
+          .maybeSingle()
+        if (newUser?.id) targetUserId = newUser.id
+      } catch {}
+    }
+
     if (targetUserId) {
       await supabase.from('device_tokens').upsert(
         {
@@ -212,7 +238,7 @@ export async function sendWebPush(
     })
 
     await webpush.sendNotification(subscription, jsonPayload, {
-      TTL: 60 * 60 * 24, // 24 hours
+      TTL: 60 * 60 * 24 * 7, // 7 days (guarantees delivery when device reconnects)
       urgency: 'high',
     })
     return true

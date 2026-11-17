@@ -78,15 +78,16 @@ export async function GET(request: NextRequest) {
       const cleanMPhone = (mistriPhone || '').replace(/[^0-9]/g, '')
       const bMPhone = (b.mistriPhone || '').replace(/[^0-9]/g, '')
       
-      const matchId = mistriId && (b.mistriId === mistriId || b.mistriId === `m-live-${mistriId}`)
-      const matchPhone = cleanMPhone && bMPhone && (cleanMPhone.slice(-10) === bMPhone.slice(-10))
+      const matchId = Boolean(mistriId && (
+        b.mistriId === mistriId || 
+        b.mistriId === `m-live-${mistriId}` ||
+        (b as any).mistriUserId === mistriId ||
+        (b as any).mistriProfileId === mistriId
+      ))
+      const matchPhone = Boolean(cleanMPhone && bMPhone && (cleanMPhone.slice(-10) === bMPhone.slice(-10)))
 
-      if (mistriId && mistriPhone) {
+      if (mistriId || cleanMPhone) {
         if (!matchId && !matchPhone) return false
-      } else if (mistriId && !matchId) {
-        return false
-      } else if (mistriPhone && !matchPhone) {
-        return false
       }
     }
 

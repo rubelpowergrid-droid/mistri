@@ -1,17 +1,19 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { 
   Calendar, Clock, MapPin, Navigation, Phone, 
   CheckCircle2, XCircle, AlertCircle, Star, 
-  RotateCcw, ShieldCheck, ArrowRight, MessageSquare, X, AlertTriangle, User
+  RotateCcw, ShieldCheck, ArrowRight, MessageSquare, X, AlertTriangle, User,
+  Search, Filter, Printer
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { formatBDT, toBanglaNumber } from '@/lib/utils'
 import { ReviewModal } from '@/components/reviews/review-modal'
 import { getStoredUser } from '@/lib/auth-client'
@@ -53,6 +55,8 @@ function BookingsListContent() {
   const isBn = lang === 'bn'
 
   const [activeTab, setActiveTab] = useState<string>('all')
+  const [periodFilter, setPeriodFilter] = useState<'all' | '7d' | '30d' | '3m' | '6m' | '1y'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [successBanner, setSuccessBanner] = useState(searchParams.get('success') === 'true')
   const [reviewBooking, setReviewBooking] = useState<BookingRecord | null>(null)
 
@@ -230,11 +234,88 @@ function BookingsListContent() {
     }
   }
 
-  const filteredBookings = bookings.filter((b) => {
-    if (activeTab === 'all') return true
-    if (activeTab === 'active') return b.status === 'accepted' || b.status === 'in_progress'
-    return b.status === activeTab
-  })
+  // Date period calculation helper
+  const isWithinPeriod = (dateStr: string | undefined, period: string): boolean => {
+    if (period === 'all') return true
+    if (!dateStr) return true
+    try {
+      const itemTime = new Date(dateStr).getTime()
+      if (isNaN(itemTime)) return true
+      const diffMs = Date.now() - itemTime
+      const oneDayMs = 24 * 60 * 60 * 1000
+      if (period === '7d') return diffMs <= 7 * oneDayMs
+      if (period === '30d') return diffMs <= 30 * oneDayMs
+      if (period === '3m') return diffMs <= 90 * oneDayMs
+      if (period === '6m') return diffMs <= 182 * oneDayMs
+      if (period === '1y') return diffMs <= 365 * oneDayMs
+      return true
+    } catch {
+      return true
+    }
+  }
+
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    let active = 0
+    let pending = 0
+    let completed = 0
+    let cancelled = 0
+    for (const b of bookings) {
+      if (b.status === 'accepted' || b.status === 'in_progress' || (b.status as any) === 'on_the_way') {
+        active++
+      } else if (b.status === 'pending') {
+        pending++
+      } else if (b.status === 'completed') {
+        completed++
+      } else if (b.status === 'cancelled' || b.status === 'rejected') {
+        cancelled++
+      }
+    }
+    return { all: bookings.length, active, pending, completed, cancelled }
+  }, [bookings])
+
+  // Selected period summary statistics
+  const periodStats = useMemo(() => {
+    const list = bookings.filter(b => isWithinPeriod((b as any).completedAt || (b as any).createdAt || b.preferredDate, periodFilter))
+    const total = list.length
+    const completed = list.filter(b => b.status === 'completed')
+    const totalSpent = completed.reduce((sum, b) => sum + (Number(b.agreedPrice || b.estimatedBudget) || 0), 0)
+    return {
+      total,
+      completedCount: completed.length,
+      totalSpent
+    }
+  }, [bookings, periodFilter])
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (activeTab === 'active') {
+        const isActive = b.status === 'accepted' || b.status === 'in_progress' || (b.status as any) === 'on_the_way'
+        if (!isActive) return false
+      } else if (activeTab !== 'all') {
+        if (b.status !== activeTab) return false
+      }
+
+      // Time period filter (last 6 months, 30 days, etc.)
+      const bookingDate = (b as any).completedAt || (b as any).createdAt || b.preferredDate
+      if (!isWithinPeriod(bookingDate, periodFilter)) return false
+
+      // Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim()
+        const match =
+          b.bookingNumber?.toLowerCase().includes(q) ||
+          b.mistriName?.toLowerCase().includes(q) ||
+          b.mistriPhone?.includes(q) ||
+          b.category?.toLowerCase().includes(q) ||
+          b.workDescription?.toLowerCase().includes(q) ||
+          b.jobAddress?.toLowerCase().includes(q)
+        if (!match) return false
+      }
+
+      return true
+    })
+  }, [bookings, activeTab, periodFilter, searchQuery])
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -273,8 +354,8 @@ function BookingsListContent() {
           </h1>
           <p className="text-xs text-stone-500">
             {isBn 
-              ? 'সকল চলমান, নির্ধারিত এবং পূর্ববর্তী সম্পন্ন বুকিং ট্র্যাক ও পরিচালনা করুন' 
-              : 'Track active, scheduled and previous completed service requests'}
+              ? 'সকল চলমান, নির্ধারিত এবং পূর্ববর্তী সম্পন্ন বুকিং ট্র্যাক ও পরিচালনা করুন (বিগত ৬ মাসের রেকর্ড সহ)' 
+              : 'Track active, scheduled and previous completed service requests (including 6-month history)'}
           </p>
         </div>
         <Link href="/search">
@@ -287,24 +368,101 @@ function BookingsListContent() {
       {/* Categorized Tabs (Skeuomorphic) */}
       <div className="flex border-b border-stone-300 overflow-x-auto text-xs font-semibold scrollbar-none gap-2 sm:gap-3 pb-1">
         {[
-          { key: 'all', label: isBn ? 'সকল বুকিং' : 'All' },
-          { key: 'active', label: isBn ? 'চলমান ও নির্ধারিত' : 'Active / Scheduled' },
-          { key: 'pending', label: isBn ? 'অপেক্ষমান (Pending)' : 'Pending' },
-          { key: 'completed', label: isBn ? 'সম্পন্ন (Completed)' : 'Completed' },
-          { key: 'cancelled', label: isBn ? 'বাতিলকৃত (Cancelled)' : 'Cancelled' },
+          { key: 'all', label: isBn ? 'সকল বুকিং' : 'All', count: tabCounts.all },
+          { key: 'active', label: isBn ? 'চলমান ও নির্ধারিত' : 'Active / Scheduled', count: tabCounts.active },
+          { key: 'pending', label: isBn ? 'অপেক্ষমান' : 'Pending', count: tabCounts.pending },
+          { key: 'completed', label: isBn ? 'সম্পন্ন' : 'Completed', count: tabCounts.completed },
+          { key: 'cancelled', label: isBn ? 'বাতিলকৃত' : 'Cancelled', count: tabCounts.cancelled },
         ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`py-2 px-3 rounded-xl whitespace-nowrap transition-all text-xs font-bold cursor-pointer ${
+            className={`py-2 px-3 rounded-xl whitespace-nowrap transition-all text-xs font-bold cursor-pointer flex items-center gap-1.5 ${
               activeTab === tab.key
                 ? 'skeuo-btn-dark'
                 : 'skeuo-btn-light'
             }`}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+              activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-700'
+            }`}>
+              {toBanglaNumber(tab.count)}
+            </span>
           </button>
         ))}
+      </div>
+
+      {/* ── 6-MONTH / PERIOD FILTER BAR & SEARCH ───── */}
+      <div className="space-y-3 bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Period selector pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-bold text-stone-600 flex items-center gap-1 mr-1">
+              <Filter className="h-3.5 w-3.5 text-stone-700" />
+              <span>{isBn ? 'সময়কাল:' : 'Period:'}</span>
+            </span>
+            {[
+              { key: 'all', label: isBn ? 'সব সময়' : 'All Time' },
+              { key: '7d', label: isBn ? 'গত ৭ দিন' : 'Last 7 Days' },
+              { key: '30d', label: isBn ? 'গত ৩০ দিন' : 'Last 30 Days' },
+              { key: '3m', label: isBn ? 'গত ৩ মাস' : 'Last 3 Months' },
+              { key: '6m', label: isBn ? 'গত ৬ মাস' : 'Last 6 Months' },
+              { key: '1y', label: isBn ? 'গত ১ বছর' : 'Last 1 Year' },
+            ].map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriodFilter(p.key as any)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  periodFilter === p.key
+                    ? 'bg-stone-900 text-white shadow-xs'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick print summary */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-stone-900 border border-stone-200 px-3 py-1 rounded-xl bg-stone-50 cursor-pointer self-start sm:self-auto"
+            title="রিপোর্ট প্রিন্ট করুন"
+          >
+            <Printer className="h-3.5 w-3.5 text-stone-700" />
+            <span>{isBn ? 'প্রিন্ট' : 'Print'}</span>
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="h-4 w-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder={isBn ? 'বুকিং নম্বর, মিস্ত্রীর নাম, মোবাইল নম্বর অথবা কাজের বিবরণ দিয়ে খুঁজুন...' : 'Search by booking number, mistri name, phone, or service...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 text-xs"
+          />
+        </div>
+
+        {/* Selected Period Summary Banner */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-stone-100 text-center">
+          <div className="bg-stone-50 p-2 rounded-xl">
+            <span className="text-[10px] text-stone-500 font-semibold block">{isBn ? 'মোট বুকিং' : 'Total Bookings'}</span>
+            <span className="text-sm font-black text-stone-900">{toBanglaNumber(periodStats.total)} টি</span>
+          </div>
+          <div className="bg-emerald-50/70 p-2 rounded-xl">
+            <span className="text-[10px] text-emerald-700 font-semibold block">{isBn ? 'সম্পন্ন সেবা' : 'Completed'}</span>
+            <span className="text-sm font-black text-emerald-800">{toBanglaNumber(periodStats.completedCount)} টি</span>
+          </div>
+          <div className="bg-blue-50/70 p-2 rounded-xl">
+            <span className="text-[10px] text-blue-700 font-semibold block">{isBn ? 'মোট ব্যয়/বিল' : 'Total Spent'}</span>
+            <span className="text-sm font-black text-blue-900">{formatBDT(periodStats.totalSpent)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Bookings List Cards */}
