@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   Calendar, Clock, MapPin, Navigation, Phone, 
   CheckCircle2, XCircle, AlertCircle, Star, 
@@ -50,6 +50,7 @@ const CANCELLATION_REASONS = [
 ]
 
 function BookingsListContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { lang, t } = useI18n()
   const isBn = lang === 'bn'
@@ -59,6 +60,7 @@ function BookingsListContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [successBanner, setSuccessBanner] = useState(searchParams.get('success') === 'true')
   const [reviewBooking, setReviewBooking] = useState<BookingRecord | null>(null)
+  const [userRole, setUserRole] = useState<'admin' | 'mistri' | 'customer' | null>(null)
 
   // Cancellation Modal State
   const [cancellingBooking, setCancellingBooking] = useState<BookingRecord | null>(null)
@@ -68,6 +70,17 @@ function BookingsListContent() {
   const [cancelFeedback, setCancelFeedback] = useState<string>('')
 
   const [bookings, setBookings] = useState<BookingRecord[]>([])
+
+  // If user is a mistri, automatically redirect them to /mistri/bookings
+  useEffect(() => {
+    const user = getStoredUser()
+    if (user?.role) {
+      setUserRole(user.role)
+      if (user.role === 'mistri') {
+        router.replace('/mistri/bookings')
+      }
+    }
+  }, [router])
 
   // Load bookings from localStorage and sync from server in real-time
   useEffect(() => {
@@ -347,6 +360,22 @@ function BookingsListContent() {
           <button onClick={() => setCancelFeedback('')} className="text-stone-300 hover:text-white font-bold p-1 cursor-pointer">
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Mistri redirection alert banner */}
+      {userRole === 'mistri' && (
+        <div className="rounded-2xl bg-[#2c7865] text-[#fefded] p-4 text-xs font-bold flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-[#fefded] shrink-0" />
+            <span>{isBn ? 'আপনি মিস্ত্রী হিসেবে লগইন আছেন। আপনার মিস্ত্রী কাজ ও আয়ের ইতিহাস দেখতে এখানে চাপ দিন:' : 'You are logged in as Mistri. View your job history & earnings:'}</span>
+          </div>
+          <Link href="/mistri/bookings">
+            <Button size="sm" className="skeuo-btn-light text-xs font-black text-[#2c7865] whitespace-nowrap">
+              <span>{isBn ? 'মিস্ত্রী কাজের ইতিহাসে যান' : 'Go to Mistri Jobs'}</span>
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </Link>
         </div>
       )}
 

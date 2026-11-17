@@ -358,9 +358,17 @@ export default function MistriIncomingRequestsPage() {
           </p>
         </div>
 
-        <Badge variant="neutral" className="skeuo-pill bg-[#2c7865] text-[#fefded] text-xs font-bold px-3 py-1 self-start sm:self-center">
-          {toBanglaNumber(requests.length)} {isBn ? 'টি নতুন অনুরোধ' : 'New Requests'}
-        </Badge>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <Link href="/mistri/bookings">
+            <Button size="sm" variant="outline" className="skeuo-btn-light text-xs font-bold text-[#2c7865] border-[#2c7865]/30 cursor-pointer">
+              <Calendar className="h-3.5 w-3.5 mr-1 text-[#2c7865]" />
+              <span>{isBn ? 'কাজের ইতিহাস' : 'Job History'}</span>
+            </Button>
+          </Link>
+          <Badge variant="neutral" className="skeuo-pill bg-[#2c7865] text-[#fefded] text-xs font-bold px-3 py-1.5">
+            {toBanglaNumber(requests.length)} {isBn ? 'টি নতুন অনুরোধ' : 'New Requests'}
+          </Badge>
+        </div>
       </div>
 
       {successToast && (

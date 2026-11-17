@@ -10,7 +10,8 @@ import { getStoredUser, AUTH_EVENT_NAME } from '@/lib/auth-client'
 
 export function CustomerBottomNav() {
   const pathname = usePathname()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const isBn = lang === 'bn'
   const [userRole, setUserRole] = useState<'admin' | 'mistri' | 'customer'>('customer')
 
   useEffect(() => {
@@ -21,18 +22,24 @@ export function CustomerBottomNav() {
     updateRole()
     window.addEventListener(AUTH_EVENT_NAME, updateRole)
     window.addEventListener('mistri_auth_changed', updateRole)
+    window.addEventListener('storage', updateRole)
     return () => {
       window.removeEventListener(AUTH_EVENT_NAME, updateRole)
       window.removeEventListener('mistri_auth_changed', updateRole)
+      window.removeEventListener('storage', updateRole)
     }
   }, [])
 
   const profileHref = userRole === 'mistri' ? '/mistri/profile' : '/profile'
+  const bookingsHref = userRole === 'mistri' ? '/mistri/bookings' : '/bookings'
+  const bookingsLabel = userRole === 'mistri' 
+    ? (isBn ? 'কাজের ইতিহাস' : 'Job History') 
+    : t('nav.bookings')
 
   const navItems = [
     { label: t('nav.home'), href: '/', icon: Home },
     { label: t('nav.search'), href: '/search', icon: Search },
-    { label: t('nav.bookings'), href: '/bookings', icon: Calendar },
+    { label: bookingsLabel, href: bookingsHref, icon: Calendar },
     { label: t('nav.favorites'), href: '/favorites', icon: Heart },
     { label: t('nav.profile'), href: profileHref, icon: User },
   ]
@@ -41,7 +48,10 @@ export function CustomerBottomNav() {
     <nav className="fixed bottom-0 left-0 z-40 w-full border-t border-[#2c7865]/20 bg-[#fefded]/95 backdrop-blur-md shadow-[0_-4px_15px_rgba(44,120,101,0.08)] sm:hidden">
       <div className="grid h-16 grid-cols-5 items-center px-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = 
+            pathname === item.href ||
+            (item.href === '/mistri/bookings' && (pathname.startsWith('/mistri/bookings') || pathname === '/bookings')) ||
+            (item.href === '/mistri/profile' && pathname.startsWith('/mistri/profile'))
           const Icon = item.icon
           return (
             <Link

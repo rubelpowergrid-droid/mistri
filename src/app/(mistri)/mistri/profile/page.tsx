@@ -7,7 +7,7 @@ import {
   User, Phone, ShieldCheck, Wrench, Lock, CheckCircle2, 
   MapPin, Clock, Star, AlertCircle, Save, ArrowLeft, 
   Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X, Printer,
-  Inbox, Bell
+  Inbox, Bell, Calendar
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -581,6 +581,13 @@ export default function MistriProfilePage() {
             </Button>
           </Link>
 
+          <Link href="/mistri/bookings">
+            <Button size="sm" className="skeuo-btn-light text-xs font-bold text-[#2c7865] border-[#2c7865]/30 hover:bg-[#2c7865]/10 cursor-pointer">
+              <Calendar className="h-3.5 w-3.5 mr-1 text-[#2c7865]" />
+              <span>{isBn ? 'কাজের ইতিহাস ও আয়' : 'Job History'}</span>
+            </Button>
+          </Link>
+
           <Link href={`/mistri/${profile.id || 'm-jewel-rana'}`} target="_blank">
             <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold text-[#2c7865] cursor-pointer">
               <ExternalLink className="h-3.5 w-3.5 mr-1" />
@@ -737,6 +744,42 @@ export default function MistriProfilePage() {
           </div>
         </div>
       </Card>
+
+      {/* Mobile & Desktop Quick Job Management Navigation */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 no-print">
+        <Link href="/requests" className="block">
+          <div className="p-4 rounded-2xl bg-[#fefded] border-2 border-[#2c7865]/30 hover:border-[#2c7865] transition-all shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#2c7865] text-[#fefded]">
+                <Inbox className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-stone-900 block">{isBn ? 'কাজের নতুন অনুরোধ' : 'Booking Requests'}</span>
+                <span className="text-[11px] text-stone-600 block">{pendingRequestsCount > 0 ? `${toBanglaNumber(pendingRequestsCount)} টি অপেক্ষমান অনুরোধ` : 'নতুন অনুরোধ দেখতে ক্লিক করুন'}</span>
+              </div>
+            </div>
+            {pendingRequestsCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse">
+                {toBanglaNumber(pendingRequestsCount)}
+              </span>
+            )}
+          </div>
+        </Link>
+
+        <Link href="/mistri/bookings" className="block">
+          <div className="p-4 rounded-2xl bg-white border-2 border-stone-200 hover:border-[#2c7865] transition-all shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-stone-100 text-[#2c7865]">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-stone-900 block">{isBn ? 'কাজের ইতিহাস ও আয়ের রিপোর্ট' : 'Job History & Earnings'}</span>
+                <span className="text-[11px] text-stone-500 block">{isBn ? 'চলমান, সম্পন্ন ও বিগত ৬ মাসের হিসাব' : 'Active, completed & 6-month logs'}</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
 
       {/* Incoming Requests Alert Banner */}
       {pendingRequestsCount > 0 && (
