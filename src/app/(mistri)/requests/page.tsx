@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
 import { getStoredUser } from '@/lib/auth-client'
+import { createClient } from '@/lib/supabase/client'
 
 interface BookingRequest {
   id: string
@@ -33,6 +34,7 @@ interface BookingRequest {
   proposedBudget: number
   workPhotos?: string[]
   submittedAt: string
+  createdAt?: string
   status: 'pending' | 'accepted' | 'rejected'
 }
 
@@ -59,23 +61,41 @@ export default function MistriIncomingRequestsPage() {
   const [proposalNotes, setProposalNotes] = useState('')
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false)
 
-  // Fetch real incoming requests for this mistri
-  const fetchRequests = async (showLoading = false) => {
+  // Fetch real incoming requests for this mistri (merging API & localStorage for 0ms latency)
+  const fetchRequests = useCallback(async (showLoading = false) => {
     if (showLoading) setIsLoading(true)
     const user = getStoredUser()
     const cleanPhone = user?.phone ? user.phone.replace(/[^0-9]/g, '') : ''
+    const userId = user?.id || ''
 
     try {
-      const url = cleanPhone 
-        ? `/api/bookings?role=mistri&mistriPhone=${cleanPhone}&status=pending`
-        : `/api/bookings?role=mistri&status=pending`
-      
-      const res = await fetch(url, { cache: 'no-store' })
-      const json = await res.json()
+      const params = new URLSearchParams({ role: 'mistri', status: 'pending' })
+      if (cleanPhone) params.set('mistriPhone', cleanPhone)
+      if (userId) params.set('mistriId', userId)
 
-      if (json.success && Array.isArray(json.data)) {
-        const mapped: BookingRequest[] = json.data
-          .map((item: any) => ({
+      const res = await fetch(`/api/bookings?${params.toString()}`, { cache: 'no-store' })
+      const json = await res.json()
+      const serverList = (json.success && Array.isArray(json.data)) ? json.data : []
+
+      // Also get from localStorage for instant offline / cross-tab synchronization
+      let localList: any[] = []
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('mistri_customer_bookings')
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            if (Array.isArray(parsed)) localList = parsed
+          }
+        } catch {}
+      }
+
+      // Map & merge
+      const map = new Map<string, BookingRequest>()
+
+      // 1. Process server items
+      for (const item of serverList) {
+        if (item.status === 'pending') {
+          map.set(item.id || item.bookingNumber, {
             id: item.id,
             bookingNumber: item.bookingNumber || item.booking_number || 'MST-LIVE',
             mistriId: item.mistriId,
@@ -94,35 +114,133 @@ export default function MistriIncomingRequestsPage() {
             submittedAt: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'আজকে',
             createdAt: item.createdAt || item.created_at,
             status: item.status || 'pending',
-          }))
-          .sort((a: any, b: any) => {
-            const timeA = new Date(a.createdAt || a.preferredDate || 0).getTime()
-            const timeB = new Date(b.createdAt || b.preferredDate || 0).getTime()
-            return timeB - timeA // Latest on top
           })
-        setRequests(mapped)
+        }
       }
+
+      // 2. Process local items (instant fallback / offline / zero latency)
+      for (const item of localList) {
+        if (item.status === 'pending') {
+          const itemMPhone = (item.mistriPhone || '').replace(/[^0-9]/g, '')
+          const matchesPhone = Boolean(cleanPhone && itemMPhone && (itemMPhone.slice(-10) === cleanPhone.slice(-10)))
+          const matchesId = Boolean(userId && (item.mistriId === userId || item.mistriId === `m-live-${userId}`))
+
+          if (!cleanPhone && !userId || matchesPhone || matchesId) {
+            const key = item.id || item.bookingNumber
+            if (!map.has(key)) {
+              map.set(key, {
+                id: item.id,
+                bookingNumber: item.bookingNumber || item.booking_number || 'MST-LIVE',
+                mistriId: item.mistriId,
+                mistriPhone: item.mistriPhone,
+                customerName: item.customerName || item.customer_name || 'সম্মানিত গ্রাহক',
+                customerPhone: item.customerPhone || item.contact_phone || '017XXXXXXXX',
+                customerGeneralArea: item.jobAddress || item.location || 'ঠাকুরগাঁও সদর',
+                jobAddress: item.jobAddress || item.location || '',
+                distanceKm: item.distanceKm || 1.4,
+                serviceName: item.serviceName || item.category || 'সাধারণ কারিগরি কাজ',
+                description: item.description || item.workDescription || 'কাজের বিবরণ দেওয়া হয়নি।',
+                preferredDate: item.preferredDate || item.date || new Date().toISOString().slice(0, 10),
+                preferredTime: item.preferredTime || 'সকাল ১০:০০ - ১২:০০',
+                proposedBudget: item.estimatedBudget || item.amount || 400,
+                workPhotos: item.workPhotos || [],
+                submittedAt: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'আজকে',
+                createdAt: item.createdAt,
+                status: item.status || 'pending',
+              })
+            }
+          }
+        }
+      }
+
+      const combined = Array.from(map.values()).sort((a: any, b: any) => {
+        const timeA = new Date(a.createdAt || a.preferredDate || 0).getTime()
+        const timeB = new Date(b.createdAt || b.preferredDate || 0).getTime()
+        return timeB - timeA // Latest on top
+      })
+
+      setRequests(combined)
     } catch (err) {
       console.error('Error fetching requests:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchRequests(true)
 
-    // Real-time polling every 4 seconds
-    const interval = setInterval(() => fetchRequests(false), 4000)
-    window.addEventListener('focus', () => fetchRequests(false))
-    window.addEventListener('storage', () => fetchRequests(false))
+    // 1. BroadcastChannel for cross-tab instant synchronization
+    let bc: BroadcastChannel | null = null
+    try {
+      bc = new BroadcastChannel('mistri_booking_events')
+      bc.onmessage = (evt) => {
+        if (evt.data?.type === 'NEW_BOOKING_CREATED' || evt.data?.type === 'BOOKING_STATUS_CHANGED') {
+          fetchRequests(false)
+        }
+      }
+    } catch {}
+
+    // 2. Custom window event and storage event listeners
+    const onCustomEvent = () => fetchRequests(false)
+    const onStorage = () => fetchRequests(false)
+    const onFocus = () => fetchRequests(false)
+
+    window.addEventListener('mistri_new_booking_arrived', onCustomEvent)
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('focus', onFocus)
+
+    // 3. Supabase Realtime channel subscription for instant live DB updates
+    let supabaseSub: any = null
+    try {
+      const supabase = createClient()
+      supabaseSub = supabase
+        .channel('mistri_requests_page_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'bookings' },
+          () => {
+            fetchRequests(false)
+          }
+        )
+        .subscribe()
+    } catch (sErr) {
+      console.warn('Realtime subscribe warning:', sErr)
+    }
+
+    // 4. Fallback interval polling every 3 seconds
+    const interval = setInterval(() => fetchRequests(false), 3000)
 
     return () => {
       clearInterval(interval)
-      window.removeEventListener('focus', () => fetchRequests(false))
-      window.removeEventListener('storage', () => fetchRequests(false))
+      if (bc) bc.close()
+      window.removeEventListener('mistri_new_booking_arrived', onCustomEvent)
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('focus', onFocus)
+      if (supabaseSub) supabaseSub.unsubscribe()
     }
-  }, [])
+  }, [fetchRequests])
+
+  // Helper to sync local storage and broadcast
+  const syncLocalBookingStatus = (bookingId: string, status: string, extraData: any = {}) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('mistri_customer_bookings')
+        if (raw) {
+          const list = JSON.parse(raw)
+          const updated = list.map((b: any) => 
+            b.id === bookingId ? { ...b, status, ...extraData, updatedAt: new Date().toISOString() } : b
+          )
+          localStorage.setItem('mistri_customer_bookings', JSON.stringify(updated))
+        }
+        const bc = new BroadcastChannel('mistri_booking_events')
+        bc.postMessage({ type: 'BOOKING_STATUS_CHANGED', bookingId, status, ...extraData })
+        bc.close()
+      } catch {}
+      window.dispatchEvent(new Event('storage'))
+      window.dispatchEvent(new CustomEvent('mistri_new_booking_arrived'))
+    }
+  }
 
   // 1. Direct Accept Handler
   const handleAcceptDirect = async (reqId: string) => {
@@ -134,6 +252,7 @@ export default function MistriIncomingRequestsPage() {
       })
       const data = await res.json()
       if (data.success) {
+        syncLocalBookingStatus(reqId, 'accepted', { acceptedAt: new Date().toISOString() })
         setRequests(prev => prev.filter(r => r.id !== reqId))
         setSuccessToast(isBn ? '✓ বুকিং অনুরোধটি সরাসরি গ্রহণ করা হয়েছে! কাস্টমারের পূর্ণ বিবরণ উন্মুক্ত হয়েছে।' : 'Request accepted successfully!')
         setTimeout(() => setSuccessToast(null), 4000)
@@ -165,6 +284,7 @@ export default function MistriIncomingRequestsPage() {
       setIsSubmittingDecline(false)
 
       if (data.success) {
+        syncLocalBookingStatus(selectedDeclineReq.id, 'rejected', { cancellationReason: finalReason })
         setRequests(prev => prev.filter(r => r.id !== selectedDeclineReq.id))
         setSelectedDeclineReq(null)
         setCustomDeclineReason('')
@@ -198,6 +318,12 @@ export default function MistriIncomingRequestsPage() {
       setIsSubmittingProposal(false)
 
       if (data.success) {
+        syncLocalBookingStatus(selectedProposalReq.id, 'accepted', {
+          preferredDate: proposedDate || selectedProposalReq.preferredDate,
+          preferredTime: proposedTime,
+          agreedPrice: proposedPrice ? Number(proposedPrice) : selectedProposalReq.proposedBudget,
+          acceptedAt: new Date().toISOString(),
+        })
         setRequests(prev => prev.filter(r => r.id !== selectedProposalReq.id))
         setSelectedProposalReq(null)
         setSuccessToast(isBn ? '✓ নতুন সুবিধাজনক সময়ের প্রস্তাব সহ বুকিং গ্রহণ করা হয়েছে! গ্রাহককে জানানো হয়েছে।' : 'Accepted with your proposed schedule!')

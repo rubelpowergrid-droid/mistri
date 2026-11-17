@@ -229,6 +229,14 @@ export default function NewBookingPage() {
               updatedAt: new Date().toISOString(),
             }
             localStorage.setItem('mistri_customer_bookings', JSON.stringify([newBookingItem, ...existing]))
+
+            // Broadcast real-time booking event across tabs and active mistri screens
+            try {
+              const channel = new BroadcastChannel('mistri_booking_events')
+              channel.postMessage({ type: 'NEW_BOOKING_CREATED', booking: newBookingItem })
+              channel.close()
+            } catch {}
+            window.dispatchEvent(new CustomEvent('mistri_new_booking_arrived', { detail: newBookingItem }))
           } catch (e) {
             console.error(e)
           }

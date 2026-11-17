@@ -940,16 +940,48 @@ export async function saveBookingToSupabase(data: {
       if (custUser?.id) {
         customerUserId = custUser.id
       } else {
-        const { data: newU } = await supabase
-          .from('users')
-          .insert({
-            phone: cleanCustomerPhone,
-            role: 'customer',
-            preferred_language: 'bn',
+        // Create user in Supabase auth if not found
+        try {
+          const authPhone = cleanCustomerPhone.startsWith('+')
+            ? cleanCustomerPhone
+            : `+88${cleanCustomerPhone.slice(-11)}`
+
+          const { data: authU, error: authErr } = await supabase.auth.admin.createUser({
+            phone: authPhone,
+            phone_confirm: true,
+            user_metadata: { role: 'customer' },
           })
-          .select('id')
-          .maybeSingle()
-        customerUserId = newU?.id || null
+
+          if (authU?.user?.id) {
+            customerUserId = authU.user.id
+          } else if (authErr?.message?.includes('already registered')) {
+            const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 100 })
+            const matched = listData?.users?.find(
+              (u: any) => u.phone && u.phone.slice(-10) === cleanCustomerPhone.slice(-10)
+            )
+            if (matched?.id) {
+              customerUserId = matched.id
+            }
+          }
+        } catch (e: any) {
+          console.warn('Admin create customer auth user notice:', e?.message)
+        }
+
+        // Insert into public.users if resolved
+        if (customerUserId) {
+          try {
+            await supabase
+              .from('users')
+              .upsert({
+                id: customerUserId,
+                phone: cleanCustomerPhone,
+                role: 'customer',
+                preferred_language: 'bn',
+              }, { onConflict: 'id' })
+          } catch (uErr: any) {
+            console.warn('Upsert public.users notice:', uErr?.message)
+          }
+        }
       }
 
       if (customerUserId) {
@@ -959,7 +991,7 @@ export async function saveBookingToSupabase(data: {
 
         const profileData: any = {
           user_id: customerUserId,
-          default_address: data.jobAddress,
+          default_address: data.jobAddress || 'ঠাকুরগাঁও সদর',
         }
         if (custName) profileData.full_name = custName
 
@@ -969,6 +1001,19 @@ export async function saveBookingToSupabase(data: {
           .select('id')
           .maybeSingle()
         customerProfileId = custProf?.id || null
+      }
+    }
+
+    // Fallback: If customerProfileId is still null, ensure booking is NEVER dropped!
+    if (!customerProfileId) {
+      const { data: defaultCust } = await supabase
+        .from('customer_profiles')
+        .select('id, user_id')
+        .limit(1)
+        .maybeSingle()
+      if (defaultCust?.id) {
+        customerProfileId = defaultCust.id
+        if (!customerUserId) customerUserId = defaultCust.user_id
       }
     }
 
@@ -1090,6 +1135,11 @@ export async function saveBookingToSupabase(data: {
       const bookingNumber = 'MST-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 6).toUpperCase()
       const lat = data.latitude || 26.0336
       const lng = data.longitude || 88.4617
+      const validDate = (data.preferredDate && data.preferredDate.trim()) ? data.preferredDate.trim() : new Date().toISOString().slice(0, 10)
+      const validTime = (data.preferredTime && data.preferredTime.trim()) ? data.preferredTime.trim() : 'সকাল ১০:০০ - ১২:০০'
+      const validDesc = (data.workDescription && data.workDescription.trim()) ? data.workDescription.trim() : 'কাজের বিবরণ'
+      const validAddress = (data.jobAddress && data.jobAddress.trim()) ? data.jobAddress.trim() : 'ঠাকুরগাঁও সদর'
+      const validBudget = Number(data.estimatedBudget) > 0 ? Number(data.estimatedBudget) : 400
 
       const { data: bRow, error: bErr } = await supabase
         .from('bookings')
@@ -1100,13 +1150,13 @@ export async function saveBookingToSupabase(data: {
           category_id: categoryId,
           subcategory_id: subcategoryId,
           status: 'pending',
-          work_description: data.workDescription,
-          job_address: data.jobAddress,
+          work_description: validDesc,
+          job_address: validAddress,
           job_location_point: `SRID=4326;POINT(${lng} ${lat})`,
           contact_phone: cleanCustomerPhone,
-          preferred_date: data.preferredDate,
-          preferred_time: data.preferredTime,
-          estimated_budget: data.estimatedBudget || 400,
+          preferred_date: validDate,
+          preferred_time: validTime,
+          estimated_budget: validBudget,
           work_photos: data.workPhotos || [],
         })
         .select()
@@ -1115,7 +1165,7 @@ export async function saveBookingToSupabase(data: {
       if (!bErr && bRow) {
         insertedBooking = bRow
       } else if (bErr) {
-        console.warn('Supabase booking insert warning:', bErr.message)
+        console.error('Supabase booking insert error:', bErr.message)
       }
     }
 
@@ -1143,7 +1193,7 @@ export async function saveBookingToSupabase(data: {
         phone: mistriPhone,
         title: '🔔 নতুন কাজের বুকিং অনুরোধ এসেছে!',
         body: `গ্রাহক ${data.customerName || data.contactPhone} আপনার জন্য একটি নতুন কাজের অনুরোধ পাঠিয়েছেন (${data.subcategory})।`,
-        url: insertedBooking?.id ? `/bookings/${insertedBooking.id}` : '/requests',
+        url: '/requests',
         tag: `booking-${insertedBooking?.id || Date.now()}`,
       })
     } catch (pErr: any) {
@@ -1263,7 +1313,7 @@ export async function getBookingsFromSupabase(filter: {
       .filter((row: any) => {
         if (filter.mistriPhone || filter.mistriId) {
           const cleanFilterPhone = (filter.mistriPhone || '').replace(/[^0-9]/g, '')
-          const mPhone = (row.mistri_profiles?.users?.phone || row.contact_phone || '').replace(/[^0-9]/g, '')
+          const mPhone = (row.mistri_profiles?.users?.phone || '').replace(/[^0-9]/g, '')
           const matchPhone = Boolean(cleanFilterPhone && mPhone && (mPhone.slice(-10) === cleanFilterPhone.slice(-10)))
           const matchId = Boolean(filter.mistriId && (
             row.mistri_id === filter.mistriId || 
@@ -1286,6 +1336,8 @@ export async function getBookingsFromSupabase(filter: {
         id: row.id,
         bookingNumber: row.booking_number,
         mistriId: row.mistri_id,
+        mistriProfileId: row.mistri_profiles?.id || row.mistri_id || '',
+        mistriUserId: row.mistri_profiles?.user_id || '',
         mistriName: row.mistri_profiles?.full_name || 'নির্ধারিত মিস্ত্রী',
         mistriTitle: row.mistri_profiles?.professional_title || row.subcategories?.name_bn || row.categories?.name_bn || 'রং মিস্ত্রী',
         mistriPhone: row.mistri_profiles?.users?.phone || '',
