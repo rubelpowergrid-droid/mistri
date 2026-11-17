@@ -143,8 +143,8 @@ function CustomerLiveTrackContent() {
           agreedPrice: newData.agreedPrice !== undefined ? newData.agreedPrice : prev.agreedPrice,
           createdAt: newData.createdAt || newData.created_at || prev.createdAt,
           acceptedAt: newData.acceptedAt || newData.accepted_at || prev.acceptedAt,
-          journeyStartedAt: newData.journeyStartedAt || newData.startedAt || prev.journeyStartedAt,
-          startedAt: newData.startedAt || newData.started_at || prev.startedAt,
+          journeyStartedAt: newData.journeyStartedAt || prev.journeyStartedAt,
+          startedAt: newData.startedAt || newData.started_at || (newData.status === 'in_progress' ? (newData.updatedAt || new Date().toISOString()) : prev.startedAt),
           completedAt: newData.completedAt || newData.completed_at || prev.completedAt,
           updatedAt: newData.updatedAt || newData.updated_at || prev.updatedAt,
         }
@@ -211,9 +211,31 @@ function CustomerLiveTrackContent() {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         bc = new BroadcastChannel('mistri_booking_events')
         bc.onmessage = (event) => {
-          if (event.data?.bookingId === bookingId || event.data?.id === bookingId) {
-            if (event.data?.bookingData) {
-              applyBookingUpdate(event.data.bookingData)
+          const evData = event.data
+          const isMatch =
+            !evData?.bookingId ||
+            evData.bookingId === bookingId ||
+            evData.id === bookingId ||
+            evData.bookingNumber === bookingId ||
+            evData.bookingId === booking.id ||
+            evData.bookingNumber === booking.bookingNumber ||
+            evData.bookingData?.id === bookingId ||
+            evData.bookingData?.bookingNumber === bookingId ||
+            evData.bookingData?.id === booking.id ||
+            evData.bookingData?.bookingNumber === booking.bookingNumber ||
+            evData.type === 'BOOKING_STATUS_CHANGED'
+
+          if (isMatch) {
+            if (evData?.bookingData) {
+              applyBookingUpdate(evData.bookingData)
+            }
+            if (evData?.status) {
+              setBooking((prev: any) => ({
+                ...prev,
+                status: evData.status,
+                startedAt: evData.status === 'in_progress' ? (evData.timestamp || new Date().toISOString()) : prev.startedAt,
+                completedAt: evData.status === 'completed' ? (evData.timestamp || new Date().toISOString()) : prev.completedAt,
+              }))
             }
             fetchFromApi(false)
           }
@@ -226,7 +248,12 @@ function CustomerLiveTrackContent() {
       if (e.key === 'mistri_customer_bookings' && e.newValue) {
         try {
           const list = JSON.parse(e.newValue) as any[]
-          const match = list.find((b: any) => b.id === bookingId || b.bookingNumber === bookingId)
+          const match = list.find((b: any) => 
+            b.id === bookingId || 
+            b.bookingNumber === bookingId ||
+            b.id === booking.id ||
+            b.bookingNumber === booking.bookingNumber
+          )
           if (match) {
             applyBookingUpdate(match)
           }
@@ -241,17 +268,39 @@ function CustomerLiveTrackContent() {
     try {
       const supabase = createClient()
       supabaseChannel = supabase
-        .channel(`booking-live-channel-${bookingId}`)
+        .channel(`booking-live-${bookingId}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'bookings',
-            filter: `id=eq.${bookingId}`,
           },
-          (payload) => {
-            fetchFromApi(false)
+          (payload: any) => {
+            const rec = payload.new || payload.old
+            if (!rec) {
+              fetchFromApi(false)
+              return
+            }
+            if (
+              rec.id === bookingId ||
+              rec.booking_number === bookingId ||
+              rec.id === booking.id ||
+              rec.booking_number === booking.bookingNumber
+            ) {
+              if (rec.status) {
+                applyBookingUpdate({
+                  id: rec.id,
+                  bookingNumber: rec.booking_number,
+                  status: rec.status,
+                  startedAt: rec.started_at,
+                  completedAt: rec.completed_at,
+                  acceptedAt: rec.accepted_at,
+                  updatedAt: rec.updated_at,
+                })
+              }
+              fetchFromApi(false)
+            }
           }
         )
         .subscribe()
@@ -472,8 +521,35 @@ function CustomerLiveTrackContent() {
         </Card>
       )}
 
+      {/* When Mistri has Started Job (In Progress) */}
+      {booking.status === 'in_progress' && (
+        <Card className="p-5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl space-y-2 shadow-xs animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-emerald-700 animate-pulse" />
+              <h3 className="text-sm font-bold text-emerald-950">
+                {isBn ? 'মিস্ত্রী কাজ শুরু করেছেন (কাজের অগ্রগতি চলমান)' : 'Work in Progress'}
+              </h3>
+            </div>
+            {booking.mistriPhone && (
+              <a href={`tel:${booking.mistriPhone}`}>
+                <Button size="sm" className="skeuo-btn-light text-stone-900 font-bold text-xs py-1 px-3">
+                  <Phone className="h-3.5 w-3.5 mr-1 text-emerald-700" />
+                  <span>{isBn ? 'কল দিন' : 'Call'}</span>
+                </Button>
+              </a>
+            )}
+          </div>
+          <p className="text-xs text-emerald-900/90 leading-relaxed font-medium">
+            {isBn
+              ? 'কারিগর আপনার ঠিকানায় পৌঁছে সরাসরি কাজ শুরু করেছেন। কাজ সম্পন্ন হলে চূড়ান্ত বিল ও মিস্ত্রীকে রেটিং প্রদান করতে পারবেন।'
+              : 'The professional has arrived at your address and started working on the job.'}
+          </p>
+        </Card>
+      )}
+
       {/* When Mistri Accepted but has not started GPS Sharing yet */}
-      {(booking.status === 'accepted' || booking.status === 'in_progress') && !isSessionActive && (
+      {booking.status === 'accepted' && !isSessionActive && (
         <Card className="p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

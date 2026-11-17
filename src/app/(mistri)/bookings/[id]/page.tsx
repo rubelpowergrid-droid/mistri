@@ -229,9 +229,11 @@ export default function MistriJobDetailPage() {
     if (typeof window === 'undefined') return
     const nowIso = new Date().toISOString()
     const payload = {
+      ...booking,
       ...updatedFields,
       id,
       bookingId: id,
+      bookingNumber: booking?.bookingNumber || id,
       updatedAt: nowIso,
     }
 
@@ -241,6 +243,8 @@ export default function MistriJobDetailPage() {
       bc.postMessage({
         type: 'BOOKING_STATUS_CHANGED',
         bookingId: id,
+        id,
+        bookingNumber: booking?.bookingNumber,
         status: updatedFields.status,
         bookingData: payload,
         timestamp: nowIso,
@@ -251,16 +255,20 @@ export default function MistriJobDetailPage() {
     // 2. LocalStorage sync to trigger storage events on other tabs/windows
     try {
       const stored = localStorage.getItem('mistri_customer_bookings')
-      if (stored) {
-        const list = JSON.parse(stored) as any[]
-        const idx = list.findIndex((b: any) => b.id === id || b.bookingNumber === id)
-        if (idx !== -1) {
-          list[idx] = { ...list[idx], ...payload }
-          localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
-        }
+      const list = stored ? JSON.parse(stored) as any[] : []
+      const idx = list.findIndex((b: any) => 
+        b.id === id || 
+        b.bookingNumber === id || 
+        (booking?.bookingNumber && b.bookingNumber === booking.bookingNumber)
+      )
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...payload }
+      } else {
+        list.unshift(payload)
       }
+      localStorage.setItem('mistri_customer_bookings', JSON.stringify(list))
     } catch {}
-  }, [])
+  }, [booking])
 
   // Handle Start Journey (En Route)
   const handleStartJourney = async () => {
@@ -298,12 +306,13 @@ export default function MistriJobDetailPage() {
       await fetch(`/api/bookings/${bookingId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'in_progress' }),
+        body: JSON.stringify({ status: 'in_progress', startedAt: nowIso }),
       })
       setJobStatus('in_progress')
       const updatedFields = {
         status: 'in_progress',
-        startedAt: booking?.startedAt || nowIso,
+        startedAt: nowIso,
+        updatedAt: nowIso,
       }
       setBooking((prev: any) => ({
         ...prev,

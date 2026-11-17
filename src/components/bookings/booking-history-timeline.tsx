@@ -152,7 +152,7 @@ export function BookingHistoryTimeline({
   const createdAt = booking.createdAt || booking.created_at || (booking as any).date || new Date().toISOString()
   const acceptedAt = booking.acceptedAt || booking.accepted_at || (isAccepted ? (booking.updatedAt || booking.updated_at || createdAt) : null)
   const journeyStartedAt = booking.journeyStartedAt || (isOnTheWay || isInProgress || isCompleted ? (booking.startedAt || booking.started_at || booking.updatedAt || booking.updated_at || acceptedAt) : null)
-  const startedAt = booking.startedAt || booking.started_at || (isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || journeyStartedAt) : null)
+  const startedAt = booking.startedAt || booking.started_at || (isInProgress || isCompleted ? (booking.updatedAt || booking.updated_at || new Date().toISOString()) : null)
   const completedAt = booking.completedAt || booking.completed_at || (isCompleted ? (booking.updatedAt || booking.updated_at || startedAt) : null)
   const cancelledAt = isCancelled ? (booking.updatedAt || booking.updated_at || createdAt) : null
 
@@ -238,7 +238,7 @@ export function BookingHistoryTimeline({
     steps.push({
       key: 'started',
       title: perspective === 'mistri'
-        ? '現場 কাজ শুরু করা হয়েছে'
+        ? 'কাজে হাত দেওয়া হয়েছে / কাজ চলমান'
         : 'মিস্ত্রী কাজ শুরু করেছেন',
       description: isStepDone || isStepActive
         ? 'ঠিকানায় পৌঁছে কাজ শুরু ও চলমান'

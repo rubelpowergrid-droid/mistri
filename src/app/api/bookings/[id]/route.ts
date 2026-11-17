@@ -29,46 +29,54 @@ export async function GET(
     // 1. Try Supabase
     let booking: any = await getBookingByIdFromSupabase(id)
 
-    // 2. Fallback to in-memory store
-    if (!booking) {
-      const memoryStore = getBookingsStore()
-      const found = memoryStore.find((b) => b.id === id || b.bookingNumber === id)
-      if (found) {
-        booking = {
-          id: found.id,
-          bookingNumber: found.bookingNumber,
-          mistriId: found.mistriId,
-          mistriName: found.mistriName,
-          mistriTitle: found.mistriTitle || 'দক্ষ কারিগর',
-          mistriPhone: found.mistriPhone || '',
-          mistriAvatar: found.mistriAvatar || '',
-          customerName: found.customerName || 'সম্মানিত গ্রাহক',
-          customerPhone: found.customerPhone || '',
-          customerAddress: found.jobAddress || found.location || '',
-          jobAddress: found.jobAddress || found.location || '',
-          serviceName: found.serviceName || found.category || 'সাধারণ সেবা',
-          category: found.category || 'সাধারণ সেবা',
-          description: found.description || '',
-          amount: Number(found.amount || found.estimatedBudget || 400),
-          estimatedBudget: Number(found.estimatedBudget || found.amount || 400),
-          agreedPrice: found.agreedPrice || null,
-          preferredDate: found.preferredDate || found.date || '',
-          preferredTime: found.preferredTime || '',
-          proposedDate: (found as any).proposedDate || null,
-          proposedTime: (found as any).proposedTime || null,
-          status: found.status,
-          date: found.date || found.preferredDate || '',
-          workPhotos: found.workPhotos || [],
-          cancellationReason: found.cancellationReason || null,
-          latitude: found.latitude || 26.0336,
-          longitude: found.longitude || 88.4617,
-          createdAt: found.createdAt || new Date().toISOString(),
-          acceptedAt: (found as any).acceptedAt || null,
-          journeyStartedAt: (found as any).journeyStartedAt || null,
-          startedAt: (found as any).startedAt || null,
-          completedAt: (found as any).completedAt || null,
-          updatedAt: (found as any).updatedAt || null,
-        }
+    // 2. Fetch and merge in-memory store for instantaneous status sync
+    const memoryStore = getBookingsStore()
+    const foundInMemory = memoryStore.find((b) => b.id === id || b.bookingNumber === id)
+
+    if (booking && foundInMemory) {
+      const fAny = foundInMemory as any
+      if (fAny.status) booking.status = fAny.status
+      if (fAny.journeyStartedAt) booking.journeyStartedAt = fAny.journeyStartedAt
+      if (fAny.startedAt) booking.startedAt = fAny.startedAt
+      if (fAny.completedAt) booking.completedAt = fAny.completedAt
+      if (fAny.acceptedAt) booking.acceptedAt = fAny.acceptedAt
+      if (fAny.updatedAt) booking.updatedAt = fAny.updatedAt
+    } else if (!booking && foundInMemory) {
+      const found = foundInMemory
+      booking = {
+        id: found.id,
+        bookingNumber: found.bookingNumber,
+        mistriId: found.mistriId,
+        mistriName: found.mistriName,
+        mistriTitle: found.mistriTitle || 'দক্ষ কারিগর',
+        mistriPhone: found.mistriPhone || '',
+        mistriAvatar: found.mistriAvatar || '',
+        customerName: found.customerName || 'সম্মানিত গ্রাহক',
+        customerPhone: found.customerPhone || '',
+        customerAddress: found.jobAddress || found.location || '',
+        jobAddress: found.jobAddress || found.location || '',
+        serviceName: found.serviceName || found.category || 'সাধারণ সেবা',
+        category: found.category || 'সাধারণ সেবা',
+        description: found.description || '',
+        amount: Number(found.amount || found.estimatedBudget || 400),
+        estimatedBudget: Number(found.estimatedBudget || found.amount || 400),
+        agreedPrice: found.agreedPrice || null,
+        preferredDate: found.preferredDate || found.date || '',
+        preferredTime: found.preferredTime || '',
+        proposedDate: (found as any).proposedDate || null,
+        proposedTime: (found as any).proposedTime || null,
+        status: found.status,
+        date: found.date || found.preferredDate || '',
+        workPhotos: found.workPhotos || [],
+        cancellationReason: found.cancellationReason || null,
+        latitude: found.latitude || 26.0336,
+        longitude: found.longitude || 88.4617,
+        createdAt: found.createdAt || new Date().toISOString(),
+        acceptedAt: (found as any).acceptedAt || null,
+        journeyStartedAt: (found as any).journeyStartedAt || null,
+        startedAt: (found as any).startedAt || null,
+        completedAt: (found as any).completedAt || null,
+        updatedAt: (found as any).updatedAt || null,
       }
     }
 

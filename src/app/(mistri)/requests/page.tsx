@@ -74,25 +74,32 @@ export default function MistriIncomingRequestsPage() {
       const json = await res.json()
 
       if (json.success && Array.isArray(json.data)) {
-        const mapped: BookingRequest[] = json.data.map((item: any) => ({
-          id: item.id,
-          bookingNumber: item.bookingNumber || item.booking_number || 'MST-LIVE',
-          mistriId: item.mistriId,
-          mistriPhone: item.mistriPhone,
-          customerName: item.customerName || item.customer_name || 'সম্মানিত গ্রাহক',
-          customerPhone: item.customerPhone || item.contact_phone || '017XXXXXXXX',
-          customerGeneralArea: item.jobAddress || item.location || 'ঠাকুরগাঁও সদর',
-          jobAddress: item.jobAddress || item.location || '',
-          distanceKm: item.distanceKm || 1.4,
-          serviceName: item.serviceName || item.subcategory || 'সাধারণ কারিগরি কাজ',
-          description: item.description || item.workDescription || 'কাজের বিবরণ দেওয়া হয়নি।',
-          preferredDate: item.preferredDate || item.date || new Date().toISOString().slice(0, 10),
-          preferredTime: item.preferredTime || 'সকাল ১০:০০ - ১২:০০',
-          proposedBudget: item.estimatedBudget || item.amount || 400,
-          workPhotos: item.workPhotos || [],
-          submittedAt: 'আজকে',
-          status: item.status || 'pending',
-        }))
+        const mapped: BookingRequest[] = json.data
+          .map((item: any) => ({
+            id: item.id,
+            bookingNumber: item.bookingNumber || item.booking_number || 'MST-LIVE',
+            mistriId: item.mistriId,
+            mistriPhone: item.mistriPhone,
+            customerName: item.customerName || item.customer_name || 'সম্মানিত গ্রাহক',
+            customerPhone: item.customerPhone || item.contact_phone || '017XXXXXXXX',
+            customerGeneralArea: item.jobAddress || item.location || 'ঠাকুরগাঁও সদর',
+            jobAddress: item.jobAddress || item.location || '',
+            distanceKm: item.distanceKm || 1.4,
+            serviceName: item.serviceName || item.subcategory || 'সাধারণ কারিগরি কাজ',
+            description: item.description || item.workDescription || 'কাজের বিবরণ দেওয়া হয়নি।',
+            preferredDate: item.preferredDate || item.date || new Date().toISOString().slice(0, 10),
+            preferredTime: item.preferredTime || 'সকাল ১০:০০ - ১২:০০',
+            proposedBudget: item.estimatedBudget || item.amount || 400,
+            workPhotos: item.workPhotos || [],
+            submittedAt: item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'আজকে',
+            createdAt: item.createdAt || item.created_at,
+            status: item.status || 'pending',
+          }))
+          .sort((a: any, b: any) => {
+            const timeA = new Date(a.createdAt || a.preferredDate || 0).getTime()
+            const timeB = new Date(b.createdAt || b.preferredDate || 0).getTime()
+            return timeB - timeA // Latest on top
+          })
         setRequests(mapped)
       }
     } catch (err) {

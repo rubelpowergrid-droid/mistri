@@ -315,6 +315,11 @@ function BookingsListContent() {
 
       return true
     })
+    .sort((a, b) => {
+      const timeA = new Date((a as any).createdAt || a.preferredDate || 0).getTime()
+      const timeB = new Date((b as any).createdAt || b.preferredDate || 0).getTime()
+      return timeB - timeA // Latest on top
+    })
   }, [bookings, activeTab, periodFilter, searchQuery])
 
   return (

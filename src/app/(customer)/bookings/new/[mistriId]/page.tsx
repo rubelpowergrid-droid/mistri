@@ -532,7 +532,7 @@ export default function NewBookingPage() {
                 id="customerName"
                 type="text"
                 label={isBn ? 'আপনার পূর্ণ নাম (Customer Name)' : 'Your Full Name'}
-                placeholder={isBn ? 'যেমন: সানজিদা পারভিন' : 'e.g. Sanjida Parvin'}
+                placeholder={isBn ? 'যেমন: মোঃ রুবেল' : 'e.g. Md Rubel'}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 required

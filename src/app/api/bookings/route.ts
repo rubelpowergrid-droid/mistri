@@ -102,6 +102,13 @@ export async function GET(request: NextRequest) {
     return true
   })
 
+  // Always sort newest booking first (latest on top)
+  filtered.sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.created_at || a.preferredDate || 0).getTime()
+    const timeB = new Date(b.createdAt || b.created_at || b.preferredDate || 0).getTime()
+    return timeB - timeA
+  })
+
   return NextResponse.json({
     success: true,
     total: filtered.length,

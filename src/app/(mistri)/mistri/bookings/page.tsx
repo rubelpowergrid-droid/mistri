@@ -215,7 +215,12 @@ export default function MistriBookingsPage() {
         })
       }
 
-      setBookings(Array.from(map.values()))
+      const sortedList = Array.from(map.values()).sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.acceptedAt || a.startedAt || a.preferredDate || 0).getTime()
+        const timeB = new Date(b.createdAt || b.acceptedAt || b.startedAt || b.preferredDate || 0).getTime()
+        return timeB - timeA // Latest on top
+      })
+      setBookings(sortedList)
     } catch (err) {
       console.error('Error fetching mistri bookings:', err)
     } finally {
@@ -336,6 +341,11 @@ export default function MistriBookingsPage() {
 
       return true
     })
+    .sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.acceptedAt || a.startedAt || a.preferredDate || 0).getTime()
+      const timeB = new Date(b.createdAt || b.acceptedAt || b.startedAt || b.preferredDate || 0).getTime()
+      return timeB - timeA // Latest on top
+    })
   }, [bookings, activeTab, periodFilter, searchQuery])
 
   // ── Tab Counts ─────────────────────────────────────────────────────────────
@@ -418,7 +428,31 @@ export default function MistriBookingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {notifPermission !== 'granted' ? (
+            <Button 
+              size="sm" 
+              onClick={handleEnableNotification}
+              disabled={isSubscribingNotif}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs"
+              title={isBn ? 'ব্যাকগ্রাউন্ড নোটিফিকেশন অনুমোদন দিন' : 'Enable Background Push'}
+            >
+              <Bell className="h-3.5 w-3.5 mr-1" />
+              <span>{isSubscribingNotif ? 'অনুমোদন হচ্ছে...' : (isBn ? 'নোটিফিকেশন চালু' : 'Enable Alerts')}</span>
+            </Button>
+          ) : (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleTestPushNotification}
+              className="text-xs font-bold text-stone-700 border-stone-300 bg-white hover:bg-stone-50 cursor-pointer"
+              title={isBn ? 'মোবাইল স্ক্রিন অফ করে টেস্ট নোটিফিকেশন পরখ করুন' : 'Test lockscreen push alert'}
+            >
+              <Smartphone className="h-3.5 w-3.5 mr-1 text-[#2c7865]" />
+              <span>{isBn ? 'টেস্ট অ্যালার্ট' : 'Test Alert'}</span>
+            </Button>
+          )}
+
           <Button 
             size="sm" 
             variant="outline" 
@@ -438,66 +472,6 @@ export default function MistriBookingsPage() {
           </Link>
         </div>
       </div>
-
-      {/* ── Background Notification Status Banner (Point 01 Solution) ────────── */}
-      <Card className={`p-4 rounded-2xl border transition-all ${
-        notifPermission === 'granted'
-          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-          : 'bg-gradient-to-r from-amber-50 via-stone-50 to-amber-50/50 border-amber-300 text-stone-900 shadow-xs'
-      }`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
-              notifPermission === 'granted' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
-            }`}>
-              {notifPermission === 'granted' ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs sm:text-sm font-bold">
-                  {notifPermission === 'granted' 
-                    ? (isBn ? 'ব্যাকগ্রাউন্ড পুশ নোটিফিকেশন চালু আছে' : 'Background Push Alerts Active')
-                    : (isBn ? 'অ্যাপ বন্ধ থাকলেও কাজের নোটিফিকেশন পেতে চান?' : 'Enable Background Alerts')}
-                </h4>
-                <Badge variant="neutral" className={`text-[10px] font-bold ${
-                  notifPermission === 'granted' ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
-                }`}>
-                  {notifPermission === 'granted' ? 'সক্রিয়' : 'অনুমতি প্রয়োজন'}
-                </Badge>
-              </div>
-              <p className="text-[11px] text-stone-600 mt-0.5">
-                {notifPermission === 'granted'
-                  ? (isBn ? 'মোবাইলের স্ক্রিন অফ বা অ্যাপ বন্ধ থাকলেও নতুন কাজের বুকিং নোটিফিকেশন পাবেন।' : 'Alerts will ring even when phone is locked.')
-                  : (isBn ? 'মোবাইল লক বা ব্রাউজারের বাইরে থাকলেও রিংটোন সহ নোটিফিকেশন পেতে অনুমতি দিন।' : 'Get instant alerts when phone is locked.')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {notifPermission !== 'granted' ? (
-              <Button 
-                size="sm" 
-                onClick={handleEnableNotification}
-                disabled={isSubscribingNotif}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs"
-              >
-                <Bell className="h-3.5 w-3.5 mr-1" />
-                <span>{isSubscribingNotif ? 'অনুমোদন হচ্ছে...' : (isBn ? 'নোটিফিকেশন চালু করুন' : 'Enable Alerts')}</span>
-              </Button>
-            ) : (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleTestPushNotification}
-                className="text-xs font-bold text-emerald-900 border-emerald-300 bg-white hover:bg-emerald-50 cursor-pointer"
-              >
-                <Smartphone className="h-3.5 w-3.5 mr-1 text-emerald-700" />
-                <span>{isBn ? 'টেস্ট নোটিফিকেশন পাঠান' : 'Test Alert'}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
 
       {/* ── Status Tabs (Active, Completed, All) ────────────────────────────── */}
       <div className="flex border-b border-stone-200 text-xs font-semibold gap-3 sm:gap-6 overflow-x-auto pb-0.5">
