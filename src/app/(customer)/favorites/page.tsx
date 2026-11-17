@@ -2,19 +2,21 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Heart, Star, MapPin, Wrench, Trash2, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Heart, Star, MapPin, Wrench, Trash2, ArrowRight, ShieldCheck, ZoomIn } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
 import { MISTRI_DIRECTORY } from '@/app/api/mistris/search/route'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 export default function FavoritesPage() {
   const { lang, t } = useI18n()
   const isBn = lang === 'bn'
 
   const [favorites, setFavorites] = useState<any[]>([])
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   useEffect(() => {
     try {
@@ -85,14 +87,28 @@ export default function FavoritesPage() {
           {favorites.map((mistri) => (
             <Card key={mistri.id} className="p-4 sm:p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3.5">
-                <div className="relative shrink-0">
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveImageModal({
+                      src: mistri.avatar,
+                      title: mistri.name_bn || mistri.name_en,
+                      subtitle: mistri.professional_title || mistri.category_name_bn,
+                    })
+                  }}
+                  className="relative shrink-0 cursor-pointer group"
+                  title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+                >
                   <img
                     src={mistri.avatar}
                     alt={mistri.name_bn}
-                    className="h-16 w-16 rounded-2xl object-cover border border-slate-200"
+                    className="h-16 w-16 rounded-2xl object-cover border border-slate-200 group-hover:scale-105 group-hover:border-[#2c7865] transition-all"
                   />
                   <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white" title="Admin Verified">
                     <ShieldCheck className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ZoomIn className="h-2.5 w-2.5" />
                   </span>
                 </div>
 
@@ -150,6 +166,11 @@ export default function FavoritesPage() {
           ))}
         </div>
       )}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }

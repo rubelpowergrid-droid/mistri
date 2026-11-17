@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 export default function MistriProfilePage() {
   const params = useParams()
@@ -23,7 +24,7 @@ export default function MistriProfilePage() {
   const [mistri, setMistri] = useState<any>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isCompared, setIsCompared] = useState(false)
-  const [lightboxImg, setLightboxImg] = useState<string | null>(null)
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   useEffect(() => {
     fetch(`/api/mistris/${params.id}`)
@@ -127,7 +128,15 @@ export default function MistriProfilePage() {
       <Card className="p-6 sm:p-8 space-y-6 shadow-sm border-slate-200">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-5">
-            <div className="relative shrink-0">
+            <div
+              onClick={() => setActiveImageModal({
+                src: mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+                title: mistri.name_bn || mistri.name,
+                subtitle: mistri.professional_title || mistri.category_name_bn,
+              })}
+              className="relative shrink-0 cursor-pointer group"
+              title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+            >
               <img
                 src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
                 alt={mistri.name_bn}
@@ -136,10 +145,13 @@ export default function MistriProfilePage() {
                   target.onerror = null
                   target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
                 }}
-                className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl object-cover border-2 border-slate-200 shadow-xs"
+                className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl object-cover border-2 border-slate-200 shadow-xs group-hover:scale-105 group-hover:border-[#2c7865] group-hover:shadow-md transition-all"
               />
               <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white shadow-md" title="Admin Verified">
                 <ShieldCheck className="h-4 w-4" />
+              </span>
+              <span className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                <ZoomIn className="h-3 w-3" />
               </span>
             </div>
 
@@ -261,7 +273,11 @@ export default function MistriProfilePage() {
                 {mistri.portfolio.map((item: any) => (
                   <div
                     key={item.id}
-                    onClick={() => setLightboxImg(item.image_url)}
+                    onClick={() => setActiveImageModal({
+                      src: item.image_url,
+                      title: item.title,
+                      subtitle: mistri.name_bn || mistri.name,
+                    })}
                     className="relative group h-28 sm:h-36 rounded-2xl overflow-hidden border border-slate-200 cursor-pointer bg-slate-100"
                   >
                     <img src={item.image_url} alt={item.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
@@ -361,17 +377,12 @@ export default function MistriProfilePage() {
         </Link>
       </div>
 
-      {/* Lightbox Modal */}
-      {lightboxImg && (
-        <div 
-          onClick={() => setLightboxImg(null)}
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-xs cursor-zoom-out"
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <img src={lightboxImg} alt="Portfolio item" className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain" />
-          </div>
-        </div>
-      )}
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }

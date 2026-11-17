@@ -21,7 +21,7 @@ import {
   Search, Filter, MapPin, Star, ShieldCheck, 
   Calendar, Wrench, ArrowUpDown, SlidersHorizontal, 
   X, Check, Heart, Scale, Map as MapIcon, List,
-  DollarSign, CheckCircle2, ChevronRight, ArrowRight
+  DollarSign, CheckCircle2, ChevronRight, ArrowRight, ZoomIn
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 interface MistriResult {
   id: string
@@ -88,6 +89,7 @@ function SearchPageContent() {
   // Compare & Favorites local state
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [favoriteIds, setFavoriteIds] = useState<string[]>([])
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   const categories = [
     { slug: 'all', name_bn: 'সকল ক্যাটাগরি', name_en: 'All Categories' },
@@ -573,7 +575,18 @@ function SearchPageContent() {
                     <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                       {/* Left: Avatar & Basic Information */}
                       <div className="flex items-start gap-3.5">
-                        <div className="relative shrink-0">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveImageModal({
+                              src: mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+                              title: mistri.name_bn || mistri.name_en,
+                              subtitle: mistri.professional_title || mistri.category_name_bn,
+                            })
+                          }}
+                          className="relative shrink-0 cursor-pointer group"
+                          title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+                        >
                           <img
                             src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
                             alt={mistri.name_bn}
@@ -582,10 +595,13 @@ function SearchPageContent() {
                               target.onerror = null
                               target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
                             }}
-                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-stone-300"
+                            className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover border border-stone-300 group-hover:scale-105 group-hover:border-[#2c7865] group-hover:shadow-md transition-all"
                           />
                           <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">
                             <ShieldCheck className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ZoomIn className="h-3 w-3" />
                           </span>
                         </div>
 
@@ -791,6 +807,12 @@ function SearchPageContent() {
           </div>
         </div>
       )}
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }

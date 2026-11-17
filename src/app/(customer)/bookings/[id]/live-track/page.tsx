@@ -8,13 +8,14 @@ import {
   Navigation, Phone, ShieldCheck, ArrowLeft, Clock, 
   MapPin, Wrench, ExternalLink, AlertCircle, Compass,
   CheckCircle2, XCircle, AlertTriangle, X, Play, Loader2,
-  Radio, Crosshair
+  Radio, Crosshair, ZoomIn
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InteractiveMap } from '@/components/maps/interactive-map'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 import { 
   Coordinates, 
   calculateHaversineDistance, 
@@ -89,6 +90,7 @@ function CustomerLiveTrackContent() {
   const [cancelReason, setCancelReason] = useState(CANCELLATION_REASONS[0])
   const [cancelNotes, setCancelNotes] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   // ── 1. Request Customer's Real Device GPS Location ────────────────────────
   useEffect(() => {
@@ -461,11 +463,24 @@ function CustomerLiveTrackContent() {
       {booking.mistriName && (
         <Card className="p-4 skeuo-surface border-[#2c7865]/20 flex items-center gap-3">
           {booking.mistriAvatar && (
-            <img
-              src={booking.mistriAvatar}
-              alt={booking.mistriName}
-              className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm shrink-0"
-            />
+            <div
+              onClick={() => setActiveImageModal({
+                src: booking.mistriAvatar,
+                title: booking.mistriName,
+                subtitle: booking.mistriTitle || booking.category,
+              })}
+              className="relative shrink-0 cursor-pointer group"
+              title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+            >
+              <img
+                src={booking.mistriAvatar}
+                alt={booking.mistriName}
+                className="h-12 w-12 rounded-2xl object-cover border border-[#2c7865]/30 shadow-sm shrink-0 group-hover:scale-105 group-hover:border-[#2c7865] transition-all"
+              />
+              <span className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                <ZoomIn className="h-2.5 w-2.5" />
+              </span>
+            </div>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-bold text-[#14382f] truncate">{booking.mistriName}</h3>
@@ -771,6 +786,12 @@ function CustomerLiveTrackContent() {
           </Card>
         </div>
       )}
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }

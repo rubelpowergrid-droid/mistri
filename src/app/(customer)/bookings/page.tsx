@@ -7,7 +7,7 @@ import {
   Calendar, Clock, MapPin, Navigation, Phone, 
   CheckCircle2, XCircle, AlertCircle, Star, 
   RotateCcw, ShieldCheck, ArrowRight, MessageSquare, X, AlertTriangle, User,
-  Search, Filter, Printer
+  Search, Filter, Printer, ZoomIn
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { formatBDT, toBanglaNumber } from '@/lib/utils'
 import { ReviewModal } from '@/components/reviews/review-modal'
 import { getStoredUser } from '@/lib/auth-client'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 interface BookingRecord {
   id: string
@@ -61,6 +62,7 @@ function BookingsListContent() {
   const [successBanner, setSuccessBanner] = useState(searchParams.get('success') === 'true')
   const [reviewBooking, setReviewBooking] = useState<BookingRecord | null>(null)
   const [userRole, setUserRole] = useState<'admin' | 'mistri' | 'customer' | null>(null)
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   // Cancellation Modal State
   const [cancellingBooking, setCancellingBooking] = useState<BookingRecord | null>(null)
@@ -542,11 +544,24 @@ function BookingsListContent() {
               <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                 <div className="flex items-start gap-3.5">
                   {b.mistriAvatar ? (
-                    <img
-                      src={b.mistriAvatar}
-                      alt={b.mistriName}
-                      className="h-14 w-14 rounded-2xl object-cover border border-stone-300 shrink-0 shadow-sm"
-                    />
+                    <div
+                      onClick={() => setActiveImageModal({
+                        src: b.mistriAvatar,
+                        title: b.mistriName,
+                        subtitle: b.mistriTitle,
+                      })}
+                      className="relative shrink-0 cursor-pointer group"
+                      title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+                    >
+                      <img
+                        src={b.mistriAvatar}
+                        alt={b.mistriName}
+                        className="h-14 w-14 rounded-2xl object-cover border border-stone-300 shrink-0 shadow-sm group-hover:scale-105 group-hover:border-[#2c7865] transition-all"
+                      />
+                      <span className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="h-2.5 w-2.5" />
+                      </span>
+                    </div>
                   ) : (
                     <div className="h-14 w-14 rounded-2xl bg-[#2c7865] text-[#fefded] flex items-center justify-center font-bold text-lg shrink-0 shadow-sm border border-[#225f50]">
                       {b.mistriName ? b.mistriName.charAt(0) : <User className="h-6 w-6" />}
@@ -828,6 +843,12 @@ function BookingsListContent() {
           onSuccess={handleReviewSuccess}
         />
       )}
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Calendar, Clock, MapPin, DollarSign, 
   Upload, Camera, CheckCircle2, Shield, Wrench, 
-  Star, AlertCircle, Phone, X, Loader2, Crosshair
+  Star, AlertCircle, Phone, X, Loader2, Crosshair, ZoomIn
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import { Coordinates } from '@/lib/geo'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
 import { MISTRI_DIRECTORY } from '@/app/api/mistris/search/route'
 import { getStoredUser } from '@/lib/auth-client'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 export default function NewBookingPage() {
   const params = useParams()
@@ -35,6 +36,7 @@ export default function NewBookingPage() {
   const [preferredTime, setPreferredTime] = useState('সকাল ১০:০০ - ১২:০০')
   const [estimatedBudget, setEstimatedBudget] = useState<number | ''>(400)
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([])
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
   
   // Location states
   const [jobAddress, setJobAddress] = useState('বাড়ি নং ১২, পূর্ব হাজীপাড়া, ঠাকুরগাঁও সদর')
@@ -331,11 +333,24 @@ export default function NewBookingPage() {
       {/* Selected Mistri Summary Header */}
       <Card className="p-4 sm:p-5 skeuo-surface-dark text-white flex items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <img
-            src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
-            alt={mistri.name_bn}
-            className="h-14 w-14 rounded-2xl object-cover border-2 border-[#2c7865] shrink-0 shadow-md"
-          />
+          <div
+            onClick={() => setActiveImageModal({
+              src: mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+              title: mistri.name_bn || mistri.name,
+              subtitle: mistri.professional_title,
+            })}
+            className="relative shrink-0 cursor-pointer group"
+            title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+          >
+            <img
+              src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
+              alt={mistri.name_bn}
+              className="h-14 w-14 rounded-2xl object-cover border-2 border-[#2c7865] shrink-0 shadow-md group-hover:scale-105 group-hover:border-white transition-all"
+            />
+            <span className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+              <ZoomIn className="h-2.5 w-2.5" />
+            </span>
+          </div>
           <div className="space-y-0.5">
             <span className="text-[10px] text-[#fefded]/70 font-bold uppercase tracking-wider block">
               {isBn ? 'নির্বাচিত কারিগর' : 'Selected Professional'}
@@ -617,6 +632,13 @@ export default function NewBookingPage() {
           setJobCoordinates(coords)
           setJobAddress(addr)
         }}
+      />
+
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
       />
     </div>
   )

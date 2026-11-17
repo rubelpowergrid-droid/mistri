@@ -5,13 +5,14 @@ import Link from 'next/link'
 import { 
   Search, Zap, Wrench, Paintbrush, Hammer, Home as HomeIcon, 
   Axe, Armchair, ShieldAlert, Layers, Maximize, Users, 
-  MoreHorizontal, Star, ShieldCheck, MapPin, ArrowRight 
+  MoreHorizontal, Star, ShieldCheck, MapPin, ArrowRight, ZoomIn
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
+import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 export default function HomePage() {
   const { lang, t } = useI18n()
@@ -36,6 +37,7 @@ export default function HomePage() {
 
   const [featuredMistris, setFeaturedMistris] = useState<any[]>([])
   const [loadingMistris, setLoadingMistris] = useState(true)
+  const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   useEffect(() => {
     fetch('/api/mistris/search')
@@ -195,7 +197,18 @@ export default function HomePage() {
             featuredMistris.map((mistri) => (
               <Card key={mistri.id} className="flex flex-col justify-between p-4 skeuo-surface border-stone-300 hover:border-stone-400 hover:shadow-md transition-all">
                 <div className="flex items-start gap-3.5">
-                  <div className="relative shrink-0">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setActiveImageModal({
+                        src: mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
+                        title: mistri.name,
+                        subtitle: mistri.title,
+                      })
+                    }}
+                    className="relative shrink-0 cursor-pointer group"
+                    title={isBn ? 'ছবি বড় করে দেখতে চাপুন' : 'Click to enlarge picture'}
+                  >
                     <img
                       src={mistri.avatar || 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'}
                       alt={mistri.name}
@@ -204,10 +217,13 @@ export default function HomePage() {
                         target.onerror = null
                         target.src = 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80'
                       }}
-                      className="h-16 w-16 rounded-2xl object-cover border border-stone-300 bg-stone-100"
+                      className="h-16 w-16 rounded-2xl object-cover border border-stone-300 bg-stone-100 group-hover:scale-105 group-hover:border-[#2c7865] group-hover:shadow-md transition-all"
                     />
                     <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white border border-stone-700 shadow-xs" title="Admin Verified">
                       <ShieldCheck className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ZoomIn className="h-3 w-3" />
                     </span>
                   </div>
                   <div className="space-y-1 min-w-0 flex-1">
@@ -286,6 +302,13 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {/* Full Screen Image Modal */}
+      <ImageModal
+        isOpen={Boolean(activeImageModal)}
+        data={activeImageModal}
+        onClose={() => setActiveImageModal(null)}
+      />
     </div>
   )
 }
