@@ -7,7 +7,7 @@ import {
   User, Phone, ShieldCheck, Wrench, Lock, CheckCircle2, 
   MapPin, Clock, Star, AlertCircle, Save, ArrowLeft, 
   Camera, MessageCircle, LogOut, ExternalLink, RefreshCw, X, Printer,
-  Inbox, Bell, Calendar
+  Inbox, Bell, Calendar, KeyRound, Eye, EyeOff
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -103,6 +103,74 @@ export default function MistriProfilePage() {
   const [isOtpLoading, setIsOtpLoading] = useState(false)
   const [phoneModalError, setPhoneModalError] = useState('')
   const [phoneModalSuccess, setPhoneModalSuccess] = useState('')
+
+  // Password Change Modal States
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPass, setShowCurrentPass] = useState(false)
+  const [showNewPass, setShowNewPass] = useState(false)
+  const [isChangingPass, setIsChangingPass] = useState(false)
+  const [passwordModalError, setPasswordModalError] = useState('')
+  const [passwordModalSuccess, setPasswordModalSuccess] = useState('')
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordModalError('')
+    setPasswordModalSuccess('')
+
+    if (!currentPassword) {
+      setPasswordModalError(isBn ? 'বর্তমান পাসওয়ার্ড দিন' : 'Enter current password')
+      return
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+      setPasswordModalError(isBn ? 'নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে' : 'Password must be at least 4 characters')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordModalError(isBn ? 'নতুন পাসওয়ার্ড ও নিশ্চিতকরণ পাসওয়ার্ড মেলেনি' : 'Passwords do not match')
+      return
+    }
+
+    setIsChangingPass(true)
+    try {
+      const activeUser = getStoredUser()
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: profile.phone || activeUser?.phone,
+          userId: profile.id || profile.userId || activeUser?.id,
+          currentPassword,
+          newPassword,
+          confirmPassword,
+          role: 'mistri',
+        }),
+      })
+
+      const data = await res.json()
+      setIsChangingPass(false)
+
+      if (data.success) {
+        setPasswordModalSuccess(data.message || (isBn ? 'পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে!' : 'Password changed successfully!'))
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setTimeout(() => {
+          setIsPasswordModalOpen(false)
+          setPasswordModalSuccess('')
+        }, 2000)
+      } else {
+        setPasswordModalError(data.error || (isBn ? 'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে' : 'Failed to change password'))
+      }
+    } catch {
+      setIsChangingPass(false)
+      setPasswordModalError(isBn ? 'সার্ভারে সংযোগ স্থাপন সম্ভব হয়নি' : 'Failed to connect to server')
+    }
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -990,6 +1058,55 @@ export default function MistriProfilePage() {
         </div>
       </Card>
 
+      {/* SECTION 2.5: LOGIN PASSWORD & SECURITY */}
+      <Card className="p-5 sm:p-6 space-y-4 skeuo-surface">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-[#2c7865]" />
+              <h2 className="text-sm sm:text-base font-bold text-stone-900">
+                {isBn ? 'লগইন পাসওয়ার্ড ও একাউন্ট নিরাপত্তা' : 'Login Password & Security'}
+              </h2>
+            </div>
+            <p className="text-xs text-stone-500">
+              {isBn 
+                ? 'আপনার মোবাইল নম্বর দিয়ে সাইন ইন করার পাসওয়ার্ডটি যেকোনো সময় এখান থেকে পরিবর্তন করতে পারেন।' 
+                : 'You can change your phone sign-in password anytime to keep your account secure.'}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setIsPasswordModalOpen(true)
+              setPasswordModalError('')
+              setPasswordModalSuccess('')
+              setCurrentPassword('')
+              setNewPassword('')
+              setConfirmPassword('')
+            }}
+            className="skeuo-btn-dark text-xs shrink-0 cursor-pointer"
+          >
+            <KeyRound className="h-3.5 w-3.5 mr-1" />
+            <span>{isBn ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Change Password'}</span>
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1 max-w-sm">
+            <label className="text-xs font-semibold text-stone-700 block mb-1">লগইন ক্রেডেনশিয়াল স্ট্যাটাস:</label>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl skeuo-input-well text-stone-900 font-mono font-bold text-xs">
+              <Lock className="h-4 w-4 text-emerald-600" />
+              <span>••••••••••••</span>
+              <span className="ml-auto text-[10px] text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                ✓ সংরক্ষিত ও সুরক্ষিত
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* SECTION 3: EDITABLE PROFESSIONAL & SERVICE DETAILS */}
       <form onSubmit={handleSaveProfile} className="space-y-6">
         <Card className="p-5 sm:p-6 space-y-5 skeuo-surface">
@@ -1299,6 +1416,140 @@ export default function MistriProfilePage() {
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl skeuo-surface p-6 shadow-2xl space-y-4 border border-stone-300">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#2c7865] text-white">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">
+                    {isBn ? 'মিস্ত্রী পাসওয়ার্ড পরিবর্তন' : 'Change Mistri Password'}
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    {isBn ? 'মোবাইল নম্বর দিয়ে সাইন ইন করার নতুন পাসওয়ার্ড সেট করুন' : 'Set a new password to log in with your phone'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {passwordModalError && (
+              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 font-semibold flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+                <span>{passwordModalError}</span>
+              </div>
+            )}
+
+            {passwordModalSuccess && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-300 font-semibold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span>{passwordModalSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700 block">
+                  {isBn ? 'বর্তমান পাসওয়ার্ড:' : 'Current Password:'}
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder={isBn ? 'বর্তমান পাসওয়ার্ড লিখুন' : 'Enter current password'}
+                    required
+                    className="pr-10 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  >
+                    {showCurrentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700 block">
+                  {isBn ? 'নতুন পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর):' : 'New Password (min 4 chars):'}
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={isBn ? 'নতুন গোপন পাসওয়ার্ড দিন' : 'Enter new password'}
+                    required
+                    className="pr-10 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  >
+                    {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-700 block">
+                  {isBn ? 'নতুন পাসওয়ার্ড নিশ্চিত করুন:' : 'Confirm New Password:'}
+                </label>
+                <Input
+                  type={showNewPass ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={isBn ? 'পুনরায় নতুন পাসওয়ার্ড লিখুন' : 'Re-enter new password'}
+                  required
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-stone-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  disabled={isChangingPass}
+                  className="text-xs cursor-pointer"
+                >
+                  {isBn ? 'বাতিল' : 'Cancel'}
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isChangingPass}
+                  className="skeuo-btn-dark text-xs font-bold cursor-pointer"
+                >
+                  {isChangingPass ? (
+                    <span className="flex items-center gap-1.5">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>{isBn ? 'সংরক্ষণ হচ্ছে...' : 'Saving...'}</span>
+                    </span>
+                  ) : (
+                    <span>{isBn ? 'পাসওয়ার্ড আপডেট করুন' : 'Update Password'}</span>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

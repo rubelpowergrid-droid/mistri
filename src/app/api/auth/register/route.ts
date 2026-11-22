@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { saveMistriToSupabase } from '@/lib/supabase-service'
 import { addApplicantToQueue, addCustomerToStore } from '@/lib/mistri-store'
 import { EmailOtpService } from '@/lib/email-otp-service'
+import { saveUserCredential, normalizePhone } from '@/lib/auth-credentials'
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +111,10 @@ export async function POST(request: NextRequest) {
 
       const mistriId = dbProfile?.id || applicantRecord.id
 
+      if (password && cleanPhone) {
+        saveUserCredential(cleanPhone, password, 'mistri', fullName, dbProfile?.user_id || dbProfile?.id || mistriId)
+      }
+
       return NextResponse.json({
         success: true,
         role: 'mistri',
@@ -171,6 +176,10 @@ export async function POST(request: NextRequest) {
       district: district || 'ঠাকুরগাঁও',
       upazila: upazila || 'ঠাকুরগাঁও সদর',
     })
+
+    if (password && cleanPhone) {
+      saveUserCredential(cleanPhone, password, 'customer', fullName, customerId)
+    }
 
     return NextResponse.json({
       success: true,

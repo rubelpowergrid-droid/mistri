@@ -3,6 +3,7 @@ import { addApplicantToQueue } from '@/lib/mistri-store'
 import { saveMistriToSupabase } from '@/lib/supabase-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DEFAULT_CATEGORIES, findCategoryByAny } from '@/lib/categories'
+import { saveUserCredential, normalizePhone } from '@/lib/auth-credentials'
 
 async function uploadBase64ToStorage(
   supabase: any,
@@ -173,6 +174,21 @@ export async function POST(request: NextRequest) {
       }
     } catch (dbErr) {
       console.error('Supabase persistence error during onboarding:', dbErr)
+    }
+
+    // Persist login credentials so mistri can always sign in with this phone and password
+    if (password && cleanPhone) {
+      try {
+        saveUserCredential(
+          cleanPhone,
+          password,
+          'mistri',
+          fullName,
+          dbProfile?.user_id || dbProfile?.id || newRecord.id
+        )
+      } catch (credErr) {
+        console.warn('Failed to save user credentials locally:', credErr)
+      }
     }
 
     return NextResponse.json({

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, ShieldCheck, Wrench, Users, 
   Layers, MapPin, Calendar, FileText, ArrowLeft,
-  Menu, X, Bell, LogOut, ChevronRight, Trash2
+  Menu, X, Bell, LogOut, ChevronRight, Trash2, KeyRound
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Badge } from '@/components/ui/badge'
@@ -70,6 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/categories', label: isBn ? 'ক্যাটাগরি ও সার্ভিস' : 'Categories & Services', icon: Layers },
     { href: '/admin/locations', label: isBn ? 'জেলা ও উপজেলা জিও' : 'Geo Locations', icon: MapPin },
     { href: '/admin/bookings', label: isBn ? 'বুকিং ও ডিসপিউট' : 'Bookings & Disputes', icon: Calendar },
+    { href: '/admin/settings', label: isBn ? 'এডমিন পাসওয়ার্ড ও সেটিংস' : 'Admin Password & Settings', icon: KeyRound },
   ]
 
   if (pathname === '/admin') {

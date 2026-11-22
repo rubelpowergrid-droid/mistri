@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Users, Wrench, ShieldCheck, Calendar,
-  Layers, MapPin, ArrowRight, Trash2, AlertTriangle, RefreshCw
+  Layers, MapPin, ArrowRight, Trash2, AlertTriangle, RefreshCw, KeyRound
 } from 'lucide-react'
 import { useI18n } from '@/locales'
 import { Card } from '@/components/ui/card'
@@ -161,7 +161,13 @@ export default function AdminDashboardPage() {
               : 'Live marketplace activity across Thakurgaon, Panchagarh & Dinajpur'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href="/admin/settings">
+            <Button size="sm" variant="outline" className="border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-bold text-xs shadow-xs cursor-pointer">
+              <KeyRound className="h-4 w-4 mr-1 text-[#2c7865]" />
+              <span>{isBn ? 'পাসওয়ার্ড পরিবর্তন' : 'Change Password'}</span>
+            </Button>
+          </Link>
           <Link href="/admin/verification">
             <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-xs">
               <ShieldCheck className="h-4 w-4 mr-1" />
