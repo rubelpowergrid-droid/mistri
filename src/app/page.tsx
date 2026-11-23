@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   Search, Zap, Wrench, Paintbrush, Hammer, Home as HomeIcon, 
   Axe, Armchair, ShieldAlert, Layers, Maximize, Users, 
@@ -15,10 +16,17 @@ import { formatBDT, formatDistance, toBanglaNumber } from '@/lib/utils'
 import { ImageModal, ImageModalData } from '@/components/ui/image-modal'
 
 export default function HomePage() {
+  const router = useRouter()
   const { lang, t } = useI18n()
   const isBn = lang === 'bn'
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDistrict, setSelectedDistrict] = useState('Thakurgaon')
+
+  const currentDistrictLabel = selectedDistrict === 'Panchagarh' 
+    ? (isBn ? 'পঞ্চগড়' : 'Panchagarh') 
+    : selectedDistrict === 'Dinajpur' 
+    ? (isBn ? 'দিনাজপুর' : 'Dinajpur') 
+    : (isBn ? 'ঠাকুরগাঁও' : 'Thakurgaon')
 
   const categories = [
     { id: '1', name_bn: 'ইলেকট্রিক্যাল কাজ', name_en: 'Electrical Services', icon: Zap, slug: 'electrical-services' },
@@ -40,11 +48,16 @@ export default function HomePage() {
   const [activeImageModal, setActiveImageModal] = useState<ImageModalData | null>(null)
 
   useEffect(() => {
-    fetch('/api/mistris/search')
+    setLoadingMistris(true)
+    const url = selectedDistrict && selectedDistrict !== 'all'
+      ? `/api/mistris/search?district=${encodeURIComponent(selectedDistrict)}`
+      : '/api/mistris/search'
+
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data)) {
-          const mapped = data.data.slice(0, 3).map((m: any) => ({
+          const mapped = data.data.slice(0, 6).map((m: any) => ({
             id: m.id,
             name: isBn ? m.name_bn : (m.name_en || m.name_bn),
             title: m.professional_title || m.title || (isBn ? 'দক্ষ কারিগর' : 'Skilled Worker'),
@@ -53,6 +66,7 @@ export default function HomePage() {
             completedJobs: m.total_completed_jobs || m.completedJobs || 0,
             experienceYears: m.experience_years || m.experienceYears || 5,
             distanceKm: m.distance_km || 1.4,
+            district: isBn ? (m.district_bn || m.district) : (m.district || m.district_bn),
             upazila: isBn ? (m.upazila_bn || m.upazila) : (m.upazila || m.upazila_bn),
             baseCharge: m.base_charge || 400,
             chargeType: m.charge_type || 'negotiable',
@@ -60,11 +74,15 @@ export default function HomePage() {
             category: isBn ? (m.category_name_bn || m.category) : (m.category_name_en || m.category),
           }))
           setFeaturedMistris(mapped)
+        } else {
+          setFeaturedMistris([])
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setFeaturedMistris([])
+      })
       .finally(() => setLoadingMistris(false))
-  }, [isBn])
+  }, [isBn, selectedDistrict])
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-2 sm:pb-4">
@@ -86,7 +104,13 @@ export default function HomePage() {
 
             {/* Search Box - Skeuomorphic Tactile Well in #fefded */}
             <div className="mx-auto max-w-2xl pt-2">
-              <div className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-[#fefded] p-2 shadow-2xl border border-[#2c7865]/20">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  router.push(`/search?q=${encodeURIComponent(searchQuery)}${selectedDistrict ? `&district=${encodeURIComponent(selectedDistrict)}` : ''}`)
+                }}
+                className="flex flex-col sm:flex-row items-center gap-2 rounded-2xl bg-[#fefded] p-2 shadow-2xl border border-[#2c7865]/20"
+              >
                 <div className="flex w-full items-center gap-2 px-3 text-[#2c7865]">
                   <Search className="h-5 w-5 text-[#2c7865]/60 shrink-0" />
                   <input
@@ -97,12 +121,12 @@ export default function HomePage() {
                     className="w-full bg-transparent py-2 text-sm text-[#14382f] placeholder:text-[#2c7865]/50 focus:outline-none"
                   />
                 </div>
-                <Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark text-[#fefded]">
+                <Link href={`/search?q=${encodeURIComponent(searchQuery)}${selectedDistrict ? `&district=${encodeURIComponent(selectedDistrict)}` : ''}`} className="w-full sm:w-auto">
+                  <Button type="button" className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold skeuo-btn-dark text-[#fefded] cursor-pointer">
                     {t('nav.search')}
                   </Button>
                 </Link>
-              </div>
+              </form>
             </div>
 
             {/* District Quick Pills */}
@@ -141,7 +165,10 @@ export default function HomePage() {
               {isBn ? 'আপনার প্রয়োজনীয় কাজের ধরন নির্বাচন করুন' : 'Choose the service you need'}
             </p>
           </div>
-          <Link href="/categories" className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1 cursor-pointer">
+          <Link 
+            href={`/categories${selectedDistrict ? `?district=${encodeURIComponent(selectedDistrict)}` : ''}`} 
+            className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1 cursor-pointer"
+          >
             <span>{isBn ? 'সব দেখুন' : 'View All'}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -151,7 +178,7 @@ export default function HomePage() {
           {categories.map((cat) => {
             const Icon = cat.icon
             return (
-              <Link key={cat.id} href={`/search?category=${cat.slug}`}>
+              <Link key={cat.id} href={`/search?category=${cat.slug}${selectedDistrict ? `&district=${encodeURIComponent(selectedDistrict)}` : ''}`}>
                 <Card className="flex flex-col items-center justify-center p-3 sm:p-4 text-center skeuo-surface border-stone-300 hover:border-stone-900 hover:shadow-lg transition-all cursor-pointer h-full group">
                   <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl skeuo-btn-light bg-stone-100 text-stone-900 border border-stone-300 mb-2.5 transition-all group-hover:bg-stone-900 group-hover:text-white group-hover:border-black group-hover:scale-105">
                     <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
@@ -173,14 +200,21 @@ export default function HomePage() {
             <div className="h-2.5 w-2.5 rounded-full bg-stone-900 animate-pulse"></div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-stone-900">
-                {isBn ? 'কাছের দক্ষ মিস্ত্রীগণ' : 'Nearby Available Professionals'}
+                {isBn 
+                  ? `${currentDistrictLabel} জেলার দক্ষ মিস্ত্রীগণ` 
+                  : `Available Professionals in ${currentDistrictLabel}`}
               </h2>
               <p className="text-xs text-stone-500">
-                {isBn ? 'জিপিএস ভিত্তিক দূরত্বের ক্রমানুসারে' : 'Ranked by geodesic distance'}
+                {isBn 
+                  ? `${currentDistrictLabel} জেলার জিপিএস ভিত্তিক দূরত্বের ক্রমানুসারে` 
+                  : `Ranked by distance in ${currentDistrictLabel}`}
               </p>
             </div>
           </div>
-          <Link href="/search?sort=nearest" className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1 cursor-pointer">
+          <Link 
+            href={`/search?sort=nearest${selectedDistrict ? `&district=${encodeURIComponent(selectedDistrict)}` : ''}`} 
+            className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1 cursor-pointer"
+          >
             <span>{isBn ? 'ম্যাপে দেখুন' : 'View on Map'}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -258,12 +292,12 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Link href={`/mistri/${mistri.id}`}>
-                      <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold">
+                      <Button variant="outline" size="sm" className="skeuo-btn-light text-xs font-bold cursor-pointer">
                         {t('common.view_details')}
                       </Button>
                     </Link>
                     <Link href={`/bookings/new/${mistri.id}`}>
-                      <Button size="sm" className="skeuo-btn-dark text-xs font-bold">
+                      <Button size="sm" className="skeuo-btn-dark text-xs font-bold cursor-pointer">
                         {t('booking.book_now')}
                       </Button>
                     </Link>
@@ -272,8 +306,36 @@ export default function HomePage() {
               </Card>
             ))
           ) : (
-            <div className="col-span-full py-8 text-center text-xs text-stone-500">
-              {isBn ? 'বর্তমানে কোনো সক্রিয় কারিগর তালিকাভুক্ত নেই।' : 'No active professionals listed.'}
+            <div className="col-span-full py-12 px-4 rounded-3xl skeuo-surface border border-stone-200 text-center space-y-3 bg-[#fdfcf7]">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 shadow-xs">
+                <MapPin className="h-7 w-7 text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm sm:text-base font-bold text-stone-900">
+                  {isBn 
+                    ? `${currentDistrictLabel} জেলায় এই মুহূর্তে কোনো মিস্ত্রী পাওয়া যায়নি` 
+                    : `No professionals found in ${currentDistrictLabel} yet`}
+                </h3>
+                <p className="text-xs text-stone-500 max-w-md mx-auto">
+                  {isBn 
+                    ? `বর্তমানে এই জেলায় কোনো অনুমোদিত মিস্ত্রী নিবন্ধিত নেই। আপনি ঠাকুরগাঁও জেলার মিস্ত্রী দেখতে পারেন অথবা সরাসরি মিস্ত্রী হিসেবে আবেদন করতে পারেন।`
+                    : `Currently there are no verified professionals in this district. You can view Thakurgaon mistris or register as a skilled worker.`}
+                </p>
+              </div>
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDistrict('Thakurgaon')}
+                  className="px-4 py-2 rounded-xl text-xs font-bold skeuo-btn-dark text-white cursor-pointer shadow-xs"
+                >
+                  {isBn ? 'ঠাকুরগাঁও জেলার মিস্ত্রী দেখুন' : 'View Thakurgaon Mistris'}
+                </button>
+                <Link href={`/onboarding?district=${encodeURIComponent(selectedDistrict)}`}>
+                  <Button variant="outline" size="sm" className="text-xs font-bold border-stone-300 bg-white hover:bg-stone-50 cursor-pointer">
+                    {isBn ? 'এই জেলায় মিস্ত্রী হিসেবে যোগ দিন' : 'Register in this District'}
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </div>

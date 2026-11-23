@@ -76,8 +76,29 @@ export async function GET(request: NextRequest) {
     // Subcategory filter
     if (subcategory && !m.subcategories.includes(subcategory)) return false
 
-    // District filter
-    if (district && district !== 'all' && m.district.toLowerCase() !== district.toLowerCase() && m.district_bn !== district) return false
+    // District filter (Strict match by Bengali / English name or slug)
+    if (district && district !== 'all') {
+      const dTarget = district.trim().toLowerCase()
+      const dEn = (m.district || '').trim().toLowerCase()
+      const dBn = (m.district_bn || '').trim().toLowerCase()
+
+      const isTargetThakurgaon = dTarget.includes('thakur') || dTarget.includes('ঠাকুর')
+      const isTargetPanchagarh = dTarget.includes('panch') || dTarget.includes('পঞ্চ')
+      const isTargetDinajpur = dTarget.includes('dinaj') || dTarget.includes('দিনাজ')
+
+      let isMatch = false
+      if (isTargetThakurgaon) {
+        isMatch = dEn.includes('thakur') || dBn.includes('ঠাকুর')
+      } else if (isTargetPanchagarh) {
+        isMatch = dEn.includes('panch') || dBn.includes('পঞ্চ')
+      } else if (isTargetDinajpur) {
+        isMatch = dEn.includes('dinaj') || dBn.includes('দিনাজ')
+      } else {
+        isMatch = dEn === dTarget || dBn === dTarget || dBn === district.trim()
+      }
+
+      if (!isMatch) return false
+    }
 
     // Numeric filters
     if (m.average_rating < minRating) return false
